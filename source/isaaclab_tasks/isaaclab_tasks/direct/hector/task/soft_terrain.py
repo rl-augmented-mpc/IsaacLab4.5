@@ -279,7 +279,8 @@ class SoftTerrainEnv(BaseArch):
     
     def _reset_robot(self, env_ids: Sequence[int])->None:
         center_coord = np.array([self.cfg.terrain.center_position[0], self.cfg.terrain.center_position[1]])[None, :]
-        position = self.cfg.robot_position_sampler.sample(len(env_ids))
+        # position = self.cfg.robot_position_sampler.sample(len(env_ids))
+        position = self.cfg.robot_position_sampler.sample(center_coord, len(env_ids))
         quat = self.cfg.robot_quat_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(position))
         
         position = torch.tensor(position, device=self.device).view(-1, 3)
@@ -315,7 +316,7 @@ class SoftTerrainEnv(BaseArch):
         self._ref_yaw = torch.zeros(self.num_envs, 1, device=self.device, dtype=torch.float32)
         
         # update view port to look at the current active terrain
-        self.viewport_camera_controller.update_view_location(eye=(center_coord[0, 0]+2, center_coord[0, 1]-2, 0.5), lookat=(center_coord[0, 0], center_coord[0, 1], 0.0))
+        self.viewport_camera_controller.update_view_location(eye=(center_coord[0, 0]+3.5, center_coord[0, 1]-3.5, 0.5), lookat=(center_coord[0, 0], center_coord[0, 1], 0.0))
     
     def _get_rewards(self)->torch.Tensor:
         # reward

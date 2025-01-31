@@ -27,6 +27,10 @@ class RslRlPpoActorCriticCfg:
 
     activation: str = MISSING
     """The activation function for the actor and critic networks."""
+    
+    rnn_num_layers: int = 1
+    
+    rnn_type: str = "GRU" # [GRU, LSTM]
 
 
 @configclass
