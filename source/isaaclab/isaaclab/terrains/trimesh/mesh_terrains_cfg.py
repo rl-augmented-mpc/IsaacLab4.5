@@ -22,6 +22,17 @@ class MeshPlaneTerrainCfg(SubTerrainBaseCfg):
     """Configuration for a plane mesh terrain."""
 
     function = mesh_terrains.flat_terrain
+    height: float = 0.0
+    """The ground level of the terrain (in m). Defaults to 0.0."""
+
+@configclass
+class MeshThickTerrainCfg(SubTerrainBaseCfg):
+    """Configuration for a thick plane mesh terrain."""
+
+    function = mesh_terrains.thick_terrain
+
+    thickness: float = 0.1
+    """The thickness of the terrain (in m). Defaults to 0.1."""
 
 
 @configclass

@@ -1,0 +1,22 @@
+# Reference: https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/sac.yml
+# Each configuration, refer to https://stable-baselines3.readthedocs.io/en/master/modules/sac.html#stable_baselines3.sac.SAC
+model_name: "SAC"
+seed: 42
+n_timesteps: !!float 5e5
+policy: 'MlpPolicy'
+learning_rate: !!float 3e-4
+buffer_size: 300000
+batch_size: 256
+ent_coef: 'auto'
+gamma: 0.98
+tau: 0.02
+train_freq: 64
+gradient_steps: 64
+learning_starts: 1000
+use_sde: True
+policy_kwargs: "dict(
+                  log_std_init=-1,
+                  activation_fn=nn.ELU,
+                  net_arch=[256,128], 
+                  clip_mean=1.0, 
+                )"

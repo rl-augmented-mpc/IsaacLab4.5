@@ -93,6 +93,33 @@ class TerrainImporter:
             self.configure_env_origins(terrain_generator.terrain_origins)
             # refer to the flat patches
             self._terrain_flat_patches = terrain_generator.flat_patches
+        elif self.cfg.terrain_type == "patched":
+            # check config is provided
+            if self.cfg.terrain_generator is None:
+                raise ValueError("Input terrain type is 'generator' but no value provided for 'terrain_generator'.")
+            # generate the terrain
+            terrain_generator = TerrainGenerator(cfg=self.cfg.terrain_generator, device=self.device)
+            num_curriculum_x = int(self.cfg.terrain_generator.num_cols/self.cfg.friction_group_patch_num)
+            num_curriculum_y = int(self.cfg.terrain_generator.num_rows/self.cfg.friction_group_patch_num)
+            num_curriculum_level = num_curriculum_x*num_curriculum_y
+            for i in range(len(terrain_generator.terrain_meshes)-1): # skip border mesh
+                terrain_row_index = int(i/self.cfg.terrain_generator.num_cols)
+                terrain_col_index = i % self.cfg.terrain_generator.num_cols
+                mesh = terrain_generator.terrain_meshes[i]
+                local_group_idx = int(terrain_col_index/self.cfg.friction_group_patch_num) + num_curriculum_y*int(terrain_row_index/self.cfg.friction_group_patch_num)
+                local_group_friction_range = \
+                    (self.cfg.static_friction_range[1] - (local_group_idx+1)*((self.cfg.static_friction_range[1]-self.cfg.static_friction_range[0])/num_curriculum_level), \
+                    self.cfg.static_friction_range[1] - local_group_idx*((self.cfg.static_friction_range[1]-self.cfg.static_friction_range[0])/num_curriculum_level))
+                static_friction, dynamic_friction = self._sample_physics_parameter(local_group_friction_range)
+                if self.cfg.physics_material is not None:
+                    self.cfg.physics_material.static_friction = static_friction
+                    self.cfg.physics_material.dynamic_friction = dynamic_friction
+                # TODO: include color map in cfg
+                self.cfg.visual_material = sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0-2*static_friction, 1.0-2*static_friction, 1.00)) # blue color(max=0.5)
+                self.import_mesh("terrain_{}_{}".format(terrain_row_index, terrain_col_index), mesh)
+            # self.import_mesh("terrain_border", terrain_generator.terrain_meshes[-1]) # skip border mesh
+            self.configure_env_origins(terrain_generator.terrain_origins)
+            self._terrain_flat_patches = terrain_generator.flat_patches
         elif self.cfg.terrain_type == "usd":
             # check if config is provided
             if self.cfg.usd_path is None:
@@ -230,8 +257,12 @@ class TerrainImporter:
         create_prim_from_mesh(
             mesh_prim_path,
             mesh,
+            translation=self.cfg.center_position,
             visual_material=self.cfg.visual_material,
             physics_material=self.cfg.physics_material,
+            disable_colllider=self.cfg.disable_colllider,
+            contact_offset=self.cfg.contact_offset,
+            rest_offset=self.cfg.rest_offset,
         )
 
     def import_usd(self, key: str, usd_path: str):
