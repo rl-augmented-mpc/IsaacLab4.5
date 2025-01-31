@@ -146,6 +146,7 @@ class TerrainGenerator:
         if self.cfg.curriculum:
             with Timer("[INFO] Generating terrains based on curriculum took"):
                 self._generate_curriculum_terrains()
+                # self._generate_grid_terrains()
         else:
             with Timer("[INFO] Generating terrains randomly took"):
                 self._generate_random_terrains()
@@ -219,6 +220,27 @@ class TerrainGenerator:
             mesh, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
             # add to sub-terrains
             self._add_sub_terrain(mesh, origin, sub_row, sub_col, sub_terrains_cfgs[sub_index])
+
+    def _generate_grid_terrains(self):
+        """Tile terrains from sub_terrains lists."""
+        # normalize the proportions of the sub-terrains
+        proportions = np.array([sub_cfg.proportion for sub_cfg in self.cfg.sub_terrains.values()])
+        proportions /= np.sum(proportions)
+        # create a list of all terrain configs
+        sub_terrains_cfgs = list(self.cfg.sub_terrains.values())
+
+        # randomly sample sub-terrains
+        for index in range(self.cfg.num_rows * self.cfg.num_cols):
+            # coordinate index of the sub-terrain
+            (sub_row, sub_col) = np.unravel_index(index, (self.cfg.num_rows, self.cfg.num_cols))
+            sub_row = index // self.cfg.num_rows
+            sub_col = index % self.cfg.num_cols
+            # not sure what this difficulty is for
+            difficulty = index/(self.cfg.num_rows * self.cfg.num_cols - 1)
+            # generate terrain
+            mesh, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[index])
+            # add to sub-terrains
+            self._add_sub_terrain(mesh, origin, sub_row, sub_col, sub_terrains_cfgs[index])
 
     def _generate_curriculum_terrains(self):
         """Add terrains based on the difficulty parameter."""
