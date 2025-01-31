@@ -31,7 +31,8 @@ full_path = os.path.dirname(os.path.realpath(__file__))
 HECTOR_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/robot/hector/hector_oct8.usd", #joint friction=0
-        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/robot/hector/hector_flat_foot.usd", #joint friction=0
+        # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/robot/hector/hector_flat_foot.usd", #joint friction=0
+        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/robot/hector/hector_flat_foot_v2.usd", # with tight joint limit
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
