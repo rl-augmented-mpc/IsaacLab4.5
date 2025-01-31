@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import torch
-import omni.isaac.lab.sim as sim_utils
+import isaaclab.sim as sim_utils
 from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
 from isaaclab_assets import ISAACLAB_ASSETS_DATA_DIR
 
@@ -16,7 +16,7 @@ class ContactVisualizer:
             markers={
                 "grf":
                 sim_utils.UsdFileCfg(
-                usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/props/arrow_z.usd",
+                usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/robot/hector/props/arrow_z.usd",
                 scale=(1.0, 1.0, 1.0),
             ),
             }
@@ -54,7 +54,7 @@ class PenetrationVisualizer:
             markers={
                 "penetration":
                 sim_utils.UsdFileCfg(
-                usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/props/arrow_z_small.usd",
+                usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/robot/hector/props/arrow_z_small.usd",
                 scale=(1.0, 1.0, 1.0),
             ),
             }

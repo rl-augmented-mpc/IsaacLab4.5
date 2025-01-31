@@ -73,6 +73,7 @@ class ArticulationData:
         self._joint_pos = TimestampedBuffer()
         self._joint_acc = TimestampedBuffer()
         self._joint_vel = TimestampedBuffer()
+        self._joint_effort = TimestampedBuffer()
 
     def update(self, dt: float):
         # update the simulation timestamp
@@ -453,6 +454,15 @@ class ArticulationData:
             # update the previous joint velocity
             self._previous_joint_vel[:] = self.joint_vel
         return self._joint_acc.data
+    
+    @property
+    def joint_effort(self):
+        """Joint effort of all joints. Shape is (num_instances, num_joints)."""
+        if self._joint_effort.timestamp < self._sim_timestamp:
+            # read data from simulation and set the buffer data and timestamp
+            self._joint_effort.data = self._root_physx_view.get_dof_actuation_forces()
+            self._joint_effort.timestamp = self._sim_timestamp
+        return self._joint_effort.data
 
     ##
     # Derived properties.

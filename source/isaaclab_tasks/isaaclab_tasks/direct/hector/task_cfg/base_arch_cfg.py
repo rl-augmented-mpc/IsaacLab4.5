@@ -26,14 +26,14 @@ from isaaclab.markers import VisualizationMarkersCfg
 from isaaclab.utils import configclass
 
 # Task core
-from isaaclab_assets.hector import HECTOR_CFG
+from isaaclab_assets.robots.hector import HECTOR_CFG
 from isaaclab_assets import ISAACLAB_ASSETS_DATA_DIR
 
 from isaaclab_tasks.direct.hector.common.task_reward import VelocityTrackingReward, AliveReward, ContactTrackingReward, PoseTrackingReward
 from isaaclab_tasks.direct.hector.common.task_penalty import VelocityTrackingPenalty, TwistPenalty, FeetSlidePenalty, JointPenalty, ActionSaturationPenalty
 from isaaclab_tasks.direct.hector.common.sampler import UniformLineSampler, UniforPlaneSampler, UniformCubicSampler, QuaternionSampler
 from isaaclab_tasks.direct.hector.common.curriculum import CurriculumRateSampler, CurriculumUniformCubicSampler, CurriculumQuaternionSampler
-from isaaclab_tasks.direct.hector.core_cfg.terrain_cfg import ThickPatchTerrain
+from isaaclab_tasks.direct.hector.core_cfg.terrain_cfg import BaseTerrain
 
 # Macros
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR, NVIDIA_NUCLEUS_DIR
@@ -100,7 +100,7 @@ class BaseArchCfg(DirectRLEnvCfg):
         )
     
     # terrain
-    terrain = ThickPatchTerrain
+    terrain = BaseTerrain
     
     # robot
     robot: ArticulationCfg = HECTOR_CFG
