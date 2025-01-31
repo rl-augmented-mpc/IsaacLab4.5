@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from tqdm import tqdm
 import numpy as np
 import torch
 import trimesh
@@ -102,7 +103,7 @@ class TerrainImporter:
             num_curriculum_x = int(self.cfg.terrain_generator.num_cols/self.cfg.friction_group_patch_num)
             num_curriculum_y = int(self.cfg.terrain_generator.num_rows/self.cfg.friction_group_patch_num)
             num_curriculum_level = num_curriculum_x*num_curriculum_y
-            for i in range(len(terrain_generator.terrain_meshes)-1): # skip border mesh
+            for i in tqdm(range(len(terrain_generator.terrain_meshes)-1)): # skip border mesh
                 terrain_row_index = int(i/self.cfg.terrain_generator.num_cols)
                 terrain_col_index = i % self.cfg.terrain_generator.num_cols
                 mesh = terrain_generator.terrain_meshes[i]
@@ -393,3 +394,9 @@ class TerrainImporter:
         env_origins[:, 1] = (jj.flatten()[:num_envs] - (num_cols - 1) / 2) * env_spacing
         env_origins[:, 2] = 0.0
         return env_origins
+    
+    def _sample_physics_parameter(self, friction_range:tuple[float, float])->tuple[float, float, float]:
+        static_friction = np.random.uniform(friction_range[0], friction_range[1], 1)
+        static_friction = static_friction[0]
+        dynamic_friction = static_friction # use same dynamic friction as static friction
+        return static_friction, dynamic_friction

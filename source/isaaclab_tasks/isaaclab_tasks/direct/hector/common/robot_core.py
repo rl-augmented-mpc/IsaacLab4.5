@@ -82,7 +82,7 @@ class RobotCore:
     
     @property
     def joint_effort(self)->torch.Tensor:
-        return self.articulation.data.joint_torque
+        return self.articulation.data.joint_effort
     
     @property
     def body_pos_w(self)->torch.Tensor:

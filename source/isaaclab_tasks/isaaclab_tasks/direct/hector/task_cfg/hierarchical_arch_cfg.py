@@ -15,14 +15,15 @@ from collections.abc import Sequence
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.utils import configclass
 
-# task core
+# Task core
 from isaaclab_tasks.direct.hector.common.task_reward import VelocityTrackingReward, AliveReward, ContactTrackingReward, PoseTrackingReward
 from isaaclab_tasks.direct.hector.common.task_penalty import VelocityTrackingPenalty, TwistPenalty, FeetSlidePenalty, JointPenalty, ActionSaturationPenalty
+
 from isaaclab_tasks.direct.hector.common.sampler import UniformLineSampler, UniformCubicSampler, GridCubicSampler, QuaternionSampler, CircularSampler
 from isaaclab_tasks.direct.hector.common.curriculum import CurriculumRateSampler, CurriculumLineSampler, CurriculumUniformLineSampler, CurriculumUniformCubicSampler, CurriculumQuaternionSampler
-from isaaclab_tasks.direct.hector.core_cfg.terrain_cfg import SoftVisualTerrain
+from isaaclab_tasks.direct.hector.core_cfg.terrain_cfg import CurriculumFrictionPatchTerrain
 
-# task cfg
+# Task cfg
 from isaaclab_tasks.direct.hector.task_cfg.base_arch_cfg import BaseArchCfg
 
 # macros 
@@ -31,73 +32,51 @@ ENV_REGEX_NS = "/World/envs/env_.*"
 
 
 @configclass
-class SoftTerrainEnvCfg(BaseArchCfg):
+class HierarchicalArchCfg(BaseArchCfg):
     # ================================
     # Common configurations
     # ================================
     seed = 10
-    episode_length_s = 20
     
-    mpc_decimation = 5 # 100Hz
-    decimation = 5 # 100Hz (RL)
-    
-    iteration_between_mpc = 10 # mpc time step discritization (dt_mpc = dt*iteration_between_mpc)
-    horizon_length = 10
-    reference_height = 0.54
+    reference_height = 0.51
     nominal_gait_stepping_frequency = 1.0
     nominal_foot_height = 0.12
     
+    terrain = CurriculumFrictionPatchTerrain
+    
     # RL observation, action parameters
-    action_space = 6
-    observation_space = 60
-    state_space = 60 # critic space
-    num_joint_actions = 10 # actuator numbers
+    action_space = 3
+    observation_space = 54
+    state_space = 54
+    num_joint_actions = 10 # joint torque
     num_states = 33 # mpc state numbers
     
     # action space
-    action_lb = [-6.0, -6.0, -6.0] + [-2.0, -2.0, -2.0]
-    action_ub = [6.0,  6.0, 6.0] + [2.0, 2.0, 2.0]
+    action_lb = [-1.0,-1.0,-6.0]
+    action_ub = [1.0,  1.0, 6.0]
     observation_lb = -50.0
     observation_ub = 50.0
     clip_action = True # clip to -1 to 1
     scale_action = True # scale max value to action_ub
     
-    # terrain 
-    terrain = SoftVisualTerrain
-    
     # scene 
     scene: InteractiveSceneCfg = InteractiveSceneCfg(
         num_envs=1, 
-        env_spacing=2.0,
+        env_spacing=0.0,
         )
     
-    # sensor
-    # LiDAR
-    # ray_caster = RayCasterCfg(
-    #     prim_path=f"{ENV_REGEX_NS}/Robot/base",
-    #     update_period=1 / 60,
-    #     offset=RayCasterCfg.OffsetCfg(pos=(0, 0, 0.0)),
-    #     mesh_prim_paths=["/World/soft_ground"],
-    #     attach_yaw_only=True,
-    #     pattern_cfg=patterns.LidarPatternCfg(
-    #         channels=100, vertical_fov_range=[-90, 90], horizontal_fov_range=[-90, 90], horizontal_res=1.0
-    #     ),
-    #     max_distance=100,
-    # )
-    
-    # Curriculum sampler
-    center = (terrain.center_position[0], terrain.center_position[1], 0.0)
-    robot_position_sampler = UniformCubicSampler(
-        x_range=(center[0]-1.0, center[0]+1.0), 
-        y_range=(center[1]-1.0, center[1]+1.0), 
-        z_range=(0.55, 0.55))
-    # robot_position_sampler = CircularSampler(radius=5.0, z_range=(0.55, 0.55))
+    # Robot pose sampler
+    center = (terrain.terrain_generator.num_cols*terrain.terrain_generator.size[0]/2, terrain.terrain_generator.num_rows*terrain.terrain_generator.size[1]/2, 0.0)
+    robot_position_sampler = CircularSampler(radius=2.0, z_range=(0.55, 0.55))
     robot_quat_sampler = CurriculumQuaternionSampler(
-        x_range_start=(-torch.pi/4, torch.pi/4), x_range_end=(-torch.pi/4, torch.pi/4),
+        x_range_start=(0.0, math.pi/3), x_range_end=(0.0, 2*math.pi),
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=24*10000)
     )
+    
+    # Curriculum sampler
     curriculum_max_steps = 10000
-    is_inference = True
+    is_inference = False
+    terrain.static_friction_range = (0.3, 0.5)
     if is_inference:
         # inference
         terrain_curriculum_sampler = CurriculumLineSampler(
@@ -105,10 +84,10 @@ class SoftTerrainEnvCfg(BaseArchCfg):
             rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
         )
         robot_target_velocity_sampler = CurriculumUniformCubicSampler(
-            # x_range_start=(0.3, 0.3), x_range_end=(0.3, 0.3), 
-            x_range_start=(0.0, 0.0), x_range_end=(0.0, 0.0), 
+            x_range_start=(0.3, 0.3), x_range_end=(0.3, 0.3), 
             y_range_start=(0.0, 0.0), y_range_end=(0.0, 0.0),
             z_range_start=(0.0, 0.0), z_range_end=(0.0, 0.0),
+            # z_range_start=(0.5, 0.5), z_range_end=(0.5, 0.5),
             rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
         )
     else:
@@ -118,7 +97,7 @@ class SoftTerrainEnvCfg(BaseArchCfg):
             rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
         )
         robot_target_velocity_sampler = CurriculumUniformCubicSampler(
-            x_range_start=(0.1, 0.2), x_range_end=(0.2, 0.4),
+            x_range_start=(0.1, 0.3), x_range_end=(0.3, 0.5),
             y_range_start=(0.0, 0.0), y_range_end=(0.0, 0.0),
             z_range_start=(0.0, 0.0), z_range_end=(-0.5, 0.5),
             rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
@@ -160,3 +139,26 @@ class SoftTerrainEnvCfg(BaseArchCfg):
     left_hip_roll_joint_penalty_parameter: JointPenalty = JointPenalty(joint_penalty_weight=0.0, joint_pos_bound=(torch.pi/10, torch.pi/6))
     right_hip_roll_joint_penalty_parameter: JointPenalty = JointPenalty(joint_penalty_weight=0.0, joint_pos_bound=(torch.pi/10, torch.pi/6))
     hip_pitch_joint_deviation_penalty_parameter: JointPenalty = JointPenalty(joint_penalty_weight=0.0, joint_pos_bound=(torch.pi/6, torch.pi/2))
+
+
+@configclass
+class HierarchicalArchPrimeCfg(HierarchicalArchCfg):
+    episode_length_s =20
+    observation_space = 60
+    state_space = 60
+    action_space = 6
+    
+    # action bound hyper parameter
+    action_lb = [-6.0, -6.0, -6.0] + [-2.0, -2.0, -2.0]
+    action_ub = [6.0,  6.0, 6.0] + [2.0, 2.0, 2.0]
+
+@configclass
+class HierarchicalArchAccelPFCfg(HierarchicalArchCfg):
+    episode_length_s =20
+    observation_space = 60
+    state_space = 60
+    action_space = 8
+    
+    # action bound hyper parameter
+    action_lb = [-3.0, -3.0, -6.0] + [-2.0, -2.0, -2.0] + [-0.02, -0.02]
+    action_ub = [3.0,  3.0, 6.0] + [2.0, 2.0, 2.0] + [0.1, 0.1]
