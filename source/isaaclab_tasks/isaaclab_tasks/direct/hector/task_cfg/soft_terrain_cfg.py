@@ -68,7 +68,7 @@ class SoftTerrainEnvCfg(BaseArchCfg):
     # scene 
     scene: InteractiveSceneCfg = InteractiveSceneCfg(
         num_envs=1, 
-        env_spacing=2.0,
+        env_spacing=0.0,
         )
     
     # sensor
@@ -87,11 +87,11 @@ class SoftTerrainEnvCfg(BaseArchCfg):
     
     # Curriculum sampler
     center = (terrain.center_position[0], terrain.center_position[1], 0.0)
-    robot_position_sampler = UniformCubicSampler(
-        x_range=(center[0]-1.0, center[0]+1.0), 
-        y_range=(center[1]-1.0, center[1]+1.0), 
-        z_range=(0.55, 0.55))
-    # robot_position_sampler = CircularSampler(radius=5.0, z_range=(0.55, 0.55))
+    # robot_position_sampler = UniformCubicSampler(
+    #     x_range=(center[0]-1.0, center[0]+1.0), 
+    #     y_range=(center[1]-1.0, center[1]+1.0), 
+    #     z_range=(0.55, 0.55))
+    robot_position_sampler = CircularSampler(radius=2.0, z_range=(0.55, 0.55))
     robot_quat_sampler = CurriculumQuaternionSampler(
         x_range_start=(-torch.pi/4, torch.pi/4), x_range_end=(-torch.pi/4, torch.pi/4),
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=24*10000)
