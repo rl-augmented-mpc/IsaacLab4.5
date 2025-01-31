@@ -59,15 +59,10 @@ from rsl_rl.runners import OnPolicyRunner # master branch
 # IsaacLab core
 from isaaclab.utils.dict import print_dict
 from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
-from isaaclab_tasks.utils.wrappers.rsl_rl import (
-    RslRlOnPolicyRunnerCfg,
-    RslRlVecEnvWrapper,
-    export_policy_as_jit,
-    export_policy_as_onnx,
-)
+from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper, export_policy_as_jit, export_policy_as_onnx
 
 # Logger
-from .logger import BenchmarkLogger
+from logger import BenchmarkLogger
 
 ID = datetime.now().strftime("%Y-%m-%d_%H-%M")
 

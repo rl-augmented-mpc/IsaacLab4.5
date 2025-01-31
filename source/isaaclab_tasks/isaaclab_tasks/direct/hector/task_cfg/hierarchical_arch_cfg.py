@@ -75,8 +75,7 @@ class HierarchicalArchCfg(BaseArchCfg):
     
     # Curriculum sampler
     curriculum_max_steps = 10000
-    is_inference = False
-    terrain.static_friction_range = (0.3, 0.5)
+    is_inference = True
     if is_inference:
         # inference
         terrain_curriculum_sampler = CurriculumLineSampler(
