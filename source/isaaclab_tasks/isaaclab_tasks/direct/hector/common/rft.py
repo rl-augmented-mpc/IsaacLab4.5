@@ -152,13 +152,17 @@ class RFT_EMF:
         self.force_gm = torch.stack((fx, fy, fz), dim=-1)
         self.emf_filteing(foot_velocity, foot_depth)
         
-        # from global to local frame
-        # self.force_ema = torch.bmm(foot_rot.reshape(-1, 3, 3).transpose(1,2), self.force_ema.reshape(-1, 3, 1)).squeeze(-1).reshape(-1, self.num_leg*self.num_contact_points, 3)
+        # from global to local frame (with beta nearly 0, you dont really need this)
+        fx = self.force_ema[:, :, 0]
+        fz = self.force_ema[:, :, 2]
+        # print(beta)
+        self.force_ema[:, :, 0] = fx*torch.cos(beta) - fz*torch.sin(beta)
+        self.force_ema[:, :, 2] = fx*torch.sin(beta) + fz*torch.cos(beta)
         
         # add damping term
         self.force_ema[:, :, 0] += -self.damping_coef[0]* foot_velocity[:, :, 0] * depth_mask # damping term
         self.force_ema[:, :, 1] += -self.damping_coef[1] * foot_velocity[:, :, 1] * depth_mask # damping term
-        self.force_ema[:, :, 2] += -self.damping_coef[2] * foot_velocity[:, :, -1] * depth_mask # damping term
+        self.force_ema[:, :, 2] += -self.damping_coef[2] * foot_velocity[:, :, 2] * depth_mask # damping term
         
         return self.force_ema
     

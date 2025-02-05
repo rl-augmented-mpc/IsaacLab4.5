@@ -27,8 +27,6 @@ class MPC_Conf:
     control_iteration_between_mpc: int
     horizon_length: int
     mpc_decimation: int
-    dsp_durations: np.ndarray
-    ssp_durations: np.ndarray
 
 
 class MPCWrapper:
@@ -51,9 +49,7 @@ class MPCWrapper:
             mpc_conf.control_dt,
             mpc_conf.control_iteration_between_mpc,
             mpc_conf.horizon_length,
-            mpc_conf.mpc_decimation,
-            mpc_conf.dsp_durations,
-            mpc_conf.ssp_durations,
+            mpc_conf.mpc_decimation
         )
         self.hc.setFrictionCoefficient(0.3)
     
@@ -87,6 +83,16 @@ class MPCWrapper:
         """
         self.hc.setGaitNum(gait_num)
         self.hc.setTargetCommand(roll_pitch, twist, height)
+    
+    def update_gait_parameter(self, dsp_durations: np.ndarray, ssp_durations: np.ndarray) -> None:
+        """
+        Update gait parameters.
+
+        Args:
+            dsp_durations (np.ndarray): double support phase durations (2,)
+            ssp_durations (np.ndarray): single support phase durations (2,)
+        """
+        self.hc.updateGaitParameter(dsp_durations, ssp_durations)
 
     def set_swing_parameters(self, stepping_frequency: float, foot_height: float) -> None:
         """

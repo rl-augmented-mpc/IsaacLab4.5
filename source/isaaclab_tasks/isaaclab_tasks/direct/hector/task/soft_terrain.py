@@ -105,7 +105,7 @@ class SoftTerrainEnv(BaseArch):
             self.cfg.foot_patch_num, 
             foot_surface,
             dynamic_friction_coef=[0.3, 0.4],
-            dumping_coef=[1.0, 10.0, 1.0], # closely packed
+            dumping_coef=[1.0, 10.0, 0.5], # closely packed
             # dumping_coef=[0.2, 10.0, 0.3], # closely packed
             )
     
@@ -129,7 +129,10 @@ class SoftTerrainEnv(BaseArch):
             self.foot_angle_beta, 
             self.foot_angle_gamma, 
             self._gait_contact) # (num_envs, self.cfg.foot_patch_num, 3)
-        self._robot_api.set_external_force(self.rft_force, self._foot_ids, self._robot._ALL_INDICES)
+        
+        external_torque = torch.zeros(self.num_envs, self.cfg.foot_patch_num*2, 3, device=self.device, dtype=torch.float32)
+        # external_torque[:, :, 2] = -0.5 * self._robot_api.foot_ang_vel_b[:, :, 2]
+        self._robot_api.set_external_wrench(self.rft_force, external_torque, self._foot_ids, self._robot._ALL_INDICES)
         
         # visualize contact force
         if self.common_step_counter % (self.cfg.rendering_interval//self.cfg.decimation) == 0:
@@ -316,7 +319,7 @@ class SoftTerrainEnv(BaseArch):
         self._ref_yaw = torch.zeros(self.num_envs, 1, device=self.device, dtype=torch.float32)
         
         # update view port to look at the current active terrain
-        self.viewport_camera_controller.update_view_location(eye=(center_coord[0, 0]+3.5, center_coord[0, 1]-3.5, 0.5), lookat=(center_coord[0, 0], center_coord[0, 1], 0.0))
+        self.viewport_camera_controller.update_view_location(eye=(center_coord[0, 0]+0.5, center_coord[0, 1]-2, 1.0), lookat=(center_coord[0, 0]+0.5, center_coord[0, 1], 0.0))
     
     def _get_rewards(self)->torch.Tensor:
         # reward
