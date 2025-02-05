@@ -105,7 +105,7 @@ class SoftTerrainEnv(BaseArch):
             self.cfg.foot_patch_num, 
             foot_surface,
             dynamic_friction_coef=[0.3, 0.4],
-            dumping_coef=[1.0, 10.0, 0.5], # closely packed
+            dumping_coef=[3.0, 10.0, 0.5], # closely packed
             # dumping_coef=[0.2, 10.0, 0.3], # closely packed
             )
     
@@ -131,7 +131,6 @@ class SoftTerrainEnv(BaseArch):
             self._gait_contact) # (num_envs, self.cfg.foot_patch_num, 3)
         
         external_torque = torch.zeros(self.num_envs, self.cfg.foot_patch_num*2, 3, device=self.device, dtype=torch.float32)
-        # external_torque[:, :, 2] = -0.5 * self._robot_api.foot_ang_vel_b[:, :, 2]
         self._robot_api.set_external_wrench(self.rft_force, external_torque, self._foot_ids, self._robot._ALL_INDICES)
         
         # visualize contact force

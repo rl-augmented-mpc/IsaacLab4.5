@@ -26,6 +26,7 @@ ENV_REGEX_NS = "/World/envs/env_.*"
 
 # Task core
 from isaaclab_tasks.direct.hector.common.robot_core import RobotCore
+from isaaclab_tasks.direct.hector.common.visualization_marker import FootPlacementVisualizer
 
 # Task cfg
 from isaaclab_tasks.direct.hector.task_cfg.hierarchical_arch_cfg import HierarchicalArchCfg, HierarchicalArchPrimeCfg, HierarchicalArchAccelPFCfg
@@ -59,6 +60,9 @@ class HierarchicalArch(BaseArch):
         self.cfg.terrain.num_envs = self.scene.cfg.num_envs
         self.cfg.terrain.env_spacing = self.scene.cfg.env_spacing
         self._terrain = self.cfg.terrain.class_type(self.cfg.terrain)
+        
+        # visualization marker
+        self.foot_placement_visualizer = FootPlacementVisualizer("/Visuals/foot_placement")
         
         # clone, filter, and replicate
         self.scene.clone_environments(copy_from_source=False)
@@ -97,6 +101,7 @@ class HierarchicalArch(BaseArch):
         gait_contact = []
         swing_phase = []
         reibert_fps = []
+        augmented_fps = []
         
         self._get_state()
         for i in range(len(self.mpc)):
@@ -111,12 +116,14 @@ class HierarchicalArch(BaseArch):
             gait_contact.append(self.mpc[i].contact_state)
             swing_phase.append(self.mpc[i].swing_phase)
             reibert_fps.append(self.mpc[i].reibert_foot_placement)
+            augmented_fps.append(self.mpc[i].foot_placement)
         
         self._accel_gyro_mpc = torch.from_numpy(np.array(accel_gyro)).to(self.device).view(self.num_envs, 6).to(torch.float32)
         self._grfm_mpc = torch.from_numpy(np.array(grfm)).to(self.device).view(self.num_envs, 12).to(torch.float32)
         self._gait_contact = torch.from_numpy(np.array(gait_contact)).to(self.device).view(self.num_envs, 2).to(torch.float32)
         self._swing_phase = torch.from_numpy(np.array(swing_phase)).to(self.device).view(self.num_envs, 2).to(torch.float32)
         self._reibert_fps = torch.from_numpy(np.array(reibert_fps)).to(self.device).view(self.num_envs, 4).to(torch.float32)
+        self._augmented_fps = torch.from_numpy(np.array(augmented_fps)).to(self.device).view(self.num_envs, 4).to(torch.float32)
     
     def _split_action(self, policy_action:torch.Tensor)->torch.Tensor:
         """
@@ -149,6 +156,32 @@ class HierarchicalArch(BaseArch):
             joint_torque_augmented[i] = self.mpc[i].get_action()
         self._joint_actions = torch.from_numpy(joint_torque_augmented).to(self.device).view(self.num_envs, -1)
         self._robot_api.set_joint_effort_target(self._joint_actions, self._joint_ids)
+        
+        self.visualize_foot_placement()
+    
+    def visualize_foot_placement(self):
+        if self.common_step_counter % (self.cfg.rendering_interval/self.cfg.decimation) == 0:
+            reibert_fps = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
+            augmented_fps = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
+            default_position = self._robot_api.default_root_state[:, :3]
+            default_position[:, 2] = 0.0
+            reibert_fps[:, 0, :2] = self._reibert_fps[:, :2]
+            reibert_fps[:, 1, :2] = self._reibert_fps[:, 2:]
+            augmented_fps[:, 0, :2] = self._augmented_fps[:, :2]
+            augmented_fps[:, 1, :2] = self._augmented_fps[:, 2:]
+            
+            reibert_fps[:, 0, :] = (torch.bmm(self._init_rot_mat, reibert_fps[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position + self.scene.env_origins)
+            reibert_fps[:, 1, :] = torch.bmm(self._init_rot_mat, reibert_fps[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position + self.scene.env_origins
+            augmented_fps[:, 0, :] = torch.bmm(self._init_rot_mat, augmented_fps[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position + self.scene.env_origins
+            augmented_fps[:, 1, :] = torch.bmm(self._init_rot_mat, augmented_fps[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position + self.scene.env_origins
+            
+            # apply swing mask
+            reibert_fps[:, 0, :] = reibert_fps[:, 0, :] * (1-self._gait_contact[:, 0].unsqueeze(-1))
+            reibert_fps[:, 1, :] = reibert_fps[:, 1, :] * (1-self._gait_contact[:, 1].unsqueeze(-1))
+            augmented_fps[:, 0, :] = augmented_fps[:, 0, :] * (1-self._gait_contact[:, 0].unsqueeze(-1))
+            augmented_fps[:, 1, :] = augmented_fps[:, 1, :] * (1-self._gait_contact[:, 1].unsqueeze(-1))
+            
+            self.foot_placement_visualizer.visualize(reibert_fps, augmented_fps)
     
     def _get_observations(self) -> dict:
         """
@@ -235,9 +268,12 @@ class HierarchicalArch(BaseArch):
         
         # reset mpc reference
         self._desired_twist_np[env_ids.cpu().numpy()] = np.array(self.cfg.robot_target_velocity_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32)
+        self._dsp_duration[env_ids.cpu().numpy()] = np.array(self.cfg.robot_double_support_length_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32)
+        self._ssp_duration[env_ids.cpu().numpy()] = np.array(self.cfg.robot_single_support_length_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32)
         self.mpc_ctrl_counter[env_ids] = 0
         for i in env_ids.cpu().numpy():
             self.mpc[i].reset()
+            self.mpc[i].update_gait_parameter(np.array([self._dsp_duration[i], self._dsp_duration[i]]), np.array([self._ssp_duration[i], self._ssp_duration[i]]))
         
         # reset reference 
         self._ref_pos = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
@@ -268,8 +304,6 @@ class HierarchicalArch(BaseArch):
             
         self.alive_reward = self.cfg.alive_reward_parameter.compute_reward(self.reset_terminated, self.episode_length_buf, self.max_episode_length)
         
-        self.contact_tracking_reward = self.cfg.contact_tracking_reward_parameter.compute_reward(self._gt_contact, self._gait_contact)
-        
         # penalty
         self.roll_penalty, self.pitch_penalty, self.action_penalty, self.energy_penalty, self.foot_energy_penalty = \
             self.cfg.penalty_parameter.compute_penalty(
@@ -285,9 +319,6 @@ class HierarchicalArch(BaseArch):
             )
         
         self.foot_slide_penalty = self.cfg.foot_slide_penalty_parameter.compute_penalty(self._robot_api.body_lin_vel_w[:, -2:], self._gt_contact) # ankle at last 2 body index
-        self.left_hip_roll_joint_penalty = self.cfg.left_hip_roll_joint_penalty_parameter.compute_penalty(self._joint_pos[:, 1])
-        self.right_hip_roll_joint_penalty = self.cfg.right_hip_roll_joint_penalty_parameter.compute_penalty(self._joint_pos[:, 6])
-        self.hip_pitch_joint_deviation_penalty = self.cfg.hip_pitch_joint_deviation_penalty_parameter.compute_penalty(self._joint_pos[:, 2] - self._joint_pos[:, 7])
         self.action_saturation_penalty = self.cfg.action_saturation_penalty_parameter.compute_penalty(self._actions)
         
         # scale rewards and penalty with time step (following reward manager in manager based rl env)
@@ -295,7 +326,6 @@ class HierarchicalArch(BaseArch):
         self.lin_vel_reward = self.lin_vel_reward * self.step_dt
         self.ang_vel_reward = self.ang_vel_reward * self.step_dt
         self.alive_reward = self.alive_reward * self.step_dt
-        self.contact_tracking_reward = self.contact_tracking_reward * self.step_dt
         self.position_reward = self.position_reward * self.step_dt
         self.yaw_reward = self.yaw_reward * self.step_dt
         
@@ -308,17 +338,12 @@ class HierarchicalArch(BaseArch):
         self.vy_penalty = self.vy_penalty * self.step_dt
         self.wz_penalty = self.wz_penalty * self.step_dt
         self.foot_slide_penalty = self.foot_slide_penalty * self.step_dt
-        self.left_hip_roll_joint_penalty = self.left_hip_roll_joint_penalty * self.step_dt
-        self.right_hip_roll_joint_penalty = self.right_hip_roll_joint_penalty * self.step_dt
-        self.hip_pitch_joint_deviation_penalty = self.hip_pitch_joint_deviation_penalty * self.step_dt
         self.action_saturation_penalty = self.action_saturation_penalty * self.step_dt
          
-        reward = self.height_reward + self.lin_vel_reward + self.ang_vel_reward + self.alive_reward + \
-            self.contact_tracking_reward + self.position_reward + self.yaw_reward
+        reward = self.height_reward + self.lin_vel_reward + self.ang_vel_reward + self.alive_reward + self.position_reward + self.yaw_reward
         penalty = self.roll_penalty + self.pitch_penalty + self.action_penalty + self.energy_penalty + \
             self.foot_energy_penalty + self.vx_penalty + self.vy_penalty + self.wz_penalty + \
-            self.foot_slide_penalty + self.left_hip_roll_joint_penalty + self.right_hip_roll_joint_penalty + \
-            self.hip_pitch_joint_deviation_penalty + self.action_saturation_penalty
+            self.foot_slide_penalty + self.action_saturation_penalty
          
         total_reward = reward - penalty
         
@@ -357,7 +382,6 @@ class HierarchicalArch(BaseArch):
         self.episode_sums["lin_vel_reward"] += self.lin_vel_reward[0].item()
         self.episode_sums["ang_vel_reward"] += self.ang_vel_reward[0].item()
         self.episode_sums["alive_reward"] += self.alive_reward[0].item()
-        self.episode_sums["contact_reward"] += self.contact_tracking_reward[0].item()
         self.episode_sums["position_reward"] += self.position_reward[0].item()
         self.episode_sums["yaw_reward"] += self.yaw_reward[0].item()
         
@@ -370,9 +394,6 @@ class HierarchicalArch(BaseArch):
         self.episode_sums["vy_penalty"] += self.vy_penalty[0].item()
         self.episode_sums["wz_penalty"] += self.wz_penalty[0].item()
         self.episode_sums["feet_slide_penalty"] += self.foot_slide_penalty[0].item()
-        self.episode_sums["left_hip_roll_penalty"] += self.left_hip_roll_joint_penalty[0].item()
-        self.episode_sums["right_hip_roll_penalty"] += self.right_hip_roll_joint_penalty[0].item()
-        self.episode_sums["hip_pitch_deviation_penalty"] += self.hip_pitch_joint_deviation_penalty[0].item()
         self.episode_sums["action_saturation_penalty"] += self.action_saturation_penalty[0].item()
     
     def log_curriculum(self)->None:
@@ -469,6 +490,8 @@ class HierarchicalArchPrime(HierarchicalArch):
             joint_torque_augmented[i] = self.mpc[i].get_action()
         self._joint_actions = torch.from_numpy(joint_torque_augmented).to(self.device).view(self.num_envs, -1)
         self._robot_api.set_joint_effort_target(self._joint_actions, self._joint_ids)
+        
+        self.visualize_foot_placement()
     
     def _get_observations(self) -> dict:
         """
@@ -535,8 +558,8 @@ class HierarchicalArchAccelPF(HierarchicalArch):
         """
         centroidal_acceleration = policy_action[:, :3]
         centroidal_ang_acceleration = policy_action[:, 3:6]
-        sagital_foot_placement = policy_action[:, 6:8]
-        return centroidal_acceleration, centroidal_ang_acceleration, sagital_foot_placement
+        residual_foot_placement = policy_action[:, 6:10]
+        return centroidal_acceleration, centroidal_ang_acceleration, residual_foot_placement
     
     def _apply_action(self)->None:
         """
@@ -549,18 +572,19 @@ class HierarchicalArchAccelPF(HierarchicalArch):
         Finally, env.step method calls write_data_to_sim() to write torque to articulation.
         """
         # process rl actions
-        centroidal_accel, centroidal_ang_accel, sagital_foot_placement = self._split_action(self._actions_op)
-        sagital_foot_placement = (self._desired_root_lin_vel_b[:, 0]>0.1).to(torch.float32).unsqueeze(-1) * sagital_foot_placement
+        centroidal_accel, centroidal_ang_accel, residual_foot_placement = self._split_action(self._actions_op)
+        saggital_residual_foot_placement = residual_foot_placement[:, [0,2]] # left, right
+        lateral_residual_foot_placement = residual_foot_placement[:, [1,3]] # left, right
         
         # transform from local to global frame
         centroidal_accel = torch.bmm(self._root_rot_mat, centroidal_accel.unsqueeze(-1)).squeeze(-1)
         centroidal_ang_accel = torch.bmm(self._root_rot_mat, centroidal_ang_accel.unsqueeze(-1)).squeeze(-1)
         self._A_residual[:, 6:9, -1] = centroidal_accel.cpu().numpy()
         self._A_residual[:, 9:12, -1] = centroidal_ang_accel.cpu().numpy()
-        self._foot_placement_residuals[:, 0] = (sagital_foot_placement[:, 0] * torch.cos(self._root_yaw.squeeze())).cpu().numpy()
-        self._foot_placement_residuals[:, 1] = (sagital_foot_placement[:, 0] * torch.sin(self._root_yaw.squeeze())).cpu().numpy()
-        self._foot_placement_residuals[:, 2] = (sagital_foot_placement[:, 1] * torch.cos(self._root_yaw.squeeze())).cpu().numpy()
-        self._foot_placement_residuals[:, 3] = (sagital_foot_placement[:, 1] * torch.sin(self._root_yaw.squeeze())).cpu().numpy()
+        self._foot_placement_residuals[:, 0] = (saggital_residual_foot_placement[:, 0] * torch.cos(self._root_yaw.squeeze()) - lateral_residual_foot_placement[:, 0] * torch.sin(self._root_yaw.squeeze())).cpu().numpy()
+        self._foot_placement_residuals[:, 1] = (saggital_residual_foot_placement[:, 0] * torch.sin(self._root_yaw.squeeze()) + lateral_residual_foot_placement[:, 0] * torch.cos(self._root_yaw.squeeze())).cpu().numpy()
+        self._foot_placement_residuals[:, 2] = (saggital_residual_foot_placement[:, 1] * torch.cos(self._root_yaw.squeeze()) - lateral_residual_foot_placement[:, 1] * torch.sin(self._root_yaw.squeeze())).cpu().numpy()
+        self._foot_placement_residuals[:, 3] = (saggital_residual_foot_placement[:, 1] * torch.sin(self._root_yaw.squeeze()) + lateral_residual_foot_placement[:, 1] * torch.cos(self._root_yaw.squeeze())).cpu().numpy()
         
         # run mpc controller
         self._run_mpc()
@@ -571,6 +595,8 @@ class HierarchicalArchAccelPF(HierarchicalArch):
             joint_torque_augmented[i] = self.mpc[i].get_action()
         self._joint_actions = torch.from_numpy(joint_torque_augmented).to(self.device).view(self.num_envs, -1)
         self._robot_api.set_joint_effort_target(self._joint_actions, self._joint_ids)
+        
+        self.visualize_foot_placement()
     
     def _get_observations(self) -> dict:
         """
@@ -589,10 +615,10 @@ class HierarchicalArchAccelPF(HierarchicalArch):
                 self._joint_pos, #14:24
                 self._joint_vel, #24:34
                 self._joint_effort, #34:44
-                self._previous_actions, #44:50
-                self._accel_gyro_mpc, #50:56
-                self._gait_contact, #56:58
-                self._swing_phase, #58:60
+                self._previous_actions, #44:54
+                self._accel_gyro_mpc, #54:60
+                self._gait_contact, #60:62
+                self._swing_phase, #62:64
             ),
             dim=-1,
         )
@@ -604,26 +630,30 @@ class HierarchicalArchAccelPF(HierarchicalArch):
         if self.common_step_counter % self.cfg.num_steps_per_env:
             centroidal_acceleration = self._actions[0, :3].cpu().numpy()
             centroidal_ang_acceleration = self._actions[0, 3:6].cpu().numpy()
-            sagital_foot_placement = self._actions[0, 6:8].cpu().numpy()
+            foot_placement = self._actions[0, 6:].cpu().numpy()
             log["raw_action/centroidal_acceleration_x"] = centroidal_acceleration[0]
             log["raw_action/centroidal_acceleration_y"] = centroidal_acceleration[1]
             log["raw_action/centroidal_acceleration_z"] = centroidal_acceleration[2]
             log["raw_action/centroidal_ang_acceleration_x"] = centroidal_ang_acceleration[0]
             log["raw_action/centroidal_ang_acceleration_y"] = centroidal_ang_acceleration[1]
             log["raw_action/centroidal_ang_acceleration_z"] = centroidal_ang_acceleration[2]
-            log["raw_action/sagital_foot_placement_left"] = sagital_foot_placement[0]
-            log["raw_action/sagital_foot_placement_right"] = sagital_foot_placement[1]
+            log["raw_action/sagital_foot_placement_left"] = foot_placement[0]
+            log["raw_action/lateral_foot_placement_left"] = foot_placement[1]
+            log["raw_action/sagital_foot_placement_right"] = foot_placement[2]
+            log["raw_action/lateral_foot_placement_right"] = foot_placement[3]
             
             centroidal_acceleration = self._actions_op[0, :3].cpu().numpy()
             centroidal_ang_acceleration = self._actions_op[0, 3:6].cpu().numpy()
-            sagital_foot_placement = self._actions_op[0, 6:8].cpu().numpy()
+            foot_placement = self._actions[0, 6:].cpu().numpy()
             log["action/centroidal_acceleration_x"] = centroidal_acceleration[0]
             log["action/centroidal_acceleration_y"] = centroidal_acceleration[1]
             log["action/centroidal_acceleration_z"] = centroidal_acceleration[2]
             log["action/centroidal_ang_acceleration_x"] = centroidal_ang_acceleration[0]
             log["action/centroidal_ang_acceleration_y"] = centroidal_ang_acceleration[1]
             log["action/centroidal_ang_acceleration_z"] = centroidal_ang_acceleration[2]
-            log["action/sagital_foot_placement_left"] = sagital_foot_placement[0]
-            log["action/sagital_foot_placement_right"] = sagital_foot_placement[1]
+            log["raw_action/sagital_foot_placement_left"] = foot_placement[0]
+            log["raw_action/lateral_foot_placement_left"] = foot_placement[1]
+            log["raw_action/sagital_foot_placement_right"] = foot_placement[2]
+            log["raw_action/lateral_foot_placement_right"] = foot_placement[3]
             
         self.extras["log"].update(log)

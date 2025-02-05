@@ -42,8 +42,8 @@ CurriculumFrictionPatchTerrain = TerrainImporterCfg(
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
         size=(1.0, 1.0), # size of sub-terrain
         border_width=0.0,
-        num_rows=15*4,
-        num_cols=15*4,
+        num_rows=15*2,
+        num_cols=15*2,
         horizontal_scale=0.1,
         vertical_scale=0.005,
         slope_threshold=0.75,
@@ -66,9 +66,9 @@ CurriculumFrictionPatchTerrain = TerrainImporterCfg(
     ),
     debug_vis=False,
     disable_colllider=False,
-    static_friction_range = (0.2, 0.4),
+    static_friction_range = (0.3, 0.4),
     friction_group_patch_num = 15,
-    num_curriculums=16,
+    num_curriculums=4,
 )
 
 

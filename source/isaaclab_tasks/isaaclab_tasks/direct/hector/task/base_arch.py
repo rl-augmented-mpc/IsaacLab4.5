@@ -53,6 +53,7 @@ class BaseArch(DirectRLEnv):
         self._root_pos = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
         self._ref_pos = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
         self._root_quat = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32)
+        self._init_rot_mat = torch.eye(3, device=self.device, dtype=torch.float32).unsqueeze(0).repeat(self.num_envs, 1, 1)
         self._root_rot_mat = torch.eye(3, device=self.device, dtype=torch.float32).unsqueeze(0).repeat(self.num_envs, 1, 1)
         self._root_yaw = torch.zeros(self.num_envs, 1, device=self.device, dtype=torch.float32)
         self._ref_yaw = torch.zeros(self.num_envs, 1, device=self.device, dtype=torch.float32)
@@ -75,6 +76,7 @@ class BaseArch(DirectRLEnv):
         self._gait_contact = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
         self._swing_phase = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
         self._reibert_fps = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32)
+        self._augmented_fps = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32) # reibert + residual
         
         # Buffer for residual learning
         self._joint_action_augmented = np.zeros((self.num_envs, 10), dtype=np.float32)
@@ -97,6 +99,8 @@ class BaseArch(DirectRLEnv):
         self._desired_gait = np.ones(self.num_envs, dtype=np.int32)
         self._desired_roll_pitch = np.zeros((self.num_envs, 2), dtype=np.float32)
         self._desired_twist_np = np.zeros((self.num_envs, 3), dtype=np.float32)
+        self._dsp_duration = np.zeros(self.num_envs, dtype=np.float32)
+        self._ssp_duration = np.zeros(self.num_envs, dtype=np.float32)
         
         # setup MPC wrapper
         mpc_conf = MPC_Conf(
@@ -223,6 +227,7 @@ class BaseArch(DirectRLEnv):
         gait_contact = []
         swing_phase = []
         reibert_fps = []
+        augmented_fps = []
         
         self._get_state()
         for i in range(len(self.mpc)):
@@ -235,12 +240,14 @@ class BaseArch(DirectRLEnv):
             gait_contact.append(self.mpc[i].contact_state)
             swing_phase.append(self.mpc[i].swing_phase)
             reibert_fps.append(self.mpc[i].reibert_foot_placement)
+            augmented_fps.append(self.mpc[i].foot_placement)
         
         self._accel_gyro_mpc = torch.from_numpy(np.array(accel_gyro)).to(self.device).view(self.num_envs, 6).to(torch.float32)
         self._grfm_mpc = torch.from_numpy(np.array(grfm)).to(self.device).view(self.num_envs, 12).to(torch.float32)
         self._gait_contact = torch.from_numpy(np.array(gait_contact)).to(self.device).view(self.num_envs, 2).to(torch.float32)
         self._swing_phase = torch.from_numpy(np.array(swing_phase)).to(self.device).view(self.num_envs, 2).to(torch.float32)
         self._reibert_fps = torch.from_numpy(np.array(reibert_fps)).to(self.device).view(self.num_envs, 4).to(torch.float32)
+        self._augmented_fps = torch.from_numpy(np.array(augmented_fps)).to(self.device).view(self.num_envs, 4).to(torch.float32)
         
     def _set_mpc_reference(self):
         """
@@ -268,8 +275,8 @@ class BaseArch(DirectRLEnv):
         default_state = self._robot_api.default_root_state
         
         rot_mat = matrix_from_quat(self._robot_api.root_quat_w)
-        init_root_rot_mat = matrix_from_quat(default_state[:, 3:7])
-        self._root_rot_mat = torch.bmm(torch.transpose(init_root_rot_mat, 1, 2), rot_mat) # find relative orientation from initial rotation
+        self._init_rot_mat = matrix_from_quat(default_state[:, 3:7])
+        self._root_rot_mat = torch.bmm(torch.transpose(self._init_rot_mat, 1, 2), rot_mat) # find relative orientation from initial rotation
         self._root_quat = quat_from_matrix(self._root_rot_mat)
         
         self._root_yaw = torch.atan2(2*(self._root_quat[:, 0]*self._root_quat[:, 3] + self._root_quat[:, 1]*self._root_quat[:, 2]), 1 - 2*(self._root_quat[:, 2]**2 + self._root_quat[:, 3]**2)).view(-1, 1)
@@ -278,7 +285,7 @@ class BaseArch(DirectRLEnv):
         # root_pos is absolute position in fixed frame, we need robot's odometry (relative position from initial position)
         self._root_pos = self._robot_api.root_pos_w - self.scene.env_origins
         self._root_pos[:, :2] -= default_state[:, :2]
-        self._root_pos = torch.bmm(torch.transpose(init_root_rot_mat, 1, 2), self._root_pos.view(-1, 3, 1)).view(-1, 3) # find relative position from initial position
+        self._root_pos = torch.bmm(torch.transpose(self._init_rot_mat, 1, 2), self._root_pos.view(-1, 3, 1)).view(-1, 3) # find relative position from initial position
         # process height same as hardware code
         # https://github.gatech.edu/GeorgiaTechLIDARGroup/HECTOR_HW_new/blob/Unified_Framework/Interface/HW_interface/src/stateestimator/PositionVelocityEstimator.cpp
         toe_index, _ = self._robot.find_bodies(["L_toe", "R_toe"], preserve_order=True)

@@ -88,3 +88,47 @@ class PenetrationVisualizer:
         marker_scales = marker_scales.reshape(-1, 3)
         
         self.marker.visualize(link_positions, marker_orientations, marker_scales)
+
+
+class FootPlacementVisualizer:
+    def __init__(self, prim_path):
+        self.prim_path = prim_path
+        self.markers_cfg = VisualizationMarkersCfg(
+            prim_path=prim_path,
+            markers={
+                "left_rb_fps": sim_utils.CylinderCfg(
+                radius=0.05,
+                height=0.01,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0), opacity=0.1),
+                ),
+                "right_rb_fps": sim_utils.CylinderCfg(
+                radius=0.05,
+                height=0.01,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), opacity=0.1),
+                ),
+                "left_fps": sim_utils.CylinderCfg(
+                radius=0.05,
+                height=0.01,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
+                ),
+                "right_fps": sim_utils.CylinderCfg(
+                radius=0.05,
+                height=0.01,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0)),
+                ),
+            }
+        )
+        self.marker = VisualizationMarkers(self.markers_cfg)
+    
+    def visualize(self, reibert_fps:torch.Tensor, augmented_fps:torch.Tensor):
+        """_summary_
+
+        Args:
+            reibert_fps (torch.Tensor): (num_envs, 2, 3)
+            augmented_fps (torch.Tensor): (num_envs, 2, 3)
+        """
+        positions = torch.cat([reibert_fps, augmented_fps], dim=1) # (num_envs, 4, 3)
+        indices = torch.arange(self.marker.num_prototypes, device=positions.device).reshape(1, -1).repeat(positions.shape[0], 1) # (num_envs, 4)
+        positions = positions.reshape(-1, 3) # (num_envs*4, 3)
+        indices = indices.reshape(-1)
+        self.marker.visualize(translations=positions, marker_indices=indices)

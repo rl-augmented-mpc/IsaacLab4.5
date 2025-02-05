@@ -75,7 +75,7 @@ class RFT_EMF:
         self.v_eps = 1e-3
         self.dA = self.surface_area/self.num_contact_points
         self.ground_height = 0.0
-        self.max_depth = 0.03
+        self.max_depth = 0.2
         
         # body quantity history
         self.velocity_prev = torch.zeros((num_envs, num_leg*num_contact_points, 3), device=device)
@@ -84,33 +84,6 @@ class RFT_EMF:
         self.tau_r = torch.zeros((num_envs, num_leg*num_contact_points, 3), device=device)
         self.depth_mask = torch.zeros((num_envs, num_leg*num_contact_points), dtype=torch.long, device=device).bool()
         self.c_r = 12.5/500 # 100/f (original paper 100/4000)
-    
-    # def get_force(self, foot_depth:torch.Tensor, foot_rot: torch.Tensor, foot_velocity:torch.Tensor, beta:torch.Tensor, gamma:torch.Tensor, gait_contact:torch.Tensor)->torch.Tensor:
-    #     """
-    #     Find resistive force per foot
-    #     """
-    #     force = self.compute_resistive_force(foot_depth, foot_rot, foot_velocity, beta, gamma)
-    #     # print(180/torch.pi * gamma)
-        
-    #     # Only enable RFT for stance leg
-    #     left_rft_force = force[:, :self.num_contact_points, :]
-    #     right_rft_force = force[:, self.num_contact_points:, :]
-
-    #     left_gait_stance = gait_contact[:, :1, None].repeat(1, self.num_contact_points, 3).long()
-    #     right_gait_stance = gait_contact[:, 1:, None].repeat(1, self.num_contact_points, 3).long()
-
-    #     left_stance_contact_state = (foot_depth[:, :self.num_contact_points] < self.ground_height - 0.0)[:, :, None].long()
-    #     left_swing_contact_state = (foot_depth[:, :self.num_contact_points] < self.ground_height - 0.02)[:, :, None].long()
-    #     right_stance_contact_state = (foot_depth[:, self.num_contact_points:] < self.ground_height - 0.01)[:, :, None].long()
-    #     right_swing_contact_state = (foot_depth[:, self.num_contact_points:] < self.ground_height - 0.0)[:, :, None].long()
-
-    #     left_rft_force[left_gait_stance.bool()] = (left_rft_force * left_stance_contact_state).reshape(-1, self.num_contact_points, 3)[left_gait_stance.bool()]
-    #     left_rft_force[(1-left_gait_stance).bool()] = (left_rft_force * left_swing_contact_state).reshape(-1, self.num_contact_points, 3)[(1-left_gait_stance).bool()]
-    #     right_rft_force[right_gait_stance.bool()] = (right_rft_force * right_stance_contact_state).reshape(-1, self.num_contact_points, 3)[right_gait_stance.bool()]
-    #     right_rft_force[(1-right_gait_stance).bool()] = (right_rft_force * right_swing_contact_state).reshape(-1, self.num_contact_points, 3)[(1-right_gait_stance).bool()]
-        
-    #     filtered_force = torch.cat((left_rft_force, right_rft_force), dim=1)
-    #     return filtered_force
 
     def get_force(self, foot_depth:torch.Tensor, foot_rot: torch.Tensor, foot_velocity:torch.Tensor, beta:torch.Tensor, gamma:torch.Tensor, gait_contact:torch.Tensor)->torch.Tensor:
         """
@@ -155,7 +128,6 @@ class RFT_EMF:
         # from global to local frame (with beta nearly 0, you dont really need this)
         fx = self.force_ema[:, :, 0]
         fz = self.force_ema[:, :, 2]
-        # print(beta)
         self.force_ema[:, :, 0] = fx*torch.cos(beta) - fz*torch.sin(beta)
         self.force_ema[:, :, 2] = fx*torch.sin(beta) + fz*torch.cos(beta)
         
@@ -168,18 +140,8 @@ class RFT_EMF:
     
     def compute_elementary_force(self, beta:torch.Tensor, gamma:torch.Tensor)->tuple[torch.Tensor, torch.Tensor]:
         """
-        Compute elementary force per foot
+        Compute elementary force per foot per depth
         """
-        # Use beta=0, gamma=pi/2 for alpha_z
-        # gamma_z = torch.pi/2 * torch.ones_like(gamma) # always pi/2
-        # beta_z = torch.zeros_like(beta) # always 0
-        # alpha_z = torch.zeros_like(beta) # A00
-        # alpha_z += self.cfg.A00*torch.cos(2*torch.pi*(0*beta_z/torch.pi)) #A00
-        # alpha_z += self.cfg.A10*torch.cos(2*torch.pi*(1*beta_z/torch.pi)) # A10
-        # alpha_z += self.cfg.B01*torch.sin(2*torch.pi*(1*gamma_z/(2*torch.pi))) # B01
-        # alpha_z += self.cfg.B11*torch.sin(2*torch.pi*(1*beta_z/torch.pi + 1*gamma_z/(2*torch.pi))) # B11
-        # alpha_z += self.cfg.B_11*torch.sin(2*torch.pi*(-1*beta_z/torch.pi + 1*gamma_z/(2*torch.pi))) # B-11
-        
         alpha_z = torch.zeros_like(beta) # A00
         alpha_z += self.cfg.A00*torch.cos(2*torch.pi*(0*beta/torch.pi)) #A00
         alpha_z += self.cfg.A10*torch.cos(2*torch.pi*(1*beta/torch.pi)) # A10
@@ -196,18 +158,29 @@ class RFT_EMF:
         
         return alpha_x, alpha_z
     
+    # def emf_filteing(self, velocity:torch.Tensor, depth:torch.Tensor):
+    #     """
+    #     Exponential Moving Average Filtering descirbed in https://www.science.org/doi/10.1126/scirobotics.ade2256
+    #     """
+    #     increment_mask = velocity*self.velocity_prev < 0
+    #     tau_r_boundary = self.tau_r < 1
+    #     self.depth_mask = (depth < self.ground_height-self.max_depth) | (self.depth_mask) # activate once foot reaches maximum depth
+    #     mask = increment_mask & tau_r_boundary & self.depth_mask[:, :, None]
+    #     self.tau_r[mask] += self.c_r
+    #     # reset tau_r when foot is not in contact
+    #     non_contact_mask = depth > self.ground_height
+    #     self.tau_r[non_contact_mask] = 0.0
+
+    #     # apply EMA filter
+    #     self.force_ema = (1-0.8*self.tau_r)*self.force_gm + 0.8*self.tau_r*self.force_ema
+    #     self.velocity_prev = velocity
+    
+    # fixed filtering
     def emf_filteing(self, velocity:torch.Tensor, depth:torch.Tensor):
         """
-        Exponential Moving Average Filtering descirbed in https://www.science.org/doi/10.1126/scirobotics.ade2256
+        Exponential Moving Average Filter with fixed alpha = 0.972
         """
-        increment_mask = velocity*self.velocity_prev < 0
-        tau_r_boundary = self.tau_r < 1
-        self.depth_mask = (depth < self.ground_height-self.max_depth) | (self.depth_mask) # activate once foot reaches maximum depth
-        mask = increment_mask & tau_r_boundary & self.depth_mask[:, :, None]
-        self.tau_r[mask] += self.c_r
-
-        # apply EMA filter
-        self.force_ema = (1-0.8*self.tau_r)*self.force_gm + 0.8*self.tau_r*self.force_ema
+        self.force_ema = (1-0.972)*self.force_gm + 0.972*self.force_ema
         self.velocity_prev = velocity
 
 
