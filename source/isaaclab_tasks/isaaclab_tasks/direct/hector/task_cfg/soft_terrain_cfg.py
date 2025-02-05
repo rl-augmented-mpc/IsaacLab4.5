@@ -105,8 +105,8 @@ class SoftTerrainEnvCfg(BaseArchCfg):
             rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
         )
         robot_target_velocity_sampler = CurriculumUniformCubicSampler(
-            # x_range_start=(0.3, 0.3), x_range_end=(0.3, 0.3), 
-            x_range_start=(0.0, 0.0), x_range_end=(0.0, 0.0), 
+            x_range_start=(0.1, 0.1), x_range_end=(0.1, 0.1), 
+            # x_range_start=(0.0, 0.0), x_range_end=(0.0, 0.0), 
             y_range_start=(0.0, 0.0), y_range_end=(0.0, 0.0),
             z_range_start=(0.0, 0.0), z_range_end=(0.0, 0.0),
             rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)

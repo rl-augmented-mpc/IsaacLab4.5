@@ -38,7 +38,12 @@ class HierarchicalArchCfg(BaseArchCfg):
     # ================================
     seed = 10
     
-    reference_height = 0.51
+    dt=0.002 #500Hz 
+    rendering_interval = 10 # 50Hz
+    mpc_decimation = 5 # 100Hz
+    decimation = 5 # 100Hz (RL)
+    
+    reference_height = 0.55
     nominal_gait_stepping_frequency = 1.0
     nominal_foot_height = 0.12
     
@@ -65,7 +70,8 @@ class HierarchicalArchCfg(BaseArchCfg):
         env_spacing=0.0,
         )
     
-    # Robot pose sampler
+    # Curriculum sampler
+    curriculum_max_steps = 10000
     center = (terrain.terrain_generator.num_cols*terrain.terrain_generator.size[0]/2, terrain.terrain_generator.num_rows*terrain.terrain_generator.size[1]/2, 0.0)
     robot_position_sampler = CircularSampler(radius=2.0, z_range=(0.55, 0.55))
     robot_quat_sampler = CurriculumQuaternionSampler(
@@ -73,34 +79,33 @@ class HierarchicalArchCfg(BaseArchCfg):
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=24*10000)
     )
     
-    # Curriculum sampler
-    curriculum_max_steps = 10000
-    is_inference = True
-    if is_inference:
-        # inference
-        terrain_curriculum_sampler = CurriculumLineSampler(
-            x_start=terrain.num_curriculums-1, x_end=terrain.num_curriculums,
-            rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
-        )
-        robot_target_velocity_sampler = CurriculumUniformCubicSampler(
-            x_range_start=(0.3, 0.3), x_range_end=(0.3, 0.3), 
-            y_range_start=(0.0, 0.0), y_range_end=(0.0, 0.0),
-            z_range_start=(0.0, 0.0), z_range_end=(0.0, 0.0),
-            # z_range_start=(0.5, 0.5), z_range_end=(0.5, 0.5),
-            rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
-        )
-    else:
-        # train
-        terrain_curriculum_sampler = CurriculumLineSampler(
-            x_start=0, x_end=terrain.num_curriculums-1,
-            rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
-        )
-        robot_target_velocity_sampler = CurriculumUniformCubicSampler(
-            x_range_start=(0.1, 0.3), x_range_end=(0.3, 0.5),
-            y_range_start=(0.0, 0.0), y_range_end=(0.0, 0.0),
-            z_range_start=(0.0, 0.0), z_range_end=(-0.5, 0.5),
-            rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
-        )
+    terrain_curriculum_sampler = CurriculumLineSampler(
+        x_start=0, x_end=terrain.num_curriculums-1,
+        rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
+    )
+    robot_target_velocity_sampler = CurriculumUniformCubicSampler(
+        x_range_start=(0.1, 0.3), x_range_end=(0.3, 0.5),
+        y_range_start=(0.0, 0.0), y_range_end=(0.0, 0.0),
+        z_range_start=(0.0, 0.0), z_range_end=(-0.5, 0.5),
+        rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
+    )
+    
+    # robot_double_support_length_sampler = CurriculumUniformLineSampler(
+    #     x_range_start=(int(0.0/dt), int(0.05/dt)), x_range_end=(int(0.0/dt), int(0.15/dt)),
+    #     rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
+    # )
+    # robot_single_support_length_sampler = CurriculumUniformLineSampler(
+    #     x_range_start=(int(0.3/dt), int(0.3/dt)), x_range_end=(int(0.4/dt), int(0.45/dt)),
+    #     rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
+    # )
+    robot_double_support_length_sampler = CurriculumUniformLineSampler(
+        x_range_start=(int(0.0/dt), int(0.0/dt)), x_range_end=(int(0.0/dt), int(0.0/dt)),
+        rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
+    )
+    robot_single_support_length_sampler = CurriculumUniformLineSampler(
+        x_range_start=(int(0.2/dt), int(0.2/dt)), x_range_end=(int(0.2/dt), int(0.2/dt)),
+        rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
+    )
     
     # reward parameters
     reward_parameter: VelocityTrackingReward = VelocityTrackingReward(height_similarity_weight=0.66, 
@@ -117,7 +122,6 @@ class HierarchicalArchCfg(BaseArchCfg):
         position_coeff=0.8, yaw_coeff=0.8,
         position_reward_mode="exponential", yaw_reward_mode="exponential")
     alive_reward_parameter: AliveReward = AliveReward(alive_weight=0.33)
-    contact_tracking_reward_parameter: ContactTrackingReward = ContactTrackingReward(contact_similarity_weight=0.0, contact_reward_mode="square")
     
     # penalty parameters
     penalty_parameter: VelocityTrackingPenalty = VelocityTrackingPenalty(roll_deviation_weight=0.66, 
@@ -133,11 +137,6 @@ class HierarchicalArchCfg(BaseArchCfg):
                                                          wz_penalty_weight=0.1)
     action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.66, action_bound=(0.9, 1.0))
     foot_slide_penalty_parameter: FeetSlidePenalty = FeetSlidePenalty(feet_slide_weight=0.1)
-    
-    # Do not use for now
-    left_hip_roll_joint_penalty_parameter: JointPenalty = JointPenalty(joint_penalty_weight=0.0, joint_pos_bound=(torch.pi/10, torch.pi/6))
-    right_hip_roll_joint_penalty_parameter: JointPenalty = JointPenalty(joint_penalty_weight=0.0, joint_pos_bound=(torch.pi/10, torch.pi/6))
-    hip_pitch_joint_deviation_penalty_parameter: JointPenalty = JointPenalty(joint_penalty_weight=0.0, joint_pos_bound=(torch.pi/6, torch.pi/2))
 
 
 @configclass
@@ -154,10 +153,10 @@ class HierarchicalArchPrimeCfg(HierarchicalArchCfg):
 @configclass
 class HierarchicalArchAccelPFCfg(HierarchicalArchCfg):
     episode_length_s =20
-    observation_space = 60
-    state_space = 60
-    action_space = 8
+    observation_space = 64
+    state_space = 64
+    action_space = 10
     
     # action bound hyper parameter
-    action_lb = [-3.0, -3.0, -6.0] + [-2.0, -2.0, -2.0] + [-0.02, -0.02]
-    action_ub = [3.0,  3.0, 6.0] + [2.0, 2.0, 2.0] + [0.1, 0.1]
+    action_lb = [-6.0, -6.0, -6.0] + [-2.0, -2.0, -2.0] + [-0.02, -0.02, -0.01, -0.01]
+    action_ub = [6.0,  6.0, 6.0] + [2.0, 2.0, 2.0] + [0.1, 0.1, 0.01, 0.01]
