@@ -101,10 +101,7 @@ class BaseArch(DirectRLEnv):
         # setup MPC wrapper
         mpc_conf = MPC_Conf(
             control_dt=self.cfg.dt, control_iteration_between_mpc=self.cfg.iteration_between_mpc, 
-            horizon_length=self.cfg.horizon_length, mpc_decimation=self.cfg.mpc_decimation,
-            dsp_durations=np.array([self.cfg.dsp_duration, self.cfg.dsp_duration]), 
-            ssp_durations=np.array([self.cfg.ssp_duration, self.cfg.ssp_duration]))
-        # self.mpc = MPCWrapper(mpc_conf)
+            horizon_length=self.cfg.horizon_length, mpc_decimation=self.cfg.mpc_decimation)
         self.mpc = [MPCWrapper(mpc_conf) for _ in range(self.num_envs)] # class array
         self.mpc_ctrl_counter = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
         

@@ -72,8 +72,6 @@ class BaseArchCfg(DirectRLEnvCfg):
     
     # MPC parameters
     gait_change_cutoff = 200
-    ssp_duration = int(0.2/dt) # single support 0.2s
-    dsp_duration = int(0.0/dt) # double support
     iteration_between_mpc = 10 # mpc time step discritization (dt_mpc = dt*iteration_between_mpc)
     horizon_length = 10
     reference_height = 0.55
