@@ -76,10 +76,10 @@ BaseTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="generator",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(1.0, 1.0), # size of sub-terrain
+        size=(100.0, 100.0), # size of sub-terrain
         border_width=0.0,
-        num_rows=20,
-        num_cols=20,
+        num_rows=1,
+        num_cols=1,
         horizontal_scale=0.1,
         vertical_scale=0.005,
         slope_threshold=0.75,
@@ -95,13 +95,10 @@ BaseTerrain = TerrainImporterCfg(
         static_friction=0.5,
         dynamic_friction=0.5,
     ),
-    visual_material=sim_utils.MdlFileCfg(
-        mdl_path=f"{ISAACLAB_NUCLEUS_DIR}/Materials/TilesMarbleSpiderWhiteBrickBondHoned/TilesMarbleSpiderWhiteBrickBondHoned.mdl",
-        project_uvw=True,
-        texture_scale=(0.25, 0.25),
-    ),
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2)),
     debug_vis=False,
     disable_colllider=False,
+    # center_position=(50.0, 50.0, 0.0)
 )
 
 SoftTerrain = TerrainImporterCfg(
