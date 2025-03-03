@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import math
+from time import time
 import gymnasium as gym
 import numpy as np
 import torch
@@ -103,12 +104,7 @@ class BaseArch(DirectRLEnv):
         self._ssp_duration = np.zeros(self.num_envs, dtype=np.float32)
         
         # setup MPC wrapper
-        # mpc_conf = MPC_Conf(
-        #     control_dt=self.cfg.dt, control_iteration_between_mpc=self.cfg.iteration_between_mpc, 
-        #     horizon_length=self.cfg.horizon_length, mpc_decimation=self.cfg.mpc_decimation)
-        # self.mpc = [MPCWrapper(mpc_conf) for _ in range(self.num_envs)] # class array
         self.mpc = MPCWrapper(self.num_envs, self.device)
-        
         self.mpc_ctrl_counter = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
         
         # for logging
@@ -231,9 +227,10 @@ class BaseArch(DirectRLEnv):
         self._get_state()
         # run mpc controller
         self.mpc.update_state(self._state)
+        t0 = time()
         self.mpc.run()
+        print("MPC time: ", 1000 * (time()-t0), " ms")
         self._joint_actions = self.mpc.get_action()
-        # print(self._joint_actions)
         self._robot_api.set_joint_effort_target(self._joint_actions, self._joint_ids)
     
     def _get_state(self) -> None:

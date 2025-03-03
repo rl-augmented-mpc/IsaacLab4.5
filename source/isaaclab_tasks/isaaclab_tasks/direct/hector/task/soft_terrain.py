@@ -45,15 +45,14 @@ class SoftTerrainEnv(BaseArch):
     def __init__(self, cfg: SoftTerrainEnvCfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
         self.curriculum_idx = np.zeros(self.num_envs)
-        # RFT
-        num_legs = 2
-        self._foot_ids = torch.arange(len(self._robot_api.body_names)-num_legs*self.cfg.foot_patch_num, len(self._robot_api.body_names), dtype=torch.long, device=self.device) # foot ids
-        self.foot_velocity = torch.zeros(self.num_envs, num_legs*self.cfg.foot_patch_num, 3, device=self.device, dtype=torch.float32)
-        self.foot_accel = torch.zeros(self.num_envs, num_legs*self.cfg.foot_patch_num, 3, device=self.device, dtype=torch.float32)
-        self.foot_depth = torch.zeros(self.num_envs, num_legs*self.cfg.foot_patch_num, device=self.device, dtype=torch.float32)
-        self.foot_angle_beta = torch.zeros(self.num_envs, num_legs*self.cfg.foot_patch_num, device=self.device, dtype=torch.float32)
-        self.foot_angle_gamma = torch.zeros(self.num_envs, num_legs*self.cfg.foot_patch_num, device=self.device, dtype=torch.float32)
-        self.rft_force = torch.zeros(self.num_envs, num_legs*self.cfg.foot_patch_num, 3, device=self.device, dtype=torch.float32)
+        self._foot_ids = torch.arange(len(self._robot_api.body_names)-self.num_leg*self.cfg.foot_patch_num, len(self._robot_api.body_names), dtype=torch.long, device=self.device) # foot ids
+        # for RFT
+        self.foot_velocity = torch.zeros(self.num_envs, self.num_leg*self.cfg.foot_patch_num, 3, device=self.device, dtype=torch.float32)
+        self.foot_accel = torch.zeros(self.num_envs, self.num_leg*self.cfg.foot_patch_num, 3, device=self.device, dtype=torch.float32)
+        self.foot_pos_z = torch.zeros(self.num_envs, self.num_leg*self.cfg.foot_patch_num, device=self.device, dtype=torch.float32)
+        self.foot_angle_beta = torch.zeros(self.num_envs, self.num_leg*self.cfg.foot_patch_num, device=self.device, dtype=torch.float32)
+        self.foot_angle_gamma = torch.zeros(self.num_envs, self.num_leg*self.cfg.foot_patch_num, device=self.device, dtype=torch.float32)
+        self.rft_force = torch.zeros(self.num_envs, self.num_leg*self.cfg.foot_patch_num, 3, device=self.device, dtype=torch.float32)
     
     def _setup_scene(self)->None:
         """
@@ -62,16 +61,16 @@ class SoftTerrainEnv(BaseArch):
         """
         # robot
         foot_surface = 0.1*0.15
-        num_leg = 2
-        nx = 2
-        ny = 2
+        self.num_leg = 2
+        nx = 4
+        ny = 4
         self.cfg.foot_patch_num = nx*ny
         self.cfg.robot.reference_frame = "local"
         self._robot = Articulation(self.cfg.robot)
         stage = stage_utils.get_current_stage()
         create_foot_contact_links(stage, "/World/envs/env_0/Robot", nx, ny, "L")
         create_foot_contact_links(stage, "/World/envs/env_0/Robot", nx, ny, "R")
-        self._robot_api = RobotCore(self._robot, num_leg*self.cfg.foot_patch_num)
+        self._robot_api = RobotCore(self._robot, self.num_envs, self.num_leg*self.cfg.foot_patch_num)
         self.scene.articulations["robot"] = self._robot
         
         # sensors
@@ -91,22 +90,28 @@ class SoftTerrainEnv(BaseArch):
         
         # clone, filter, and replicate
         self.scene.clone_environments(copy_from_source=False)
+        self.scene.filter_collisions() # no ground collider exists for this env
         
         # light
         self._light = sim_utils.spawn_light(self.cfg.light.prim_path, self.cfg.light.spawn, orientation=(0.8433914, 0.0, 0.5372996, 0.0))
         
         # RFT
+        damping_coef = torch.ones(self.num_envs, 3, device=self.device, dtype=torch.float32)
+        dynamic_friction_coef = 0.3 * torch.ones(self.num_envs, device=self.device, dtype=torch.float32)
+        compactness = 1.0 * torch.ones(self.num_envs, device=self.device, dtype=torch.float32)
+        damping_coef[:, 0] = 5.0
+        damping_coef[:, 1] = 15.0
+        damping_coef[:, 2] = 2.0
         self._rft = RFT_EMF(
-            # PoppySeedLPCfg(), # loosely packed poppy seed
-            PoppySeedCPCfg(), # closely packed poppy seed
-            self.device, 
-            self.num_envs, 
-            num_leg,
-            self.cfg.foot_patch_num, 
-            foot_surface,
-            dynamic_friction_coef=[0.3, 0.4],
-            dumping_coef=[3.0, 10.0, 0.5], # closely packed
-            # dumping_coef=[0.2, 10.0, 0.3], # closely packed
+            cfg=PoppySeedCPCfg(), # closely packed poppy seed
+            device=self.device, 
+            num_envs=self.num_envs, 
+            num_leg=self.num_leg,
+            num_contact_points=self.cfg.foot_patch_num, 
+            surface_area=foot_surface,
+            damping_coef=damping_coef,
+            dynamic_friction_coef=dynamic_friction_coef,
+            compactness=compactness,
             )
     
     def _compute_external_perturbation(self)->None:
@@ -115,7 +120,8 @@ class SoftTerrainEnv(BaseArch):
         """
         self.foot_pos = self._robot_api.foot_pos
         self.foot_rot_mat = self._robot_api.foot_rot_mat
-        self.foot_depth = self._robot_api.foot_depth
+        self.foot_pos_z = self._robot_api.foot_pos_z
+        self.foot_depth = (0 - self.foot_pos_z + 0.01) * (self.foot_pos_z - 0.01 < 0)
         
         self.foot_velocity = self._robot_api.foot_vel
         self.foot_accel = self._robot_api.foot_accel
@@ -123,15 +129,13 @@ class SoftTerrainEnv(BaseArch):
         self.foot_angle_gamma = self._robot_api.foot_gamma_angle
         
         self.rft_force = self._rft.get_force(
-            self.foot_depth, 
+            self.foot_pos_z, 
             self.foot_rot_mat,
             self.foot_velocity,
             self.foot_angle_beta, 
             self.foot_angle_gamma, 
             self._gait_contact) # (num_envs, self.cfg.foot_patch_num, 3)
-        
-        external_torque = torch.zeros(self.num_envs, self.cfg.foot_patch_num*2, 3, device=self.device, dtype=torch.float32)
-        self._robot_api.set_external_wrench(self.rft_force, external_torque, self._foot_ids, self._robot._ALL_INDICES)
+        self._robot_api.set_external_force(self.rft_force, self._foot_ids, self._robot._ALL_INDICES)
         
         # visualize contact force
         if self.common_step_counter % (self.cfg.rendering_interval//self.cfg.decimation) == 0:
@@ -276,7 +280,10 @@ class SoftTerrainEnv(BaseArch):
             self.episode_sums[key] = 0.0
     
     def _reset_terrain(self, env_ids: Sequence[int])->None:
-        pass
+        terrain_friction = self.cfg.terrain_friction_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids))
+        terrain_stiffness = self.cfg.terrain_stiffness_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids))
+        self._rft.set_dynamic_friction_coef(torch.tensor(terrain_friction, device=self.device), env_ids)
+        self._rft.set_soil_compactness(torch.tensor(terrain_stiffness, device=self.device), env_ids)
         
     
     def _reset_robot(self, env_ids: Sequence[int])->None:
@@ -290,7 +297,7 @@ class SoftTerrainEnv(BaseArch):
         default_root_pose = torch.cat((position, quat), dim=-1)
         
         # override the default state
-        self._robot_api.reset_default_pose(default_root_pose, env_ids)
+        self._robot_api.reset_default_pose(default_root_pose, env_ids) # type: ignore
         
         default_root_pose[:, :3] += self.scene.env_origins[env_ids]
         default_root_vel = self._robot_api.default_root_state[env_ids, 7:]
@@ -303,14 +310,14 @@ class SoftTerrainEnv(BaseArch):
         self._add_joint_offset(env_ids)
         
         # write to sim
-        self._robot_api.write_root_pose_to_sim(default_root_pose, env_ids)
-        self._robot_api.write_root_velocity_to_sim(default_root_vel, env_ids)
-        self._robot_api.write_joint_state_to_sim(joint_pos, joint_vel, self._joint_ids, env_ids)
+        self._robot_api.write_root_pose_to_sim(default_root_pose, env_ids) # type: ignore
+        self._robot_api.write_root_velocity_to_sim(default_root_vel, env_ids) # type: ignore
+        self._robot_api.write_joint_state_to_sim(joint_pos, joint_vel, self._joint_ids, env_ids) # type: ignore
         
         # reset mpc reference
-        self._desired_twist_np[env_ids.cpu().numpy()] = np.array(self.cfg.robot_target_velocity_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32)
+        self._desired_twist_np[env_ids.cpu().numpy()] = np.array(self.cfg.robot_target_velocity_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore
         self.mpc_ctrl_counter[env_ids] = 0
-        for i in env_ids.cpu().numpy():
+        for i in env_ids.cpu().numpy(): # type: ignore
             self.mpc[i].reset()
         
         # reset reference 

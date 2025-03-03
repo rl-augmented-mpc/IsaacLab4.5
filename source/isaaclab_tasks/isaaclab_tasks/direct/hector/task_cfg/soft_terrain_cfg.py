@@ -105,8 +105,8 @@ class SoftTerrainEnvCfg(BaseArchCfg):
             rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
         )
         robot_target_velocity_sampler = CurriculumUniformCubicSampler(
-            x_range_start=(0.1, 0.1), x_range_end=(0.1, 0.1), 
-            # x_range_start=(0.0, 0.0), x_range_end=(0.0, 0.0), 
+            # x_range_start=(0.1, 0.1), x_range_end=(0.1, 0.1), 
+            x_range_start=(0.0, 0.0), x_range_end=(0.0, 0.0), 
             y_range_start=(0.0, 0.0), y_range_end=(0.0, 0.0),
             z_range_start=(0.0, 0.0), z_range_end=(0.0, 0.0),
             rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
@@ -123,6 +123,16 @@ class SoftTerrainEnvCfg(BaseArchCfg):
             z_range_start=(0.0, 0.0), z_range_end=(-0.5, 0.5),
             rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
         )
+    
+    # terrain parameters
+    terrain_friction_sampler = CurriculumLineSampler(
+        x_start=0.5, x_end=0.3,
+        rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
+    )
+    terrain_stiffness_sampler = CurriculumLineSampler(
+        x_start=2.0, x_end=0.5,
+        rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
+    )
     
     # reward parameters
     reward_parameter: VelocityTrackingReward = VelocityTrackingReward(height_similarity_weight=0.66, 
