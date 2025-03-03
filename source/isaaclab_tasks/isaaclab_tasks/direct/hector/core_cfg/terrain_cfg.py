@@ -183,12 +183,12 @@ SoftVisualTerrain = TerrainImporterCfg(
         static_friction=0.5,
         dynamic_friction=0.5,
     ),
-    # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2)),
-    visual_material=sim_utils.MdlFileCfg(
-            mdl_path="omniverse://localhost/NVIDIA/Assets/Isaac/4.2/NVIDIA/Materials/Base/Natural/Dirt.mdl",
-            project_uvw=True,
-            texture_scale=(1.0, 1.0),
-        ),
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2)),
+    # visual_material=sim_utils.MdlFileCfg(
+    #         mdl_path="omniverse://localhost/NVIDIA/Assets/Isaac/4.2/NVIDIA/Materials/Base/Natural/Dirt.mdl",
+    #         project_uvw=True,
+    #         texture_scale=(1.0, 1.0),
+    #     ),
     debug_vis=False,
     disable_colllider=True,
     static_friction_range = (1.0, 1.0),

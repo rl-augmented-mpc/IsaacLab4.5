@@ -142,7 +142,7 @@ class BaseArchCfg(DirectRLEnvCfg):
     )
     
     # light
-    light_type = "distant"
+    light_type = "dome"
     
     if light_type == "dome":
         light = AssetBaseCfg(
@@ -156,7 +156,7 @@ class BaseArchCfg(DirectRLEnvCfg):
         light = AssetBaseCfg(
             prim_path="/World/distantLight",
             spawn=sim_utils.DistantLightCfg(
-                intensity=3000.0,
+                intensity=4000.0,
             )
         )
     

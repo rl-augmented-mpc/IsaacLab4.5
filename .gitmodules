@@ -1,3 +1,0 @@
-[submodule "source/isaaclab_tasks/isaaclab_tasks/direct/hector_cuda/hector_pytorch"]
-	path = source/isaaclab_tasks/isaaclab_tasks/direct/hector_cuda/hector_pytorch
-	url = git@github.com:jnskkmhr/hector_pytorch.git
