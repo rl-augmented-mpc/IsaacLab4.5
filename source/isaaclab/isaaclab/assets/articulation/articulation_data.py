@@ -557,7 +557,7 @@ class ArticulationData:
         return self._joint_acc.data
     
     @property
-    def joint_effort(self):
+    def joint_torque(self):
         """Joint effort of all joints. Shape is (num_instances, num_joints)."""
         if self._joint_effort.timestamp < self._sim_timestamp:
             # read data from simulation and set the buffer data and timestamp

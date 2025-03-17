@@ -79,7 +79,7 @@ class HierarchicalArch(BaseArch):
         terrain_origin = np.array([self.cfg.terrain.center_position[0], self.cfg.terrain.center_position[1], 0.0])
         camera_pos = terrain_origin + np.array([self.cfg.terrain.friction_group_patch_num/2 + self.cfg.terrain.friction_group_patch_num*(curriculum_idx//num_curriculum_x), 
                                  self.cfg.terrain.friction_group_patch_num/2 + self.cfg.terrain.friction_group_patch_num*(curriculum_idx%num_curriculum_y), 0])
-        camera_delta = np.array([0.0, -5.0, 0.0])
+        camera_delta = np.array([0.0, -4.0, 0.0])
         self.cfg.viewer.eye = (camera_pos[0]+camera_delta[0], camera_pos[1]+camera_delta[1], camera_pos[2]+camera_delta[2])
         self.cfg.viewer.lookat = (camera_pos[0], camera_pos[1], 0.0)
     
@@ -173,9 +173,9 @@ class HierarchicalArch(BaseArch):
         self._joint_actions = torch.from_numpy(joint_torque_augmented).to(self.device).view(self.num_envs, -1)
         self._robot_api.set_joint_effort_target(self._joint_actions, self._joint_ids)
         
-        self.visualize_foot_placement()
+        self.visualize_marker()
     
-    def visualize_foot_placement(self):
+    def visualize_marker(self):
         if self.common_step_counter % (self.cfg.rendering_interval/self.cfg.decimation) == 0:
             reibert_fps = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
             augmented_fps = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
@@ -186,18 +186,20 @@ class HierarchicalArch(BaseArch):
             augmented_fps[:, 0, :2] = self._augmented_fps[:, :2]
             augmented_fps[:, 1, :2] = self._augmented_fps[:, 2:]
             
-            reibert_fps[:, 0, :] = (torch.bmm(self._init_rot_mat, reibert_fps[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position + self.scene.env_origins)
-            reibert_fps[:, 1, :] = torch.bmm(self._init_rot_mat, reibert_fps[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position + self.scene.env_origins
-            augmented_fps[:, 0, :] = torch.bmm(self._init_rot_mat, augmented_fps[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position + self.scene.env_origins
-            augmented_fps[:, 1, :] = torch.bmm(self._init_rot_mat, augmented_fps[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position + self.scene.env_origins
+            # convert local foot placement to simulation global frame
+            reibert_fps[:, 0, :] = torch.bmm(self._init_rot_mat, reibert_fps[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position
+            reibert_fps[:, 1, :] = torch.bmm(self._init_rot_mat, reibert_fps[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position 
+            augmented_fps[:, 0, :] = torch.bmm(self._init_rot_mat, augmented_fps[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position
+            augmented_fps[:, 1, :] = torch.bmm(self._init_rot_mat, augmented_fps[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position
             
-            # apply swing mask
-            reibert_fps[:, 0, :] = reibert_fps[:, 0, :] * (1-self._gait_contact[:, 0].unsqueeze(-1))
-            reibert_fps[:, 1, :] = reibert_fps[:, 1, :] * (1-self._gait_contact[:, 1].unsqueeze(-1))
-            augmented_fps[:, 0, :] = augmented_fps[:, 0, :] * (1-self._gait_contact[:, 0].unsqueeze(-1))
-            augmented_fps[:, 1, :] = augmented_fps[:, 1, :] * (1-self._gait_contact[:, 1].unsqueeze(-1))
+            # hide foot placement marker when foot is in contact
+            reibert_fps[:, 0, 2] -= self._gait_contact[:, 0] * 5.0
+            reibert_fps[:, 1, 2] -= self._gait_contact[:, 1] * 5.0
+            augmented_fps[:, 0, 2] -= self._gait_contact[:, 0] * 5.0
+            augmented_fps[:, 1, 2] -= self._gait_contact[:, 1] * 5.0
             
             self.foot_placement_visualizer.visualize(reibert_fps, augmented_fps)
+            self._velocity_visualizer.visualize(self._robot_api.root_pos_w, self._robot_api.root_quat_w, self._robot_api.root_lin_vel_b)
     
     def _get_observations(self) -> dict:
         """
@@ -259,7 +261,7 @@ class HierarchicalArch(BaseArch):
         center_coord = np.stack([self.cfg.terrain.friction_group_patch_num/2 + self.cfg.terrain.friction_group_patch_num*(curriculum_idx//num_curriculum_x), 
                                  self.cfg.terrain.friction_group_patch_num/2 + self.cfg.terrain.friction_group_patch_num*(curriculum_idx%num_curriculum_y)], axis=-1)
         position = self.cfg.robot_position_sampler.sample(center_coord, len(env_ids))
-        quat = self.cfg.robot_quat_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(position))
+        quat = self.cfg.robot_quat_sampler.sample(np.array(position)[:, :2] - center_coord, len(position))
         
         position = torch.tensor(position, device=self.device).view(-1, 3)
         quat = torch.tensor(quat, device=self.device).view(-1, 4)
@@ -503,7 +505,7 @@ class HierarchicalArchPrime(HierarchicalArch):
         self._joint_actions = torch.from_numpy(joint_torque_augmented).to(self.device).view(self.num_envs, -1)
         self._robot_api.set_joint_effort_target(self._joint_actions, self._joint_ids)
         
-        self.visualize_foot_placement()
+        self.visualize_marker()
     
     def _get_observations(self) -> dict:
         """
@@ -608,7 +610,7 @@ class HierarchicalArchAccelPF(HierarchicalArch):
         self._joint_actions = torch.from_numpy(joint_torque_augmented).to(self.device).view(self.num_envs, -1)
         self._robot_api.set_joint_effort_target(self._joint_actions, self._joint_ids)
         
-        self.visualize_foot_placement()
+        self.visualize_marker()
     
     def _get_observations(self) -> dict:
         """

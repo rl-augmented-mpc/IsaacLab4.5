@@ -96,7 +96,6 @@ class BaseArchCfg(DirectRLEnvCfg):
         #     static_friction=static_friction,
         #     dynamic_friction=dynamic_friction,
         # ),
-        disable_contact_processing=True, 
         )
     
     # terrain
@@ -144,13 +143,13 @@ class BaseArchCfg(DirectRLEnvCfg):
     )
     
     # light
-    light_type = "distant"
+    light_type = "dome"
     
     if light_type == "dome":
         light = AssetBaseCfg(
             prim_path="/World/skyLight",
             spawn=sim_utils.DomeLightCfg(
-                intensity=1800.0,
+                intensity=2000.0,
                 texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
             ),
         )

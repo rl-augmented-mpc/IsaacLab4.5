@@ -19,7 +19,7 @@ from isaaclab.utils import configclass
 from isaaclab_tasks.direct.hector.common.task_reward import VelocityTrackingReward, AliveReward, ContactTrackingReward, PoseTrackingReward, SagittalFPSimilarityReward
 from isaaclab_tasks.direct.hector.common.task_penalty import VelocityTrackingPenalty, TwistPenalty, FeetSlidePenalty, JointPenalty, ActionSaturationPenalty
 
-from isaaclab_tasks.direct.hector.common.sampler import UniformLineSampler, UniformCubicSampler, GridCubicSampler, QuaternionSampler, CircularSampler
+from isaaclab_tasks.direct.hector.common.sampler import UniformLineSampler, UniformCubicSampler, GridCubicSampler, QuaternionSampler, CircularSampler, CircularOrientationSampler
 from isaaclab_tasks.direct.hector.common.curriculum import  CurriculumRateSampler, CurriculumLineSampler, CurriculumUniformLineSampler, CurriculumUniformCubicSampler, CurriculumQuaternionSampler
 from isaaclab_tasks.direct.hector.core_cfg.terrain_cfg import CurriculumFrictionPatchTerrain, FrictionPatchTerrain
 
@@ -40,7 +40,7 @@ class HierarchicalArchCfg(BaseArchCfg):
     inference = False
     curriculum_inference = False
     
-    dt=0.002 #500Hz 
+    dt=1/500 #500Hz 
     rendering_interval = 10 # 50Hz
     mpc_decimation = 5 # 100Hz
     decimation = 5 # 100Hz (RL)
@@ -50,6 +50,7 @@ class HierarchicalArchCfg(BaseArchCfg):
     nominal_foot_height = 0.12
     
     terrain = CurriculumFrictionPatchTerrain
+    # terrain = FrictionPatchTerrain
     
     # RL observation, action parameters
     action_space = 3
@@ -73,12 +74,12 @@ class HierarchicalArchCfg(BaseArchCfg):
         )
     
     # Curriculum sampler
-    curriculum_max_steps = 10000
-    center = (terrain.terrain_generator.num_cols*terrain.terrain_generator.size[0]/2, terrain.terrain_generator.num_rows*terrain.terrain_generator.size[1]/2, 0.0)
-    robot_position_sampler = CircularSampler(radius=2.0, z_range=(0.55, 0.55))
-    robot_quat_sampler = CurriculumQuaternionSampler(
-        x_range_start=(0.0, math.pi/3), x_range_end=(0.0, 2*math.pi),
-        rate_sampler=CurriculumRateSampler(function="linear", start=0, end=24*10000)
+    curriculum_max_steps = 5000
+    center = (terrain.center_position[0], terrain.center_position[1], 0.0)
+
+    robot_position_sampler = CircularSampler(radius=0.8, z_range=(0.55, 0.55))
+    robot_quat_sampler = CircularOrientationSampler(
+        x_range=(-math.pi/18, math.pi/18),
     )
     
     terrain_curriculum_sampler = CurriculumLineSampler(
@@ -109,36 +110,50 @@ class HierarchicalArchCfg(BaseArchCfg):
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
     )
     
-    # reward parameters
+    ############################
+    ## Reward configurations ###
+    ############################
+    
+    # reward
     reward_parameter: VelocityTrackingReward = VelocityTrackingReward(height_similarity_weight=0.66, 
                                                             lin_vel_similarity_weight=0.66,
                                                             ang_vel_similarity_weight=0.66,
                                                             height_similarity_coeff=0.5, 
                                                             lin_vel_similarity_coeff=0.5,
                                                             ang_vel_similarity_coeff=0.5,
+                                                            # height_reward_mode="gaussian",
+                                                            # lin_vel_reward_mode="gaussian",
+                                                            # ang_vel_reward_mode="gaussian"
                                                             height_reward_mode="exponential",
                                                             lin_vel_reward_mode="exponential",
-                                                            ang_vel_reward_mode="exponential")
+                                                            ang_vel_reward_mode="exponential"
+                                                            )
     pose_tracking_reward_parameter: PoseTrackingReward = PoseTrackingReward(
         position_weight=0.66, yaw_weight=0.66, 
         position_coeff=0.8, yaw_coeff=0.8,
-        position_reward_mode="exponential", yaw_reward_mode="exponential")
+        # position_reward_mode="gaussian", 
+        # yaw_reward_mode="gaussian"
+        position_reward_mode="exponential", 
+        yaw_reward_mode="exponential"
+        )
     alive_reward_parameter: AliveReward = AliveReward(alive_weight=0.33)
     
-    # penalty parameters
+    # penalty
     penalty_parameter: VelocityTrackingPenalty = VelocityTrackingPenalty(roll_deviation_weight=0.66, 
                                                                pitch_deviation_weight=0.66, 
                                                                action_penalty_weight=0.05, 
                                                                energy_penalty_weight=0.05,
                                                                foot_energy_penalty_weight=0.00)
-    twist_penalty_parameter: TwistPenalty = TwistPenalty(vx_bound=(0.25, 0.5), 
-                                                         vy_bound=(0.1, 0.5), 
-                                                         wz_bound=(0.15, 0.5), 
+    twist_penalty_parameter: TwistPenalty = TwistPenalty(vx_bound=(0.6, 1.0), 
+                                                         vy_bound=(0.5, 1.0), 
+                                                         wz_bound=(0.6, 1.0), 
                                                          vx_penalty_weight=0.1,
                                                          vy_penalty_weight=0.1,
                                                          wz_penalty_weight=0.1)
     action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.66, action_bound=(0.9, 1.0))
     foot_slide_penalty_parameter: FeetSlidePenalty = FeetSlidePenalty(feet_slide_weight=0.1)
+    left_hip_roll_joint_penalty_parameter: JointPenalty = JointPenalty(joint_penalty_weight=0.66, joint_pos_bound=(torch.pi/18, torch.pi/6))
+    right_hip_roll_joint_penalty_parameter: JointPenalty = JointPenalty(joint_penalty_weight=0.66, joint_pos_bound=(torch.pi/18, torch.pi/6))
 
 
 @configclass
@@ -149,8 +164,8 @@ class HierarchicalArchPrimeCfg(HierarchicalArchCfg):
     action_space = 6
     
     # action bound hyper parameter
-    action_lb = [-6.0, -6.0, -6.0] + [-2.0, -2.0, -2.0]
-    action_ub = [6.0,  6.0, 6.0] + [2.0, 2.0, 2.0]
+    action_lb = [-6.0, -6.0, -6.0] + [-0.2, -2.0, -2.0]
+    action_ub = [6.0,  6.0, 6.0] + [0.2, 2.0, 2.0]
 
 @configclass
 class HierarchicalArchAccelPFCfg(HierarchicalArchCfg):
@@ -160,8 +175,8 @@ class HierarchicalArchAccelPFCfg(HierarchicalArchCfg):
     action_space = 10
     
     # action bound hyper parameter
-    action_lb = [-6.0, -6.0, -6.0] + [-2.0, -2.0, -2.0] + [-0.02, -0.02, -0.01, -0.01]
-    action_ub = [6.0,  6.0, 6.0] + [2.0, 2.0, 2.0] + [0.1, 0.1, 0.01, 0.01]
+    action_lb = [-6.0, -6.0, -6.0] + [-0.2, -2.0, -2.0] + [-0.02, -0.02, -0.01, -0.01]
+    action_ub = [6.0,  6.0, 6.0] + [0.2, 2.0, 2.0] + [0.1, 0.1, 0.01, 0.01]
 
 
 @configclass
@@ -170,18 +185,18 @@ class HierarchicalArchPrimeFullCfg(HierarchicalArchCfg):
     observation_space = 72
     state_space = 72
     action_space = 18
-    # action bound hyper parameter
-    g= 9.81
-    lin_accel_scale = [0.3*g, 0.3*g, 0.5*g]
-    # ang_accel_scale = [27.62, 5.23, 5.23]
-    ang_accel_scale = [0.5*27.62, 0.5*5.23, 0.5*5.23]
-    # +- 20% uncertainty of original mass and inertia
 
-    inv_mass_scale = [0.2/13.856, 0.2/13.856, 0.2/13.856]
-    inv_inertia_scale = [0.2/0.5413, 0.2/0.52, 0.2/0.0691]
+    # action bound hyper parameter
+    lin_accel_scale = [6.0, 6.0, 6.0]
+    ang_accel_scale = [0.2, 2.0, 2.0]
+
+    # +- 10% uncertainty of original mass and inertia
+    inv_mass_scale_lb = [-0.1/13.856, -0.1/13.856, -0.1/13.856]
+    inv_mass_scale_ub = [0.0/13.856, 0.0/13.856, 0.0/13.856]
+    inv_inertia_scale = [0.1/0.5413, 0.1/0.52, 0.1/0.0691]
 
     action_lb = [-v for v in lin_accel_scale] + [-v for v in ang_accel_scale] + \
-        [-v for v in inv_mass_scale] + [-v for v in inv_mass_scale] + \
+        [v for v in inv_mass_scale_lb] + [v for v in inv_mass_scale_lb] + \
         [-v for v in inv_inertia_scale] + [-v for v in inv_inertia_scale]
-    action_ub = lin_accel_scale + ang_accel_scale + inv_mass_scale + inv_mass_scale + \
+    action_ub = lin_accel_scale + ang_accel_scale + inv_mass_scale_ub + inv_mass_scale_ub + \
         inv_inertia_scale + inv_inertia_scale

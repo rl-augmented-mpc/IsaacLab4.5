@@ -127,3 +127,5 @@ class TerrainImporterCfg:
     """The contact offset parameter of collider. Defaults to None meaning it is autocomputed."""
     rest_offset: float|None = None
     """The rest offset parameter of collider. Defaults to None meaning it is autocomputed."""
+
+    safe_region_friction: float = 0.5

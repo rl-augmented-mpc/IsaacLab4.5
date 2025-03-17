@@ -149,7 +149,7 @@ def main():
             if args_cli.use_rl:
                 actions = policy(obs)
             else:
-                actions = torch.zeros((args_cli.num_envs, env_cfg.num_actions),dtype=torch.float32, device=args_cli.device) # type: ignore
+                actions = torch.zeros((args_cli.num_envs, env_cfg.action_space),dtype=torch.float32, device=args_cli.device) # type: ignore
             obs, _, dones, _ = env.step(actions)
             ppo_runner.alg.actor_critic.reset(dones) # reset hidden state of batch dim with done=1
         
