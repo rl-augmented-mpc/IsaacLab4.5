@@ -8,6 +8,11 @@ import os
 import torch
 
 
+import copy
+import os
+import torch
+
+
 def export_policy_as_jit(actor_critic: object, normalizer: object | None, path: str, filename="policy.pt"):
     """Export policy into a Torch JIT file.
 
@@ -51,12 +56,12 @@ class _TorchPolicyExporter(torch.nn.Module):
         super().__init__()
         self.actor = copy.deepcopy(actor_critic.actor)
         self.is_recurrent = actor_critic.is_recurrent
+        self.rnn_type = actor_critic.memory_a.rnn.__class__.__name__
         if self.is_recurrent:
             self.rnn = copy.deepcopy(actor_critic.memory_a.rnn)
             self.rnn.cpu()
             self.register_buffer("hidden_state", torch.zeros(self.rnn.num_layers, 1, self.rnn.hidden_size))
             self.register_buffer("cell_state", torch.zeros(self.rnn.num_layers, 1, self.rnn.hidden_size))
-            self.forward = self.forward_lstm
             self.reset = self.reset_memory
         # copy normalizer if exists
         if normalizer:
@@ -64,15 +69,19 @@ class _TorchPolicyExporter(torch.nn.Module):
         else:
             self.normalizer = torch.nn.Identity()
 
-    def forward_lstm(self, x):
-        x = self.normalizer(x)
-        x, (h, c) = self.rnn(x.unsqueeze(0), (self.hidden_state, self.cell_state))
-        self.hidden_state[:] = h
-        self.cell_state[:] = c
+    def forward_lstm(self, x_in:torch.Tensor, h_in:torch.Tensor, c_in:torch.Tensor)->tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        x_in = self.normalizer(x_in)
+        x, (h, c) = self.rnn(x_in.unsqueeze(0), (h_in, c_in))
         x = x.squeeze(0)
-        return self.actor(x)
+        return self.actor(x), h, c
+    
+    def forward_gru(self, x_in:torch.Tensor, h_in:torch.Tensor)->tuple[torch.Tensor, torch.Tensor]:
+        x_in = self.normalizer(x_in)
+        x, h = self.rnn(x_in.unsqueeze(0), h_in)
+        x = x.squeeze(0)
+        return self.actor(x), h
 
-    def forward(self, x):
+    def forward_mlp(self, x: torch.Tensor) -> torch.Tensor:
         return self.actor(self.normalizer(x))
 
     @torch.jit.export
@@ -87,8 +96,17 @@ class _TorchPolicyExporter(torch.nn.Module):
         os.makedirs(path, exist_ok=True)
         path = os.path.join(path, filename)
         self.to("cpu")
-        traced_script_module = torch.jit.script(self)
-        traced_script_module.save(path)
+        if self.is_recurrent:
+            if self.rnn_type == "LSTM":
+                self.forward = self.forward_lstm
+                traced_script_module = torch.jit.script(self)
+            else:
+                self.forward = self.forward_gru
+                traced_script_module = torch.jit.script(self)
+        else:
+            self.forward = self.forward_mlp
+            traced_script_module = torch.jit.script(self)
+        traced_script_module.save(f=path) # type: ignore
 
 
 class _OnnxPolicyExporter(torch.nn.Module):
@@ -99,48 +117,73 @@ class _OnnxPolicyExporter(torch.nn.Module):
         self.verbose = verbose
         self.actor = copy.deepcopy(actor_critic.actor)
         self.is_recurrent = actor_critic.is_recurrent
+        self.rnn_type = actor_critic.memory_a.rnn.__class__.__name__
         if self.is_recurrent:
             self.rnn = copy.deepcopy(actor_critic.memory_a.rnn)
             self.rnn.cpu()
-            self.forward = self.forward_lstm
         # copy normalizer if exists
         if normalizer:
             self.normalizer = copy.deepcopy(normalizer)
         else:
             self.normalizer = torch.nn.Identity()
 
-    def forward_lstm(self, x_in, h_in, c_in):
+    def forward_lstm(self, x_in:torch.Tensor, h_in:torch.Tensor, c_in:torch.Tensor)->tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         x_in = self.normalizer(x_in)
         x, (h, c) = self.rnn(x_in.unsqueeze(0), (h_in, c_in))
         x = x.squeeze(0)
         return self.actor(x), h, c
+    
+    def forward_gru(self, x_in:torch.Tensor, h_in:torch.Tensor)->tuple[torch.Tensor, torch.Tensor]:
+        x_in = self.normalizer(x_in)
+        x, h = self.rnn(x_in.unsqueeze(0), h_in)
+        x = x.squeeze(0)
+        return self.actor(x), h
 
-    def forward(self, x):
+    def forward_mlp(self, x: torch.Tensor) -> torch.Tensor:
         return self.actor(self.normalizer(x))
 
     def export(self, path, filename):
         self.to("cpu")
         if self.is_recurrent:
-            obs = torch.zeros(1, self.rnn.input_size)
-            h_in = torch.zeros(self.rnn.num_layers, 1, self.rnn.hidden_size)
-            c_in = torch.zeros(self.rnn.num_layers, 1, self.rnn.hidden_size)
-            actions, h_out, c_out = self(obs, h_in, c_in)
-            torch.onnx.export(
-                self,
-                (obs, h_in, c_in),
-                os.path.join(path, filename),
-                export_params=True,
-                opset_version=11,
-                verbose=self.verbose,
-                input_names=["obs", "h_in", "c_in"],
-                output_names=["actions", "h_out", "c_out"],
-                dynamic_axes={},
-            )
+            if self.rnn_type == "LSTM":
+                self.forward = self.forward_lstm
+                obs = torch.zeros(1, self.rnn.input_size)
+                h_in = torch.zeros(self.rnn.num_layers, 1, self.rnn.hidden_size)
+                c_in = torch.zeros(self.rnn.num_layers, 1, self.rnn.hidden_size)
+                # actions, h_out, c_out = self.forward_lstm(obs, h_in, c_in)
+                torch.onnx.export(
+                    self,
+                    (obs, h_in, c_in),
+                    os.path.join(path, filename),
+                    export_params=True,
+                    opset_version=11,
+                    verbose=self.verbose,
+                    input_names=["obs", "h_in", "c_in"],
+                    output_names=["actions", "h_out", "c_out"],
+                    dynamic_axes={},
+                )
+            else:
+                self.forward = self.forward_gru
+                obs = torch.zeros(1, self.rnn.input_size)
+                h_in = torch.zeros(self.rnn.num_layers, 1, self.rnn.hidden_size)
+                # actions, h_out = self(obs, h_in)
+                torch.onnx.export(
+                    self,
+                    (obs, h_in),
+                    os.path.join(path, filename),
+                    export_params=True,
+                    opset_version=11,
+                    verbose=self.verbose,
+                    input_names=["obs", "h_in"],
+                    output_names=["actions", "h_out"],
+                    dynamic_axes={},
+                )
         else:
+            self.forward = self.forward_mlp
             obs = torch.zeros(1, self.actor[0].in_features)
             torch.onnx.export(
                 self,
-                obs,
+                (obs,),
                 os.path.join(path, filename),
                 export_params=True,
                 opset_version=11,

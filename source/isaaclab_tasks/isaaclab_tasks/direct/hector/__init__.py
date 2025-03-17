@@ -11,8 +11,8 @@ import gymnasium as gym
 from . import agents
 
 # hierarchical arch env
-from .task_cfg.hierarchical_arch_cfg import HierarchicalArchCfg, HierarchicalArchPrimeCfg, HierarchicalArchAccelPFCfg
-from .task.hierarchical_arch import HierarchicalArch, HierarchicalArchPrime, HierarchicalArchAccelPF
+from .task_cfg.hierarchical_arch_cfg import HierarchicalArchCfg, HierarchicalArchPrimeCfg, HierarchicalArchAccelPFCfg, HierarchicalArchPrimeFullCfg
+from .task.hierarchical_arch import HierarchicalArch, HierarchicalArchPrime, HierarchicalArchAccelPF, HierarchicalArchPrimeFull
 
 # soft terrain env
 from .task_cfg.soft_terrain_cfg import SoftTerrainEnvCfg
@@ -30,6 +30,19 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.task_cfg.hierarchical_arch_cfg:HierarchicalArchPrimeCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOGRURunnerCfg",
+        # "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:PPORunnerCfg",
+        # "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:SACRunnerCfg",
+    },
+)
+
+gym.register(
+    id="Hector-Hierarchical-Prime-Full-Rigid",
+    entry_point=f"{__name__}.task.hierarchical_arch:HierarchicalArchPrimeFull",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.task_cfg.hierarchical_arch_cfg:HierarchicalArchPrimeFullCfg",
+        # "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOGRURunnerCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOLSTMRunnerCfg",
         # "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:PPORunnerCfg",
         # "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:SACRunnerCfg",
     },

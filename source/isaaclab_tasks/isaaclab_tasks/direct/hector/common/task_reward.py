@@ -5,14 +5,14 @@ from dataclasses import dataclass
 def compute_linear_reward(
     error: torch.Tensor,
     scale: float = 1.0,
-    ):
+    )->torch.Tensor:
     return -scale*error
 
 @torch.jit.script
 def compute_square_reward(
     error: torch.Tensor,
     scale: float = 1.0,
-    ):
+    )->torch.Tensor:
     return scale/(1.0+error)
 
 # gaussian kernel with mean=0
@@ -21,8 +21,8 @@ def compute_exponential_reward(
     error: torch.Tensor, # normed error
     temperature: float = 1.0,
     scale: float = 1.0,
-    ):
-    return scale*torch.exp(-error/temperature)
+    )->torch.Tensor:
+    return scale*torch.exp(-torch.square(error)/temperature)
 
 @dataclass
 class AliveReward:
@@ -30,6 +30,24 @@ class AliveReward:
     
     def compute_reward(self, reset_terminated:torch.Tensor, current_step:torch.Tensor, max_step:int)->torch.Tensor:
         return self.alive_weight * ((1 - reset_terminated.float()) * (current_step/max_step))
+
+@dataclass
+class SagittalFPSimilarityReward:
+    fp_similarity_weight: float = 1.0
+    fp_similarity_coeff: float = 0.25
+    fp_reward_mode:str="exponential"
+    
+    def compute_reward(self, residual_sagittal_fp:torch.Tensor):
+        fp_error = 100 * torch.norm(residual_sagittal_fp[:, 0:1] - residual_sagittal_fp[:, 1:], dim=1).view(-1, 1) # convert to m to cm for tighter reward
+        if self.fp_reward_mode == "linear":
+            fp_reward = compute_linear_reward(fp_error, scale=1.0)
+        elif self.fp_reward_mode == "square":
+            fp_reward = compute_square_reward(fp_error, scale=1.0)
+        elif self.fp_reward_mode == "exponential":
+            fp_reward = compute_exponential_reward(fp_error, scale=1.0, temperature=self.fp_similarity_coeff)
+        
+        fp_reward = self.fp_similarity_weight * fp_reward.squeeze(1)
+        return fp_reward
 
 @dataclass
 class VelocityTrackingReward:
@@ -55,11 +73,19 @@ class VelocityTrackingReward:
                        reference_height:float,
                        desired_root_lin_vel_b: torch.Tensor, 
                        desired_root_ang_vel_b: torch.Tensor)->tuple:
+        """
+        root_pos: (num_envs, 3)
+        root_lin_vel_b: (num_envs, 3)
+        root_ang_vel_b: (num_envs, 3)
+        desired_root_lin_vel_b: (num_envs, 2)
+        desired_root_ang_vel_b: (num_envs, 1)
+        """
         
         # height_error = reference_height*torch.ones(root_pos.shape[0], 1, device=root_pos.device) - root_pos[:, 2:3]
         height_error = torch.abs(reference_height - root_pos[:, 2:3])
-        lin_vel_error = torch.norm(desired_root_lin_vel_b - root_lin_vel_b[:, :2], dim=1).view(-1, 1)
-        ang_vel_error = torch.norm(desired_root_ang_vel_b - root_ang_vel_b[:, 2:], dim=1).view(-1, 1)
+        # lin_vel_error = torch.norm(desired_root_lin_vel_b - root_lin_vel_b[:, :2], dim=1).view(-1, 1) # vx and vy
+        lin_vel_error = torch.abs(desired_root_lin_vel_b[:, :1] - root_lin_vel_b[:, :1]).view(-1, 1) # vx
+        ang_vel_error = torch.abs(desired_root_ang_vel_b - root_ang_vel_b[:, 2:]).view(-1, 1)
         
         if self.height_reward_mode == "linear":
             height_reward = torch.sum(compute_linear_reward(height_error, scale=1.0), -1)
@@ -76,9 +102,9 @@ class VelocityTrackingReward:
             lin_vel_reward = torch.sum(compute_exponential_reward(lin_vel_error, scale=1.0, temperature=self.lin_vel_similarity_coeff), -1)
         
         if self.ang_vel_reward_mode == "linear":
-            ang_vel_reward = torch.sum(compute_linear_reward(ang_vel_error, scale=1.0), -1)
+            ang_vel_reward = torch.sum(compute_linear_reward(torch.square(ang_vel_error), scale=1.0), -1)
         elif self.ang_vel_reward_mode == "square":
-            ang_vel_reward = torch.sum(compute_square_reward(ang_vel_error, scale=1.0), -1)
+            ang_vel_reward = torch.sum(compute_square_reward(torch.square(ang_vel_error), scale=1.0), -1)
         elif self.ang_vel_reward_mode == "exponential":
             ang_vel_reward = torch.sum(compute_exponential_reward(ang_vel_error, scale=1.0, temperature=self.ang_vel_similarity_coeff), -1)
         
@@ -210,49 +236,56 @@ class ContactTrackingReward:
 
 
 if __name__ == "__main__":
-    position_x = torch.arange(0.0, 3.0, 0.1)
-    position_y = torch.arange(-0.5, 0.5, 0.1)
-    X, Y = torch.meshgrid(position_x, position_y, indexing="ij")
-    
-    goal_position = torch.tensor([3.0, 0.0]).view(1, -1)
-    goal_yaw = torch.tensor([0.0]).view(1, -1)
-    
-    position = torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1)], dim=1)
-    root_height = 0.55 * torch.ones(position.shape[0], 1)
-    yaw = 3.14/6 * torch.ones(position.shape[0], 1)
-    ankel_pitch = torch.zeros(position.shape[0], 2)
-    reference_height = 0.55
-    
-    goal_pos_dist = goal_position - position
-    goal_yaw_dist = goal_yaw - yaw
-    
-    goal_tracking_reward = GoalTrackingReward(
-        height_similarity_weight= 0.0,
-        goal_pos_dist_weight= 1.00,
-        goal_yaw_dist_weight= 0.0,
-        height_reward_mode="square",
-        goal_pos_dist_reward_mode="square",
-        goal_yaw_dist_reward_mode="exponential"
-    )
-    
-    height_reward, goal_pos_dist_reward, goal_yaw_dist_reward = \
-        goal_tracking_reward.compute_reward(root_height, goal_pos_dist, goal_yaw_dist, reference_height)
-    
-    
-    height_reward_grid = height_reward.reshape(X.shape)
-    goal_pos_dist_reward_grid = goal_pos_dist_reward.reshape(X.shape)
-    goal_yaw_dist_reward_grid = goal_yaw_dist_reward.reshape(X.shape)
-    
-    total_reward_grid = height_reward_grid + goal_pos_dist_reward_grid + goal_yaw_dist_reward_grid
-    
     import matplotlib.pyplot as plt
-    plt.figure()
-    # plt.imshow(height_reward_grid, cmap="jet", origin="lower")
-    # plt.imshow(goal_pos_dist_reward_grid, cmap="jet", origin="lower")
-    # plt.imshow(goal_yaw_dist_reward_grid, cmap="jet", origin="lower")
-    # plt.imshow(ankle_pitch_reward_grid, cmap="jet",origin="lower")
-    plt.imshow(total_reward_grid, cmap="jet", origin="lower")
-    plt.colorbar()
-    plt.xlabel("Y")
-    plt.ylabel("X")
+    
+    # position_x = torch.arange(0.0, 3.0, 0.1)
+    # position_y = torch.arange(-0.5, 0.5, 0.1)
+    # X, Y = torch.meshgrid(position_x, position_y, indexing="ij")
+    
+    # goal_position = torch.tensor([3.0, 0.0]).view(1, -1)
+    # goal_yaw = torch.tensor([0.0]).view(1, -1)
+    
+    # position = torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1)], dim=1)
+    # root_height = 0.55 * torch.ones(position.shape[0], 1)
+    # yaw = 3.14/6 * torch.ones(position.shape[0], 1)
+    # ankel_pitch = torch.zeros(position.shape[0], 2)
+    # reference_height = 0.55
+    
+    # goal_pos_dist = goal_position - position
+    # goal_yaw_dist = goal_yaw - yaw
+    
+    # goal_tracking_reward = GoalTrackingReward(
+    #     height_similarity_weight= 0.0,
+    #     goal_pos_dist_weight= 1.00,
+    #     goal_yaw_dist_weight= 0.0,
+    #     height_reward_mode="square",
+    #     goal_pos_dist_reward_mode="square",
+    #     goal_yaw_dist_reward_mode="exponential"
+    # )
+    
+    # height_reward, goal_pos_dist_reward, goal_yaw_dist_reward = \
+    #     goal_tracking_reward.compute_reward(root_height, goal_pos_dist, goal_yaw_dist, reference_height)
+    
+    
+    # height_reward_grid = height_reward.reshape(X.shape)
+    # goal_pos_dist_reward_grid = goal_pos_dist_reward.reshape(X.shape)
+    # goal_yaw_dist_reward_grid = goal_yaw_dist_reward.reshape(X.shape)
+    
+    # total_reward_grid = height_reward_grid + goal_pos_dist_reward_grid + goal_yaw_dist_reward_grid
+    
+    # plt.figure()
+    # plt.imshow(total_reward_grid, cmap="jet", origin="lower")
+    # plt.colorbar()
+    # plt.xlabel("Y")
+    # plt.ylabel("X")
+    # plt.show()
+    
+    
+    
+    # check error reward 
+    error = torch.linspace(0.0, 0.05, 100) * 100
+    gaussian_reward = compute_exponential_reward(error, temperature=0.5, scale=1.0)
+    plt.plot(error, gaussian_reward)
+    plt.xlabel("Error")
+    plt.ylabel("Reward")
     plt.show()

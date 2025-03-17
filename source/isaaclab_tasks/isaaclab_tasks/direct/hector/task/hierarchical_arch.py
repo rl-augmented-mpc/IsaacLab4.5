@@ -26,10 +26,10 @@ ENV_REGEX_NS = "/World/envs/env_.*"
 
 # Task core
 from isaaclab_tasks.direct.hector.common.robot_core import RobotCore
-from isaaclab_tasks.direct.hector.common.visualization_marker import FootPlacementVisualizer
+from isaaclab_tasks.direct.hector.common.visualization_marker import FootPlacementVisualizer, VelocityVisualizer
 
 # Task cfg
-from isaaclab_tasks.direct.hector.task_cfg.hierarchical_arch_cfg import HierarchicalArchCfg, HierarchicalArchPrimeCfg, HierarchicalArchAccelPFCfg
+from isaaclab_tasks.direct.hector.task_cfg.hierarchical_arch_cfg import HierarchicalArchCfg, HierarchicalArchPrimeCfg, HierarchicalArchAccelPFCfg, HierarchicalArchPrimeFullCfg
 
 # Base class
 from isaaclab_tasks.direct.hector.task.base_arch import BaseArch
@@ -49,7 +49,7 @@ class HierarchicalArch(BaseArch):
         """
         # robot
         self._robot = Articulation(self.cfg.robot)
-        self._robot_api = RobotCore(self._robot, self.cfg.foot_patch_num)
+        self._robot_api = RobotCore(self._robot, self.num_envs, self.cfg.foot_patch_num)
         self.scene.articulations["robot"] = self._robot
         
         # sensors
@@ -60,9 +60,10 @@ class HierarchicalArch(BaseArch):
         self.cfg.terrain.num_envs = self.scene.cfg.num_envs
         self.cfg.terrain.env_spacing = self.scene.cfg.env_spacing
         self._terrain = self.cfg.terrain.class_type(self.cfg.terrain)
-        
+
         # visualization marker
         self.foot_placement_visualizer = FootPlacementVisualizer("/Visuals/foot_placement")
+        self._velocity_visualizer = VelocityVisualizer("/Visuals/velocity_visualizer")
         
         # clone, filter, and replicate
         self.scene.clone_environments(copy_from_source=False)
@@ -70,6 +71,17 @@ class HierarchicalArch(BaseArch):
         
         # light
         self._light = sim_utils.spawn_light(self.cfg.light.prim_path, self.cfg.light.spawn, orientation=(0.8433914, 0.0, 0.5372996, 0.0))
+        
+        # update viewer
+        curriculum_idx = 0
+        num_curriculum_x = int(self.cfg.terrain.terrain_generator.num_cols/self.cfg.terrain.friction_group_patch_num)
+        num_curriculum_y = int(self.cfg.terrain.terrain_generator.num_rows/self.cfg.terrain.friction_group_patch_num)
+        terrain_origin = np.array([self.cfg.terrain.center_position[0], self.cfg.terrain.center_position[1], 0.0])
+        camera_pos = terrain_origin + np.array([self.cfg.terrain.friction_group_patch_num/2 + self.cfg.terrain.friction_group_patch_num*(curriculum_idx//num_curriculum_x), 
+                                 self.cfg.terrain.friction_group_patch_num/2 + self.cfg.terrain.friction_group_patch_num*(curriculum_idx%num_curriculum_y), 0])
+        camera_delta = np.array([0.0, -5.0, 0.0])
+        self.cfg.viewer.eye = (camera_pos[0]+camera_delta[0], camera_pos[1]+camera_delta[1], camera_pos[2]+camera_delta[2])
+        self.cfg.viewer.lookat = (camera_pos[0], camera_pos[1], 0.0)
     
     def _pre_physics_step(self, actions: torch.Tensor) -> None:
         """
@@ -88,7 +100,11 @@ class HierarchicalArch(BaseArch):
         else:
             self._actions_op = self._actions.clone()
         
-        # update reference and state of mpc controller
+        if self.cfg.curriculum_inference:
+            # update reference and state of mpc controller
+            env_ids = self._robot._ALL_INDICES
+            robot_twist = np.array(self.cfg.robot_target_velocity_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32)
+            self._desired_twist_np[env_ids.cpu().numpy()] = robot_twist # type: ignore
         self._update_mpc_input()
     
     def _run_mpc(self)->None:
@@ -213,21 +229,22 @@ class HierarchicalArch(BaseArch):
     def _reset_idx(self, env_ids: Sequence[int])->None:
         if env_ids is None:
             env_ids = self._robot._ALL_INDICES
-        print(f"[INFO] Reset environment {env_ids} at step {self.episode_length_buf[env_ids]}")
+        # print(f"[INFO] Reset environment {env_ids} at step {self.episode_length_buf[env_ids]}")
         # print("[INFO] Robot desired velocity: ", self._desired_twist_np.tolist())
         super()._reset_idx(env_ids)
         
         self._reset_robot(env_ids)
-        
-        # reset terrain parameters if one of envs is reset
         self._reset_terrain(env_ids)
         
-        # logging
+        # log episode info
         if "log" not in self.extras:
             self.extras["log"] = dict()
-        for key, value in self.episode_sums.items():
-            self.extras["log"].update({f"Reward_episode/{key}": value})
-            self.episode_sums[key] = 0.0
+        for key, value in self.episode_reward_sums.items():
+            self.extras["log"].update({f"reward/{key}": value})
+            self.episode_reward_sums[key] = 0.0
+        for key, value in self.episode_penalty_sums.items():
+            self.extras["log"].update({f"penalty/{key}": value})
+            self.episode_penalty_sums[key] = 0.0
     
     def _reset_terrain(self, env_ids: Sequence[int])->None:
         pass
@@ -249,10 +266,7 @@ class HierarchicalArch(BaseArch):
         default_root_pose = torch.cat((position, quat), dim=-1)
         
         # override the default state
-        self._robot_api.reset_default_pose(default_root_pose, env_ids)
-        
-        default_root_pose[:, :3] += self.scene.env_origins[env_ids]
-        default_root_vel = self._robot_api.default_root_state[env_ids, 7:]
+        self._robot_api.reset_default_pose(default_root_pose, env_ids) # type: ignore
         
         # reset joint position
         joint_pos = self._robot_api.default_joint_pos[:, self._joint_ids][env_ids]
@@ -261,17 +275,18 @@ class HierarchicalArch(BaseArch):
         self._joint_vel[env_ids] = joint_vel
         self._add_joint_offset(env_ids)
         
-        # write to sim
-        self._robot_api.write_root_pose_to_sim(default_root_pose, env_ids)
-        self._robot_api.write_root_velocity_to_sim(default_root_vel, env_ids)
-        self._robot_api.write_joint_state_to_sim(joint_pos, joint_vel, self._joint_ids, env_ids)
+        # write reset to sim
+        self._robot_api.write_root_pose_to_sim(default_root_pose, env_ids) # type: ignore
+        self._robot_api.write_root_velocity_to_sim(self._robot_api.default_root_state[env_ids, 7:], env_ids) # type: ignore
+        self._robot_api.write_joint_state_to_sim(joint_pos, joint_vel, self._joint_ids, env_ids) # type: ignore
         
-        # reset mpc reference
-        self._desired_twist_np[env_ids.cpu().numpy()] = np.array(self.cfg.robot_target_velocity_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32)
-        self._dsp_duration[env_ids.cpu().numpy()] = np.array(self.cfg.robot_double_support_length_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32)
-        self._ssp_duration[env_ids.cpu().numpy()] = np.array(self.cfg.robot_single_support_length_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32)
+        # reset mpc reference and gait
+        if not self.cfg.curriculum_inference:
+            self._desired_twist_np[env_ids.cpu().numpy()] = np.array(self.cfg.robot_target_velocity_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore
+        self._dsp_duration[env_ids.cpu().numpy()] = np.array(self.cfg.robot_double_support_length_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore
+        self._ssp_duration[env_ids.cpu().numpy()] = np.array(self.cfg.robot_single_support_length_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore
         self.mpc_ctrl_counter[env_ids] = 0
-        for i in env_ids.cpu().numpy():
+        for i in env_ids.cpu().numpy(): # type: ignore
             self.mpc[i].reset()
             self.mpc[i].update_gait_parameter(np.array([self._dsp_duration[i], self._dsp_duration[i]]), np.array([self._ssp_duration[i], self._ssp_duration[i]]))
         
@@ -279,9 +294,9 @@ class HierarchicalArch(BaseArch):
         self._ref_pos = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
         self._ref_yaw = torch.zeros(self.num_envs, 1, device=self.device, dtype=torch.float32)
         
-        # update view port to look at the current active terrain
-        # if self.is_rendering:
-        self.viewport_camera_controller.update_view_location(eye=(center_coord[0, 0], center_coord[0, 1]-8.0, 3.0), lookat=(center_coord[0, 0], center_coord[0, 1], 0.0))
+        if not self.cfg.inference:
+            # update view port to look at the current active terrain
+            self.viewport_camera_controller.update_view_location(eye=(center_coord[0, 0], center_coord[0, 1]-5.0, 1.0), lookat=(center_coord[0, 0], center_coord[0, 1], 0.0))
     
     def _get_rewards(self)->torch.Tensor:
         # reward
@@ -333,7 +348,6 @@ class HierarchicalArch(BaseArch):
         self.pitch_penalty = self.pitch_penalty * self.step_dt
         self.action_penalty = self.action_penalty * self.step_dt
         self.energy_penalty = self.energy_penalty * self.step_dt
-        self.foot_energy_penalty = self.foot_energy_penalty * self.step_dt
         self.vx_penalty = self.vx_penalty * self.step_dt
         self.vy_penalty = self.vy_penalty * self.step_dt
         self.wz_penalty = self.wz_penalty * self.step_dt
@@ -341,8 +355,7 @@ class HierarchicalArch(BaseArch):
         self.action_saturation_penalty = self.action_saturation_penalty * self.step_dt
          
         reward = self.height_reward + self.lin_vel_reward + self.ang_vel_reward + self.alive_reward + self.position_reward + self.yaw_reward
-        penalty = self.roll_penalty + self.pitch_penalty + self.action_penalty + self.energy_penalty + \
-            self.foot_energy_penalty + self.vx_penalty + self.vy_penalty + self.wz_penalty + \
+        penalty = self.roll_penalty + self.pitch_penalty + self.action_penalty + self.energy_penalty + self.vx_penalty + self.vy_penalty + self.wz_penalty + \
             self.foot_slide_penalty + self.action_saturation_penalty
          
         total_reward = reward - penalty
@@ -378,23 +391,22 @@ class HierarchicalArch(BaseArch):
     
     ### specific to the architecture ###
     def log_episode_reward(self)->None:
-        self.episode_sums["height_reward"] += self.height_reward[0].item()
-        self.episode_sums["lin_vel_reward"] += self.lin_vel_reward[0].item()
-        self.episode_sums["ang_vel_reward"] += self.ang_vel_reward[0].item()
-        self.episode_sums["alive_reward"] += self.alive_reward[0].item()
-        self.episode_sums["position_reward"] += self.position_reward[0].item()
-        self.episode_sums["yaw_reward"] += self.yaw_reward[0].item()
+        self.episode_reward_sums["height_reward"] += self.height_reward[0].item()
+        self.episode_reward_sums["lin_vel_reward"] += self.lin_vel_reward[0].item()
+        self.episode_reward_sums["ang_vel_reward"] += self.ang_vel_reward[0].item()
+        self.episode_reward_sums["alive_reward"] += self.alive_reward[0].item()
+        self.episode_reward_sums["position_reward"] += self.position_reward[0].item()
+        self.episode_reward_sums["yaw_reward"] += self.yaw_reward[0].item()
         
-        self.episode_sums["roll_penalty"] += self.roll_penalty[0].item()
-        self.episode_sums["pitch_penalty"] += self.pitch_penalty[0].item()
-        self.episode_sums["action_penalty"] += self.action_penalty[0].item()
-        self.episode_sums["energy_penalty"] += self.energy_penalty[0].item()
-        self.episode_sums["foot_energy_penalty"] += self.foot_energy_penalty[0].item()
-        self.episode_sums["vx_penalty"] += self.vx_penalty[0].item()
-        self.episode_sums["vy_penalty"] += self.vy_penalty[0].item()
-        self.episode_sums["wz_penalty"] += self.wz_penalty[0].item()
-        self.episode_sums["feet_slide_penalty"] += self.foot_slide_penalty[0].item()
-        self.episode_sums["action_saturation_penalty"] += self.action_saturation_penalty[0].item()
+        self.episode_penalty_sums["roll_penalty"] += self.roll_penalty[0].item()
+        self.episode_penalty_sums["pitch_penalty"] += self.pitch_penalty[0].item()
+        self.episode_penalty_sums["action_penalty"] += self.action_penalty[0].item()
+        self.episode_penalty_sums["energy_penalty"] += self.energy_penalty[0].item()
+        self.episode_penalty_sums["vx_penalty"] += self.vx_penalty[0].item()
+        self.episode_penalty_sums["vy_penalty"] += self.vy_penalty[0].item()
+        self.episode_penalty_sums["wz_penalty"] += self.wz_penalty[0].item()
+        self.episode_penalty_sums["feet_slide_penalty"] += self.foot_slide_penalty[0].item()
+        self.episode_penalty_sums["action_saturation_penalty"] += self.action_saturation_penalty[0].item()
     
     def log_curriculum(self)->None:
         log = {}
@@ -573,8 +585,8 @@ class HierarchicalArchAccelPF(HierarchicalArch):
         """
         # process rl actions
         centroidal_accel, centroidal_ang_accel, residual_foot_placement = self._split_action(self._actions_op)
-        saggital_residual_foot_placement = residual_foot_placement[:, [0,2]] # left, right
-        lateral_residual_foot_placement = residual_foot_placement[:, [1,3]] # left, right
+        saggital_residual_foot_placement = residual_foot_placement[:, 0:2] # left, right sagittal
+        lateral_residual_foot_placement = residual_foot_placement[:, 2:] # left, right lateral
         
         # transform from local to global frame
         centroidal_accel = torch.bmm(self._root_rot_mat, centroidal_accel.unsqueeze(-1)).squeeze(-1)
@@ -656,4 +668,101 @@ class HierarchicalArchAccelPF(HierarchicalArch):
             log["raw_action/sagital_foot_placement_right"] = foot_placement[2]
             log["raw_action/lateral_foot_placement_right"] = foot_placement[3]
             
+        self.extras["log"].update(log)
+
+
+class HierarchicalArchPrimeFull(HierarchicalArch):
+    cfg: HierarchicalArchPrimeFullCfg
+    def __init__(self, cfg: HierarchicalArchPrimeFullCfg, render_mode: str | None = None, **kwargs):
+        super().__init__(cfg, render_mode, **kwargs)
+    def _split_action(self, policy_action:torch.Tensor)->tuple:
+        """
+        Split policy action into centroidal acceleration and foot height.
+        """
+        centroidal_acceleration = policy_action[:, :3]
+        centroidal_ang_acceleration = policy_action[:, 3:6]
+        added_mass_inv1 = policy_action[:, 6:9]
+        added_mass_inv2 = policy_action[:, 9:12]
+        added_inertia_inv1 = policy_action[:, 12:15]
+        added_inertia_inv2 = policy_action[:, 15:18]
+        return centroidal_acceleration, centroidal_ang_acceleration, added_mass_inv1, added_mass_inv2, added_inertia_inv1, added_inertia_inv2
+    def _apply_action(self)->None:
+        """
+        Actuation control loop
+        **********************
+        This is kind of like motor actuation loop.
+        It is actually not applying self._action to articulation,
+        but rather setting joint effort target.
+        And this effort target is passed to actuator model to get dof torques.
+        Finally, env.step method calls write_data_to_sim() to write torque to articulation.
+        """
+        # process rl actions
+        centroidal_accel, centroidal_ang_accel, added_mass_inv1, added_mass_inv2, added_inertia_inv1, added_inertia_inv2 = self._split_action(self._actions_op)
+
+        # form residual dynamics matrix
+        centroidal_accel = torch.bmm(self._root_rot_mat, centroidal_accel.unsqueeze(-1)).squeeze(-1)
+        centroidal_ang_accel = torch.bmm(self._root_rot_mat, centroidal_ang_accel.unsqueeze(-1)).squeeze(-1)
+        self._A_residual[:, 6:9, -1] = centroidal_accel.cpu().numpy()
+        self._A_residual[:, 9:12, -1] = centroidal_ang_accel.cpu().numpy()
+        self._B_residual[:, 6:9, 6:9] = torch.diag_embed(added_inertia_inv1).cpu().numpy()
+        self._B_residual[:, 6:9, 9:12] = torch.diag_embed(added_inertia_inv2).cpu().numpy()
+        self._B_residual[:, 9:12, 0:3] = torch.diag_embed(added_mass_inv1).cpu().numpy()
+        self._B_residual[:, 9:12, 3:6] = torch.diag_embed(added_mass_inv2).cpu().numpy()
+
+        # run mpc controller
+        self._run_mpc()
+
+        # run low level control with updated GRFM
+        joint_torque_augmented = np.zeros((self.num_envs, 10), dtype=np.float32)
+        for i in range(len(self.mpc)):
+            joint_torque_augmented[i] = self.mpc[i].get_action()
+        self._joint_actions = torch.from_numpy(joint_torque_augmented).to(self.device).view(self.num_envs, -1)
+        self._robot_api.set_joint_effort_target(self._joint_actions, self._joint_ids) # type: ignore
+        self.visualize_marker()
+    def _get_observations(self) -> dict:
+        """
+        Get actor and critic observations.
+        """
+        self._previous_actions = self._actions.clone()
+        self._get_contact_observation()
+        self._obs = torch.cat(
+            (
+                self._root_pos[:, 2:], #0:1 (only height)
+                self._root_quat, #1:5
+                self._root_lin_vel_b, #5:8
+                self._root_ang_vel_b, #8:11
+                self._desired_root_lin_vel_b, #11:13
+                self._desired_root_ang_vel_b, #13:14
+                self._joint_pos, #14:24
+                self._joint_vel, #24:34
+                self._joint_effort, #34:44
+                self._previous_actions, #44:62
+                self._accel_gyro_mpc, #62:68
+                self._gait_contact, #68:70
+                self._swing_phase, #70:72
+            ),
+            dim=-1,
+        )
+        observation = {"policy": self._obs}
+        return observation
+    ### specific to the architecture ###
+    def log_action(self)->None:
+        log = {}
+        if self.common_step_counter % self.cfg.num_steps_per_env:
+            centroidal_acceleration = self._actions[0, :3].cpu().numpy()
+            centroidal_ang_acceleration = self._actions[0, 3:6].cpu().numpy()
+            log["raw_action/centroidal_acceleration_x"] = centroidal_acceleration[0]
+            log["raw_action/centroidal_acceleration_y"] = centroidal_acceleration[1]
+            log["raw_action/centroidal_acceleration_z"] = centroidal_acceleration[2]
+            log["raw_action/centroidal_ang_acceleration_x"] = centroidal_ang_acceleration[0]
+            log["raw_action/centroidal_ang_acceleration_y"] = centroidal_ang_acceleration[1]
+            log["raw_action/centroidal_ang_acceleration_z"] = centroidal_ang_acceleration[2]
+            centroidal_acceleration = self._actions_op[0, :3].cpu().numpy()
+            centroidal_ang_acceleration = self._actions_op[0, 3:6].cpu().numpy()
+            log["action/centroidal_acceleration_x"] = centroidal_acceleration[0]
+            log["action/centroidal_acceleration_y"] = centroidal_acceleration[1]
+            log["action/centroidal_acceleration_z"] = centroidal_acceleration[2]
+            log["action/centroidal_ang_acceleration_x"] = centroidal_ang_acceleration[0]
+            log["action/centroidal_ang_acceleration_y"] = centroidal_ang_acceleration[1]
+            log["action/centroidal_ang_acceleration_z"] = centroidal_ang_acceleration[2]
         self.extras["log"].update(log)

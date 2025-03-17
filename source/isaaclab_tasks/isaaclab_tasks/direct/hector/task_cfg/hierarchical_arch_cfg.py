@@ -16,12 +16,12 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.utils import configclass
 
 # Task core
-from isaaclab_tasks.direct.hector.common.task_reward import VelocityTrackingReward, AliveReward, ContactTrackingReward, PoseTrackingReward
+from isaaclab_tasks.direct.hector.common.task_reward import VelocityTrackingReward, AliveReward, ContactTrackingReward, PoseTrackingReward, SagittalFPSimilarityReward
 from isaaclab_tasks.direct.hector.common.task_penalty import VelocityTrackingPenalty, TwistPenalty, FeetSlidePenalty, JointPenalty, ActionSaturationPenalty
 
 from isaaclab_tasks.direct.hector.common.sampler import UniformLineSampler, UniformCubicSampler, GridCubicSampler, QuaternionSampler, CircularSampler
-from isaaclab_tasks.direct.hector.common.curriculum import CurriculumRateSampler, CurriculumLineSampler, CurriculumUniformLineSampler, CurriculumUniformCubicSampler, CurriculumQuaternionSampler
-from isaaclab_tasks.direct.hector.core_cfg.terrain_cfg import CurriculumFrictionPatchTerrain
+from isaaclab_tasks.direct.hector.common.curriculum import  CurriculumRateSampler, CurriculumLineSampler, CurriculumUniformLineSampler, CurriculumUniformCubicSampler, CurriculumQuaternionSampler
+from isaaclab_tasks.direct.hector.core_cfg.terrain_cfg import CurriculumFrictionPatchTerrain, FrictionPatchTerrain
 
 # Task cfg
 from isaaclab_tasks.direct.hector.task_cfg.base_arch_cfg import BaseArchCfg
@@ -37,6 +37,8 @@ class HierarchicalArchCfg(BaseArchCfg):
     # Common configurations
     # ================================
     seed = 10
+    inference = False
+    curriculum_inference = False
     
     dt=0.002 #500Hz 
     rendering_interval = 10 # 50Hz
@@ -160,3 +162,26 @@ class HierarchicalArchAccelPFCfg(HierarchicalArchCfg):
     # action bound hyper parameter
     action_lb = [-6.0, -6.0, -6.0] + [-2.0, -2.0, -2.0] + [-0.02, -0.02, -0.01, -0.01]
     action_ub = [6.0,  6.0, 6.0] + [2.0, 2.0, 2.0] + [0.1, 0.1, 0.01, 0.01]
+
+
+@configclass
+class HierarchicalArchPrimeFullCfg(HierarchicalArchCfg):
+    episode_length_s =20
+    observation_space = 72
+    state_space = 72
+    action_space = 18
+    # action bound hyper parameter
+    g= 9.81
+    lin_accel_scale = [0.3*g, 0.3*g, 0.5*g]
+    # ang_accel_scale = [27.62, 5.23, 5.23]
+    ang_accel_scale = [0.5*27.62, 0.5*5.23, 0.5*5.23]
+    # +- 20% uncertainty of original mass and inertia
+
+    inv_mass_scale = [0.2/13.856, 0.2/13.856, 0.2/13.856]
+    inv_inertia_scale = [0.2/0.5413, 0.2/0.52, 0.2/0.0691]
+
+    action_lb = [-v for v in lin_accel_scale] + [-v for v in ang_accel_scale] + \
+        [-v for v in inv_mass_scale] + [-v for v in inv_mass_scale] + \
+        [-v for v in inv_inertia_scale] + [-v for v in inv_inertia_scale]
+    action_ub = lin_accel_scale + ang_accel_scale + inv_mass_scale + inv_mass_scale + \
+        inv_inertia_scale + inv_inertia_scale
