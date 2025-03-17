@@ -108,23 +108,25 @@ class TerrainImporter:
                 mesh = terrain_generator.terrain_meshes[i]
                 local_group_idx = int(terrain_col_index/self.cfg.friction_group_patch_num) + num_curriculum_y*int(terrain_row_index/self.cfg.friction_group_patch_num)
                 
-                # local_terrain_row_index = terrain_row_index % self.cfg.friction_group_patch_num
-                # local_terrain_col_index = terrain_col_index % self.cfg.friction_group_patch_num
+                # infill center of each curriculum patch with 0.5 static friction terrain
+                local_terrain_row_index = terrain_row_index % self.cfg.friction_group_patch_num
+                local_terrain_col_index = terrain_col_index % self.cfg.friction_group_patch_num
                 
-                # # infill center of each curriculum patch with 0.5 static friction terrain
-                # if (local_terrain_row_index >= self.cfg.friction_group_patch_num//2 - 1) and (local_terrain_row_index <= self.cfg.friction_group_patch_num//2) \
-                #     and (local_terrain_col_index >= self.cfg.friction_group_patch_num//2 - 1) and (local_terrain_col_index <= self.cfg.friction_group_patch_num//2):
-                #         static_friction, dynamic_friction = self._sample_physics_parameter((self.cfg.safe_region_friction, self.cfg.safe_region_friction))
-                # else:
-                #     local_group_friction_range = \
-                #         (self.cfg.static_friction_range[1] - (local_group_idx+1)*((self.cfg.static_friction_range[1]-self.cfg.static_friction_range[0])/num_curriculum_level), \
-                #         self.cfg.static_friction_range[1] - local_group_idx*((self.cfg.static_friction_range[1]-self.cfg.static_friction_range[0])/num_curriculum_level))
-                #     static_friction, dynamic_friction = self._sample_physics_parameter(local_group_friction_range)
+                if (local_terrain_row_index >= self.cfg.friction_group_patch_num//2 - 1) and (local_terrain_row_index <= self.cfg.friction_group_patch_num//2) \
+                    and (local_terrain_col_index >= self.cfg.friction_group_patch_num//2 - 1) and (local_terrain_col_index <= self.cfg.friction_group_patch_num//2):
+                        static_friction, dynamic_friction = self._sample_physics_parameter((self.cfg.safe_region_friction, self.cfg.safe_region_friction))
+                else:
+                    local_group_friction_range = \
+                        (self.cfg.static_friction_range[1] - (local_group_idx+1)*((self.cfg.static_friction_range[1]-self.cfg.static_friction_range[0])/num_curriculum_level), \
+                        self.cfg.static_friction_range[1] - local_group_idx*((self.cfg.static_friction_range[1]-self.cfg.static_friction_range[0])/num_curriculum_level))
+                    static_friction, dynamic_friction = self._sample_physics_parameter(local_group_friction_range)
                 
-                local_group_friction_range = \
-                    (self.cfg.static_friction_range[1] - (local_group_idx+1)*((self.cfg.static_friction_range[1]-self.cfg.static_friction_range[0])/num_curriculum_level), \
-                    self.cfg.static_friction_range[1] - local_group_idx*((self.cfg.static_friction_range[1]-self.cfg.static_friction_range[0])/num_curriculum_level))
-                static_friction, dynamic_friction = self._sample_physics_parameter(local_group_friction_range)
+                # local_group_friction_range = \
+                #     (self.cfg.static_friction_range[1] - (local_group_idx+1)*((self.cfg.static_friction_range[1]-self.cfg.static_friction_range[0])/num_curriculum_level), \
+                #     self.cfg.static_friction_range[1] - local_group_idx*((self.cfg.static_friction_range[1]-self.cfg.static_friction_range[0])/num_curriculum_level))
+                # static_friction, dynamic_friction = self._sample_physics_parameter(local_group_friction_range)
+                
+                
                 if self.cfg.physics_material is not None:
                     self.cfg.physics_material.static_friction = static_friction
                     self.cfg.physics_material.dynamic_friction = dynamic_friction

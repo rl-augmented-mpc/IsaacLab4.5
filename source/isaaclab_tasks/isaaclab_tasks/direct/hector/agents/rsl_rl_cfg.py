@@ -187,8 +187,8 @@ class HectorPPOLSTMRunnerCfg(RslRlOnPolicyRunnerCfg):
         desired_kl=0.01,
         max_grad_norm=1.0,
     )
-    logger = "wandb"
-    wandb_project = "rl_mpc"
+    # logger = "wandb"
+    # wandb_project = "rl_mpc"
     experiment_name = "ppo_rsl_rl_lstm_friction"
     # resume=True
     # load_run = "2025-01-17_22-16-15"

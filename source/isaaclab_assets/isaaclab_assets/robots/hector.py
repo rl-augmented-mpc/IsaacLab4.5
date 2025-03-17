@@ -30,8 +30,8 @@ full_path = os.path.dirname(os.path.realpath(__file__))
 
 HECTOR_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/robot/hector/hector_oct8.usd", #joint friction=0
-        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/robot/hector/hector_flat_foot.usd",
+        # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/hector_oct8.usd",
+        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/hector_flat_foot.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -67,7 +67,7 @@ HECTOR_CFG = ArticulationCfg(
     ),
     soft_joint_pos_limit_factor=0.9,
     actuators={
-        "feet": IdealPDActuatorCfg(
+        "feet": ImplicitActuatorCfg(
             joint_names_expr=[
                 "L_hip_joint",
                 "L_hip2_joint",
@@ -113,7 +113,7 @@ HECTOR_CFG = ArticulationCfg(
             # min_delay=0,  # physics time steps (min: 1.0*0=0.0ms)
             # max_delay=8,  # physics time steps (max: 1.0*8=8.0ms)
         ),
-        "toes": IdealPDActuatorCfg(
+        "toes": ImplicitActuatorCfg(
             joint_names_expr=[
                 "L_toe_joint",
                 "R_toe_joint",

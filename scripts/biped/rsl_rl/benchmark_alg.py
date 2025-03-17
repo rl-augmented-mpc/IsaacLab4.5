@@ -3,28 +3,37 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""
-Isaac-Hector-Direct-v0
-"""
+"""Script to play a checkpoint if an RL agent from RSL-RL."""
+
+"""Launch Isaac Sim Simulator first."""
 
 import argparse
+
 from isaaclab.app import AppLauncher
 
+# local imports
+import cli_args  # isort: skip
+
 # add argparse arguments
-parser = argparse.ArgumentParser(description="Running environment without RL")
-parser.add_argument("--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations.")
-parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to spawn.")
-parser.add_argument("--task", type=str, default=None, help="Name of the task.")
+parser = argparse.ArgumentParser(description="Train an RL agent with RSL-RL.")
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
 parser.add_argument("--video_length", type=int, default=1000, help="Length of the recorded video (in steps).")
 parser.add_argument("--video_interval", type=int, default=2000, help="Interval between video recordings (in steps).")
+parser.add_argument(
+    "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
+)
+parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
+parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--log", action="store_true", default=False, help="Log the environment.")
 parser.add_argument("--log_extra", action="store_true", default=False, help="Log extra information.")
+parser.add_argument("--use_rl", action="store_true", default=False, help="Use RL agent to play. Otherwise, MPC is used.")
 parser.add_argument("--tag", type=str, default=None, help="Tag for logging.")
 parser.add_argument("--max_trials", type=int, default=1, help="Number of trials to run.")
 parser.add_argument("--episode_length", type=float, default=20.0, help="Length of the episode in second.")
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
 
+# append RSL-RL cli arguments
+cli_args.add_rsl_rl_args(parser)
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -38,35 +47,60 @@ if args_cli.video:
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
-import os
-import datetime
+"""Rest everything follows."""
+
+from datetime import datetime
 import gymnasium as gym
+import os
 import numpy as np
 import torch
 
-from isaaclab_tasks.utils import parse_env_cfg
-from isaaclab.utils.dict import print_dict
-from scripts.biped.rsl_rl.logger import BenchmarkLogger
+# rsl rl 
+# from rsl_rl.runners import OnPolicyRunner # master branch
+from rsl_rl.runners import PolicyRunner # algorithm branch
 
+# IsaacLab core
+from isaaclab.utils.dict import print_dict
+from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
+from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper, export_policy_as_jit, export_policy_as_onnx
+
+# Logger
+from logger import BenchmarkLogger
+
+ID = datetime.now().strftime("%Y-%m-%d_%H-%M")
 
 def main():
-    """Main function."""
-    # create environment configuration
+    """Play with RSL-RL agent."""
+    # parse configuration
     env_cfg = parse_env_cfg(
         args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
     )
-    # setup gym style environment
+    env_cfg.episode_length_s = args_cli.episode_length
+    agent_cfg: RslRlOnPolicyRunnerCfg = cli_args.parse_rsl_rl_cfg(args_cli.task, args_cli)
+
+    # specify directory for logging experiments
+    log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)
+    log_root_path = os.path.abspath(log_root_path)
+    print(f"[INFO] Loading experiment from directory: {log_root_path}")
+    resume_path = get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint, ["model"])
+    log_dir = os.path.dirname(os.path.dirname(resume_path))
+
+    # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
-    env.metadata["render_fps"] = int(100/2)
-    
-    log_dir = os.path.join(os.path.dirname(__file__), "logs", args_cli.task, datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-    
+    env.metadata["render_fps"] = 100/2
+
     # for logging
-    if args_cli.tag:
-        name = f"mpc/{args_cli.tag}"
+    if args_cli.use_rl:
+        if args_cli.tag:
+            name = f"play_rl/{args_cli.tag}"
+        else:
+            name = "play_rl"
     else:
-        name = "mpc"
-    
+        if args_cli.tag:
+            name = f"play_mpc/{args_cli.tag}"
+        else:
+            name = "play_mpc"
+
     # wrap for video recording
     if args_cli.video:
         video_kwargs = {
@@ -79,7 +113,26 @@ def main():
         print("[INFO] Recording videos during training.")
         print_dict(video_kwargs, nesting=4)
         env = gym.wrappers.RecordVideo(env, **video_kwargs)
-    
+        
+    # wrap around environment for rsl-rl
+    env = RslRlVecEnvWrapper(env) # type: ignore
+
+    print(f"[INFO]: Loading model checkpoint from: {resume_path}")
+    # load previously trained model
+    runner = PolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device) # type: ignore
+    runner.load(resume_path)
+
+    # obtain the trained policy for inference
+    policy = runner.get_inference_policy(device=env.unwrapped.device)
+
+    # export policy to onnx/jit
+    export_model_dir = os.path.join(os.path.dirname(resume_path), "exported")
+    export_policy_as_jit(
+        runner.alg.actor_critic, runner.obs_normalizer, path=export_model_dir, filename="policy.pt"
+    )
+    export_policy_as_onnx(
+        runner.alg.actor_critic, normalizer=runner.obs_normalizer, path=export_model_dir, filename="policy.onnx"
+    )
     
     if args_cli.log:
         max_episode_length = int(env_cfg.episode_length_s/(env_cfg.decimation*env_cfg.sim.dt))
@@ -89,46 +142,46 @@ def main():
     episode_counter = [0]*args_cli.num_envs
 
     # reset environment
-    obs, _ = env.reset()
+    obs, _ = env.get_observations()
     
     # simulate environment
     while simulation_app.is_running():
         with torch.inference_mode():
-            action = torch.zeros((args_cli.num_envs, env_cfg.num_actions),dtype=torch.float32, device=args_cli.device) # type: ignore
-            obs, _, terminated, time_out, _ = env.step(action)
-            dones = terminated | time_out
-            obs = obs["policy"]
+            if args_cli.use_rl:
+                actions = policy(obs)
+            else:
+                actions = torch.zeros((args_cli.num_envs, env_cfg.action_space),dtype=torch.float32, device=args_cli.device) # type: ignore
+            obs, _, dones, _ = env.step(actions)
+            runner.agent.actor.reset_hidden_state(dones.nonzero().reshape(-1)) # reset actor hidden state of batch dim with done=1
         
         if args_cli.log:
             if args_cli.log_extra:
                 rft=torch.cat([env.unwrapped.foot_depth.unsqueeze(2),  # type: ignore
                                     env.unwrapped.foot_angle_beta.unsqueeze(2),  # type: ignore
                                     env.unwrapped.foot_angle_gamma.unsqueeze(2),  # type: ignore
-                                    env.unwrapped.foot_velocity_b, # type: ignore
+                                    env.unwrapped.foot_velocity, # type: ignore
                                     env.unwrapped.foot_accel, # type: ignore
-                                    env.unwrapped.rft_force,  # type: ignore
-                                    env.unwrapped.damping_force,  # type: ignore
-                                    env.unwrapped.tangential_force], dim=2) # type: ignore
+                                    env.unwrapped.rft_force], dim=2) # type: ignore
                 logger.log(state=env.unwrapped._state.cpu().numpy(), # type: ignore
                         obs=obs.cpu().numpy(),
-                        raw_action=action.cpu().numpy(),
+                        raw_action=actions.cpu().numpy(),
                         action=env.unwrapped._actions_op.cpu().numpy(), # type: ignore
                         rft=rft.cpu().numpy(), 
-                        done=dones.cpu().numpy(),  # type: ignore
+                        done=dones.cpu().numpy(), 
                         )
             else:
                 logger.log(state=env.unwrapped._state.cpu().numpy(), # type: ignore
                         obs=obs.cpu().numpy(),
-                        raw_action=actions.cpu().numpy(), # type: ignore  # noqa: F821
+                        raw_action=actions.cpu().numpy(),
                         action=env.unwrapped._actions_op.cpu().numpy(), # type: ignore
-                        done=dones.cpu().numpy(),  # type: ignore
+                        done=dones.cpu().numpy(), 
                         )
         # Incremenet episode length 
         for i  in range(args_cli.num_envs):
             episode_length_log[i] += 1
         
         # Convert done flag to numpy
-        dones_np = dones.cpu().numpy() # type: ignore
+        dones_np = dones.cpu().numpy()
 
         # Check each agent's done flag
         for i, done_flag in enumerate(dones_np):
@@ -150,7 +203,7 @@ def main():
     if args_cli.log:
         logger.save()
         print(f"Saved logs in {logger.log_dir}")
-    
+
     # close the simulator
     env.close()
 

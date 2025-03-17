@@ -63,3 +63,9 @@ _build
 
 # wandb log
 wandb
+
+# extra logs 
+*.txt
+*.png
+*.jpg
+*.pdf

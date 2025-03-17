@@ -88,6 +88,21 @@ class CircularSampler:
         return points
 
 @dataclass
+class CircularOrientationSampler:
+    x_range: List[float] | Tuple[float, float]
+    
+    def __post_init__(self):
+        assert len(self.x_range) == 2
+    
+    def sample(self, positions: np.ndarray, num_samples: int) -> list[tuple[float, float, float, float]]:
+        assert positions.shape[0] == num_samples
+        yaw = np.arctan2(positions[:, 1], positions[:, 0])
+        yaw_delta = np.random.uniform(self.x_range[0], self.x_range[1], num_samples)
+        yaw = yaw + yaw_delta
+        quat = np.stack([np.cos(yaw/2), np.zeros_like(yaw), np.zeros_like(yaw), np.sin(yaw/2)], axis=-1).tolist()
+        return quat
+
+@dataclass
 class InnerCircularSampler:
     radius_range: List[float] | Tuple[float, float]
     z_range: List[float] | Tuple[float, float]
