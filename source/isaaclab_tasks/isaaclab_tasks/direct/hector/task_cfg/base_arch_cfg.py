@@ -27,7 +27,7 @@ from isaaclab.utils import configclass
 
 # Task core
 from isaaclab_assets.robots.hector import HECTOR_CFG
-from isaaclab_assets import ISAACLAB_ASSETS_DATA_DIR
+from isaaclab_assets import ISAACLAB_ASSETS_DATA_DIR # type: ignore
 
 from isaaclab_tasks.direct.hector.common.task_reward import VelocityTrackingReward, AliveReward, ContactTrackingReward, PoseTrackingReward
 from isaaclab_tasks.direct.hector.common.task_penalty import VelocityTrackingPenalty, TwistPenalty, FeetSlidePenalty, JointPenalty, ActionSaturationPenalty
@@ -46,6 +46,8 @@ class BaseArchCfg(DirectRLEnvCfg):
     # Common configurations
     # ================================
     seed = 42
+    inference = False
+    curriculum_inference = False
     episode_length_s = 10.0
     num_steps_per_env = 24 # see rsl cfg (horizon for rollout)
     
@@ -58,15 +60,15 @@ class BaseArchCfg(DirectRLEnvCfg):
     observation_space = MISSING # actor observation space
     state_space = MISSING # critic observation space
     action_space = MISSING # action space
-    num_joint_actions:int = None
-    num_states:int = None
+    num_joint_actions:int = 1
+    num_states:int = 1
     
     # TODO: override this in the derived class
     # observation, action settings
-    action_lb:list[float] = None
-    action_ub:list[float] = None
-    observation_lb:float = None
-    observation_ub:float = None
+    action_lb:list[float] = [-1]
+    action_ub:list[float] = [1]
+    observation_lb:float = -1
+    observation_ub:float = 1
     clip_action:bool = True # clip to -1 to 1 with tanh
     scale_action:bool = True # scale max value to action_ub
     

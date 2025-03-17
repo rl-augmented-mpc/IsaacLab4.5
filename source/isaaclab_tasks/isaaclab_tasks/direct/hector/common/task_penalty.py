@@ -15,19 +15,19 @@ def compute_linear_penalty(
     value = torch.sum(value, -1)
     return scale*value
 
-# @torch.jit.script
-# def compute_linear_penalty(
-#     value: torch.Tensor,
-#     scale: float = 1.0,
-#     min_value: float = torch.pi/36,
-#     max_value: float = torch.pi/2,
-#     ):
-#     # norm = torch.norm(value, dim=-1) - min_value
-#     norm = torch.abs(value) - min_value
-#     norm[norm < 0] = 0
-#     norm[norm > max_value-min_value] = max_value-min_value
-#     return scale*norm
-
+@torch.jit.script
+def compute_gaussian_penalty(
+    value: torch.Tensor,
+    scale: float = 1.0,
+    min_value: float = -1.0,
+    max_value: float = 1.0,
+    temperature: float = 0.5,
+    ):
+    value = torch.abs(value) - min_value
+    value[value < 0] = 0
+    value = 1 - torch.exp(-torch.square(value)/temperature)
+    value = torch.sum(value, -1)
+    return scale*value
     
 @dataclass
 class VelocityTrackingPenalty:
@@ -50,8 +50,10 @@ class VelocityTrackingPenalty:
         pitch = torch.asin(2*(root_quat[:, 0]*root_quat[:, 2] - root_quat[:, 3]*root_quat[:, 1]))
         pitch = torch.atan2(torch.sin(pitch), torch.cos(pitch)) # standardize to -pi to pi
         
-        roll_penalty = compute_linear_penalty(roll.view(-1, 1), scale=1.0, min_value=self.roll_range[0], max_value=self.roll_range[1])
-        pitch_penalty = compute_linear_penalty(pitch.view(-1, 1), scale=1.0, min_value=self.pitch_range[0], max_value=self.pitch_range[1])
+        # roll_penalty = compute_linear_penalty(roll.view(-1, 1), scale=1.0, min_value=self.roll_range[0], max_value=self.roll_range[1])
+        # pitch_penalty = compute_linear_penalty(pitch.view(-1, 1), scale=1.0, min_value=self.pitch_range[0], max_value=self.pitch_range[1])
+        roll_penalty = compute_gaussian_penalty(roll.view(-1, 1), scale=1.0, min_value=self.roll_range[0], max_value=self.roll_range[1])
+        pitch_penalty = compute_gaussian_penalty(pitch.view(-1, 1), scale=1.0, min_value=self.pitch_range[0], max_value=self.pitch_range[1])
         action_penalty = torch.sum(torch.abs(action - previous_action), -1)
         energy_penalty = torch.sum(torch.abs(action), -1)
         foot_height_energy_penalty = torch.sum(torch.abs(action[:, -1:]), -1)
@@ -81,9 +83,12 @@ class TwistPenalty:
     wz_penalty_weight: float = 1.0
     
     def compute_penalty(self, root_lin_vel_b: torch.Tensor, root_ang_vel_b: torch.Tensor)->tuple:
-        vx_penalty = compute_linear_penalty(root_lin_vel_b[:, :1].view(-1, 1), scale=1.0, min_value=self.vx_bound[0], max_value=self.vx_bound[1])
-        vy_penalty = compute_linear_penalty(root_lin_vel_b[:, 1:2].view(-1, 1), scale=1.0, min_value=self.vy_bound[0], max_value=self.vy_bound[1])
-        wz_penalty = compute_linear_penalty(root_ang_vel_b[:, -1:].view(-1, 1), scale=1.0, min_value=self.wz_bound[0], max_value=self.wz_bound[1])
+        # vx_penalty = compute_linear_penalty(root_lin_vel_b[:, :1].view(-1, 1), scale=1.0, min_value=self.vx_bound[0], max_value=self.vx_bound[1])
+        # vy_penalty = compute_linear_penalty(root_lin_vel_b[:, 1:2].view(-1, 1), scale=1.0, min_value=self.vy_bound[0], max_value=self.vy_bound[1])
+        # wz_penalty = compute_linear_penalty(root_ang_vel_b[:, -1:].view(-1, 1), scale=1.0, min_value=self.wz_bound[0], max_value=self.wz_bound[1])
+        vx_penalty = compute_gaussian_penalty(root_lin_vel_b[:, :1].view(-1, 1), scale=1.0, min_value=self.vx_bound[0], max_value=self.vx_bound[1])
+        vy_penalty = compute_gaussian_penalty(root_lin_vel_b[:, 1:2].view(-1, 1), scale=1.0, min_value=self.vy_bound[0], max_value=self.vy_bound[1])
+        wz_penalty = compute_gaussian_penalty(root_ang_vel_b[:, -1:].view(-1, 1), scale=1.0, min_value=self.wz_bound[0], max_value=self.wz_bound[1])
         
         vx_penalty = self.vx_penalty_weight*vx_penalty
         vy_penalty = self.vy_penalty_weight*vy_penalty
@@ -97,7 +102,8 @@ class JointPenalty:
     joint_pos_bound: tuple = (torch.pi/3, torch.pi/2)
     
     def compute_penalty(self, joint_pos: torch.Tensor)->torch.Tensor:
-        joint_penalty = compute_linear_penalty(joint_pos.view(-1, 1), scale=1.0, min_value=self.joint_pos_bound[0], max_value=self.joint_pos_bound[1])
+        # joint_penalty = compute_linear_penalty(joint_pos.view(-1, 1), scale=1.0, min_value=self.joint_pos_bound[0], max_value=self.joint_pos_bound[1])
+        joint_penalty = compute_gaussian_penalty(joint_pos.view(-1, 1), scale=1.0, min_value=self.joint_pos_bound[0], max_value=self.joint_pos_bound[1])
         joint_penalty = self.joint_penalty_weight*joint_penalty
         return joint_penalty
 
@@ -122,7 +128,8 @@ class ActionSaturationPenalty:
     action_bound: tuple = (0.9, 1.0)
     
     def compute_penalty(self, action: torch.Tensor)->torch.Tensor:
-        action_penalty = compute_linear_penalty(action, scale=1.0, min_value=self.action_bound[0], max_value=self.action_bound[1])
+        # action_penalty = compute_linear_penalty(action, scale=1.0, min_value=self.action_bound[0], max_value=self.action_bound[1])
+        action_penalty = compute_gaussian_penalty(action, scale=1.0, min_value=self.action_bound[0], max_value=self.action_bound[1])
         action_penalty = self.action_penalty_weight*action_penalty
         return action_penalty
 
@@ -154,12 +161,18 @@ class GoalTrackingPenalty:
         yaw = torch.atan2(2*(root_quat[:, 0]*root_quat[:, 3] + root_quat[:, 1]*root_quat[:, 2]), 1 - 2*(root_quat[:, 2]**2 + root_quat[:, 3]**2)).view(-1, 1)
         yaw = torch.atan2(torch.sin(yaw), torch.cos(yaw)) # standardize to -pi to pi
         
-        roll_penalty = compute_linear_penalty(roll.view(-1, 1), scale=1.0, min_value=torch.pi/18, max_value=torch.pi/2)
-        pitch_penalty = compute_linear_penalty(pitch.view(-1, 1), scale=1.0, min_value=torch.pi/18, max_value=torch.pi/2)
-        yaw_penalty = compute_linear_penalty(yaw.view(-1, 1), scale=1.0, min_value=torch.pi/18, max_value=torch.pi)
+        # roll_penalty = compute_linear_penalty(roll.view(-1, 1), scale=1.0, min_value=torch.pi/18, max_value=torch.pi/2)
+        # pitch_penalty = compute_linear_penalty(pitch.view(-1, 1), scale=1.0, min_value=torch.pi/18, max_value=torch.pi/2)
+        # yaw_penalty = compute_linear_penalty(yaw.view(-1, 1), scale=1.0, min_value=torch.pi/18, max_value=torch.pi)
+        roll_penalty = compute_gaussian_penalty(roll.view(-1, 1), scale=1.0, min_value=torch.pi/18, max_value=torch.pi/2)
+        pitch_penalty = compute_gaussian_penalty(pitch.view(-1, 1), scale=1.0, min_value=torch.pi/18, max_value=torch.pi/2)
+        yaw_penalty = compute_gaussian_penalty(yaw.view(-1, 1), scale=1.0, min_value=torch.pi/18, max_value=torch.pi)
+        
         action_penalty = torch.sum(torch.abs(action - previous_action), -1)
         energy_penalty = torch.sum(torch.abs(action), -1)
-        ankle_pitch_penalty = compute_linear_penalty(ankle_pitch.view(-1, 2), scale=1.0, min_value=torch.pi/9, max_value=torch.pi/2)
+        
+        # ankle_pitch_penalty = compute_linear_penalty(ankle_pitch.view(-1, 2), scale=1.0, min_value=torch.pi/9, max_value=torch.pi/2)
+        ankle_pitch_penalty = compute_gaussian_penalty(ankle_pitch.view(-1, 2), scale=1.0, min_value=torch.pi/9, max_value=torch.pi/2)
         terminated_penalty = reset_terminated.float().view(-1)
         
         roll_penalty = self.roll_deviation_weight*roll_penalty
@@ -189,50 +202,57 @@ class PositionConePenalty:
 
 
 if __name__ == "__main__":
-    
-    position_x = torch.arange(0.0, 3.0, 0.1)
-    position_y = torch.arange(-0.5, 0.5, 0.1)
-    X, Y = torch.meshgrid(position_x, position_y, indexing="ij")
-    
-    goal_position = torch.tensor([3.0, 0.0]).view(1, -1)
-    goal_yaw = torch.tensor([0.0]).view(1, -1)
-    
-    position = torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1)], dim=1)
-    root_height = 0.55 * torch.ones(position.shape[0], 1)
-    root_quat = torch.tensor([0.0, 0.0, 0.0, 1.0]).repeat(position.shape[0], 1)
-    yaw = 3.14/6 * torch.ones(position.shape[0], 1)
-    action = torch.zeros(position.shape[0], 12)
-    previous_action = torch.zeros(position.shape[0], 12)
-    ankle_pitch = torch.zeros(position.shape[0], 2)
-    reset_terminated = torch.zeros(position.shape[0], 1)
-    
-    
-    goal_tracking_penalty = GoalTrackingPenalty(
-        roll_deviation_weight = 1.0,
-        pitch_deviation_weight= 1.0,
-        yaw_deviation_weight= 1.0,
-        ankle_pitch_deviation_weight = 1.0,
-        action_penalty_weight = 1.0,
-        energy_penalty_weight = 1.0,
-        terminated_weight = 1.0,
-    )
-    
-    position_cone_penalty = PositionConePenalty(
-        position_deviation_weight = 1.0,
-        anchor_position=(0.1, 0.0),
-    )
-    
-    roll_penalty, pitch_penalty, yaw_penalty, action_penalty, energy_penalty, ankle_pitch_penalty, terminated_penalty \
-        = goal_tracking_penalty.compute_penalty(root_quat, action, previous_action, ankle_pitch, reset_terminated)
-        
-    cone_penalty = position_cone_penalty.compute_penalty(position, goal_position)
-    
-    cone_penalty_grid = cone_penalty.reshape(X.shape)
-    
     import matplotlib.pyplot as plt
-    plt.figure()
-    plt.imshow(cone_penalty_grid, cmap="jet", origin="lower")
-    plt.colorbar()
-    plt.xlabel("Y")
-    plt.ylabel("X")
+    # position_x = torch.arange(0.0, 3.0, 0.1)
+    # position_y = torch.arange(-0.5, 0.5, 0.1)
+    # X, Y = torch.meshgrid(position_x, position_y, indexing="ij")
+    
+    # goal_position = torch.tensor([3.0, 0.0]).view(1, -1)
+    # goal_yaw = torch.tensor([0.0]).view(1, -1)
+    
+    # position = torch.cat([X.reshape(-1, 1), Y.reshape(-1, 1)], dim=1)
+    # root_height = 0.55 * torch.ones(position.shape[0], 1)
+    # root_quat = torch.tensor([0.0, 0.0, 0.0, 1.0]).repeat(position.shape[0], 1)
+    # yaw = 3.14/6 * torch.ones(position.shape[0], 1)
+    # action = torch.zeros(position.shape[0], 12)
+    # previous_action = torch.zeros(position.shape[0], 12)
+    # ankle_pitch = torch.zeros(position.shape[0], 2)
+    # reset_terminated = torch.zeros(position.shape[0], 1)
+    
+    
+    # goal_tracking_penalty = GoalTrackingPenalty(
+    #     roll_deviation_weight = 1.0,
+    #     pitch_deviation_weight= 1.0,
+    #     yaw_deviation_weight= 1.0,
+    #     ankle_pitch_deviation_weight = 1.0,
+    #     action_penalty_weight = 1.0,
+    #     energy_penalty_weight = 1.0,
+    #     terminated_weight = 1.0,
+    # )
+    
+    # position_cone_penalty = PositionConePenalty(
+    #     position_deviation_weight = 1.0,
+    #     anchor_position=(0.1, 0.0),
+    # )
+    
+    # roll_penalty, pitch_penalty, yaw_penalty, action_penalty, energy_penalty, ankle_pitch_penalty, terminated_penalty \
+    #     = goal_tracking_penalty.compute_penalty(root_quat, action, previous_action, ankle_pitch, reset_terminated)
+        
+    # cone_penalty = position_cone_penalty.compute_penalty(position, goal_position)
+    
+    # cone_penalty_grid = cone_penalty.reshape(X.shape)
+    
+    # plt.figure()
+    # plt.imshow(cone_penalty_grid, cmap="jet", origin="lower")
+    # plt.colorbar()
+    # plt.xlabel("Y")
+    # plt.ylabel("X")
+    # plt.show()
+    
+    
+    # penalty_value = torch.linspace(-2.0, 2.0, 200).view(-1, 1)
+    penalty_value = torch.linspace(-torch.pi/2, torch.pi/2, 200).view(-1, 1)
+    # penalty = compute_linear_penalty(penalty_value, scale=1.0, min_value=0.8, max_value=1.0)
+    penalty = compute_gaussian_penalty(penalty_value, scale=1.0, min_value=torch.pi/18, max_value=torch.pi/2, temperature=0.5)
+    plt.plot(penalty_value, penalty)
     plt.show()

@@ -110,7 +110,7 @@ class BaseArch(DirectRLEnv):
         self.mpc_ctrl_counter = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
         
         # for logging
-        self.episode_sums = {
+        self.episode_reward_sums = {
             "height_reward": 0.0,
             "lin_vel_reward": 0.0,
             "ang_vel_reward": 0.0,
@@ -118,7 +118,10 @@ class BaseArch(DirectRLEnv):
             "contact_reward": 0.0,
             "position_reward": 0.0,
             "yaw_reward": 0.0,
-            
+            "sagital_fp_reward": 0.0,
+        }
+        
+        self.episode_penalty_sums = {
             "roll_penalty": 0.0,
             "pitch_penalty": 0.0,
             "action_penalty": 0.0,
@@ -233,8 +236,10 @@ class BaseArch(DirectRLEnv):
         for i in range(len(self.mpc)):
             self.mpc[i].set_swing_parameters(stepping_frequency=self._gait_stepping_frequency[i], foot_height=self._foot_height[i])
             self.mpc[i].add_foot_placement_residual(self._foot_placement_residuals[i])
+            self.mpc[i].set_srbd_residual(A_residual=self._A_residual[i], B_residual=self._B_residual[i])
             self.mpc[i].update_state(self._state[i].cpu().numpy())
             self.mpc[i].run()
+            
             accel_gyro.append(self.mpc[i].accel_gyro(self._root_rot_mat[i].cpu().numpy()))
             grfm.append(self.mpc[i].grfm)
             gait_contact.append(self.mpc[i].contact_state)
@@ -256,15 +261,14 @@ class BaseArch(DirectRLEnv):
         Then, gradually increase the command velocity for the first 0.5s (ramp up phase).
         After this, the command should be set to gait=2 and desired velocity.
         """
-        first_time = self.episode_length_buf == 0
-        ramp_up_step = int(0.5/self.physics_dt) # 0.5s
-        warm_up_mask = self.mpc_ctrl_counter > self.cfg.gait_change_cutoff
-        ramp_up_coef = torch.clip((self.mpc_ctrl_counter - self.cfg.gait_change_cutoff)/ramp_up_step, 0.0, 1.0)
-        self._desired_root_lin_vel_b[:, 0] = warm_up_mask * ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 0]).to(self.device)
-        self._desired_root_lin_vel_b[:, 1] = warm_up_mask * ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 1]).to(self.device)
-        self._desired_root_ang_vel_b[:, 0] = warm_up_mask * ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 2]).to(self.device)
+        # ramp_up_step = int(0.1/self.physics_dt)
+        # ramp_up_coef = torch.clip((self.mpc_ctrl_counter - self.cfg.gait_change_cutoff)/ramp_up_step, 0.0, 1.0)
+        ramp_up_coef = 1.0
+        self._desired_root_lin_vel_b[:, 0] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 0]).to(self.device)
+        self._desired_root_lin_vel_b[:, 1] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 1]).to(self.device)
+        self._desired_root_ang_vel_b[:, 0] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 2]).to(self.device)
         self._desired_height = self.cfg.reference_height * np.ones(self.num_envs, dtype=np.float32)
-        self._desired_gait = torch.where(first_time, 1, 2).cpu().numpy()
+        self._desired_gait[:] = 2
     
     def _get_state(self) -> None:
         """
@@ -272,22 +276,17 @@ class BaseArch(DirectRLEnv):
         NOTE that the center of mass pose is relative to the initial spawn position (i.e. odometry adding nominal height as offset). 
         """
         
-        default_state = self._robot_api.default_root_state
+        self._init_rot_mat = self._robot_api._init_rot # type: ignore
+        self._root_rot_mat = self._robot_api.root_rot_mat_local
+        self._root_quat = self._robot_api.root_quat_local
         
-        rot_mat = matrix_from_quat(self._robot_api.root_quat_w)
-        self._init_rot_mat = matrix_from_quat(default_state[:, 3:7])
-        self._root_rot_mat = torch.bmm(torch.transpose(self._init_rot_mat, 1, 2), rot_mat) # find relative orientation from initial rotation
-        self._root_quat = quat_from_matrix(self._root_rot_mat)
-        
+        # TODO: consider including it in robot_api
         self._root_yaw = torch.atan2(2*(self._root_quat[:, 0]*self._root_quat[:, 3] + self._root_quat[:, 1]*self._root_quat[:, 2]), 1 - 2*(self._root_quat[:, 2]**2 + self._root_quat[:, 3]**2)).view(-1, 1)
         self._root_yaw = torch.atan2(torch.sin(self._root_yaw), torch.cos(self._root_yaw)) # standardize to -pi to pi
         
-        # root_pos is absolute position in fixed frame, we need robot's odometry (relative position from initial position)
-        self._root_pos = self._robot_api.root_pos_w - self.scene.env_origins
-        self._root_pos[:, :2] -= default_state[:, :2]
-        self._root_pos = torch.bmm(torch.transpose(self._init_rot_mat, 1, 2), self._root_pos.view(-1, 3, 1)).view(-1, 3) # find relative position from initial position
-        # process height same as hardware code
+        # process z position same as hardware code
         # https://github.gatech.edu/GeorgiaTechLIDARGroup/HECTOR_HW_new/blob/Unified_Framework/Interface/HW_interface/src/stateestimator/PositionVelocityEstimator.cpp
+        self._root_pos = self._robot_api.root_pos_local
         toe_index, _ = self._robot.find_bodies(["L_toe", "R_toe"], preserve_order=True)
         foot_pos = (self._robot_api.body_pos_w[:, toe_index, 2]-0.04) - self._robot_api.root_pos_w [:, 2].view(-1, 1) # com to foot in world frame
         phZ, _ = torch.max(-foot_pos, dim=1)
@@ -303,6 +302,7 @@ class BaseArch(DirectRLEnv):
         
         # reference calculation 
         self._ref_yaw = self._ref_yaw + self._desired_root_ang_vel_b[:, 0:1] * self.cfg.dt
+        self._ref_yaw = torch.atan2(torch.sin(self._ref_yaw), torch.cos(self._ref_yaw)) # standardize to -pi to pi
         self._ref_pos[:, 0] = self._ref_pos[:, 0] + self._desired_root_lin_vel_b[:, 0] * torch.cos(self._ref_yaw.squeeze()) * self.cfg.dt - \
             self._desired_root_lin_vel_b[:, 1] * torch.sin(self._ref_yaw.squeeze()) * self.cfg.dt
         self._ref_pos[:, 1] = self._ref_pos[:, 1] + self._desired_root_lin_vel_b[:, 0] * torch.sin(self._ref_yaw.squeeze()) * self.cfg.dt + \
@@ -320,11 +320,11 @@ class BaseArch(DirectRLEnv):
             dim=-1,
         )
     
-    def _add_joint_offset(self, env_ids: Sequence[int]=None):
+    def _add_joint_offset(self, env_ids: torch.Tensor|Sequence[int]|None=None):
         """
         Add joint offset to simulation joint data. 
         This is because of difference in zero-joint position in simulation and hardware. 
-        These offsets are synced with hector URDF.
+        We align the definition to hardware. 
         """
         if env_ids is None:
             env_ids = self._robot._ALL_INDICES

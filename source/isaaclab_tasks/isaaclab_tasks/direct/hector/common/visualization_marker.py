@@ -6,7 +6,7 @@
 import torch
 import isaaclab.sim as sim_utils
 from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
-from isaaclab_assets import ISAACLAB_ASSETS_DATA_DIR
+from isaaclab_assets import ISAACLAB_ASSETS_DATA_DIR # type: ignore
 
 class ContactVisualizer:
     def __init__(self, prim_path):
@@ -132,3 +132,35 @@ class FootPlacementVisualizer:
         positions = positions.reshape(-1, 3) # (num_envs*4, 3)
         indices = indices.reshape(-1)
         self.marker.visualize(translations=positions, marker_indices=indices)
+
+
+class VelocityVisualizer:
+    def __init__(self, prim_path):
+        self.prim_path = prim_path
+        self.markers_cfg = VisualizationMarkersCfg(
+            prim_path=prim_path,
+            markers={
+                "penetration":
+                sim_utils.UsdFileCfg(
+                usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/props/arrow_x.usd",
+                scale=(1.0, 1.0, 1.0),
+            ),
+            }
+        )
+        self.marker = VisualizationMarkers(self.markers_cfg)
+        self.marker_scale = 1.0
+    
+    def visualize(self, link_positions:torch.Tensor, link_quat:torch.Tensor, velocity_b:torch.Tensor):
+        """_summary_
+
+        Args:
+            link_positions (torch.Tensor): (num_envs, 3)
+            link_rotations (torch.Tensor): (num_envs, 3, 3)
+            local_velocity (torch.Tensor): (num_envs, 3)
+        """
+        marker_scales = torch.ones_like(velocity_b)
+        marker_scales[:, 0] = torch.sign(velocity_b[:, 0]) * torch.norm(velocity_b, dim=-1)/self.marker_scale
+        
+        marker_positions = link_positions.clone()
+        marker_positions[:, 2] += 0.2
+        self.marker.visualize(marker_positions.reshape(-1, 3), link_quat.reshape(-1, 4), marker_scales.reshape(-1, 3))

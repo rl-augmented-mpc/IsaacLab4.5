@@ -88,7 +88,7 @@ class SACRunnerCfg(RslRlPolicyRunnerCfg):
 ## rsl_rl master branch ##
 
 @configclass
-class HectorPPORunnerCfg(RslRlOnPolicyRunnerCfg):
+class HectorPPOMLPRunnerCfg(RslRlOnPolicyRunnerCfg):
     seed = 0
     num_steps_per_env = 24 # horizon for rollout
     max_iterations = 50000
@@ -123,15 +123,17 @@ class HectorPPORunnerCfg(RslRlOnPolicyRunnerCfg):
 class HectorPPOGRURunnerCfg(RslRlOnPolicyRunnerCfg):
     seed = 0
     num_steps_per_env = 24 # horizon for rollout
-    max_iterations = 50000
-    save_interval = 50
+    max_iterations = 20000
+    save_interval = 500
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
         class_name="ActorCriticRecurrent", 
         rnn_type="GRU",
         init_noise_std=0.1,
-        actor_hidden_dims=[512, 256, 128],
-        critic_hidden_dims=[512, 256, 128],
+        # actor_hidden_dims=[512, 256, 128],
+        # critic_hidden_dims=[512, 256, 128],
+        actor_hidden_dims=[256, 256, 128],
+        critic_hidden_dims=[256, 256, 128],
         activation="elu",
     )  # type: ignore
     algorithm = RslRlPpoAlgorithmCfg(
@@ -141,7 +143,7 @@ class HectorPPOGRURunnerCfg(RslRlOnPolicyRunnerCfg):
         entropy_coef=0.01,
         num_learning_epochs=5,
         num_mini_batches=4,
-        learning_rate=1.0e-3,
+        learning_rate=1.0e-4,
         schedule="adaptive",
         gamma=0.99,
         lam=0.95,
@@ -151,6 +153,43 @@ class HectorPPOGRURunnerCfg(RslRlOnPolicyRunnerCfg):
     logger = "wandb"
     wandb_project = "rl_mpc"
     experiment_name = "ppo_rsl_rl_gru_friction"
+    # resume=True
+    # load_run = "2025-01-17_22-16-15"
+
+@configclass
+class HectorPPOLSTMRunnerCfg(RslRlOnPolicyRunnerCfg):
+    seed = 0
+    num_steps_per_env = 24 # horizon for rollout
+    max_iterations = 20000
+    save_interval = 500
+    empirical_normalization = False
+    policy = RslRlPpoActorCriticCfg(
+        class_name="ActorCriticRecurrent", 
+        rnn_type="LSTM",
+        init_noise_std=0.1,
+        # actor_hidden_dims=[512, 256, 128],
+        # critic_hidden_dims=[512, 256, 128],
+        actor_hidden_dims=[256, 256, 128],
+        critic_hidden_dims=[256, 256, 128],
+        activation="elu",
+    )  # type: ignore
+    algorithm = RslRlPpoAlgorithmCfg(
+        value_loss_coef=1.0,
+        use_clipped_value_loss=True,
+        clip_param=0.2,
+        entropy_coef=0.01,
+        num_learning_epochs=5,
+        num_mini_batches=4,
+        learning_rate=1.0e-4,
+        schedule="adaptive",
+        gamma=0.99,
+        lam=0.95,
+        desired_kl=0.01,
+        max_grad_norm=1.0,
+    )
+    logger = "wandb"
+    wandb_project = "rl_mpc"
+    experiment_name = "ppo_rsl_rl_lstm_friction"
     # resume=True
     # load_run = "2025-01-17_22-16-15"
 
