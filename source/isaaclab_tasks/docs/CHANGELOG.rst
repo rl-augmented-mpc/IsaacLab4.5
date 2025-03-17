@@ -1,6 +1,34 @@
 Changelog
 ---------
 
+0.10.25 (2025-03-10)
+~~~~~~~~~~~~~~~~~~~~
+
+Added
+^^^^^
+
+* Added ``Isaac-Stack-Cube-Franka-IK-Rel-Blueprint-v0`` stacking environment with camera inputs.
+
+
+0.10.24 (2025-02-13)
+~~~~~~~~~~~~~~~~~~~~
+
+Changed
+^^^^^^^
+
+* Set ``Isaac-Stack-Cube-Franka-IK-Rel-v0`` to use sim parameters from base ``StackEnvCfg``, improving simulation stability.
+
+
+0.10.23 (2025-02-11)
+~~~~~~~~~~~~~~~~~~~~
+
+Fixed
+^^^^^
+
+* Fixed the inconsistent object pos observations in the ``Isaac-Stack-Cube-Franka`` environment when using parallel envs by
+  subtracting out the env origin from each object pos observation.
+
+
 0.10.22 (2025-01-14)
 ~~~~~~~~~~~~~~~~~~~~
 
