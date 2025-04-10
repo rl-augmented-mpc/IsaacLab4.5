@@ -106,6 +106,10 @@ class TerrainImporterCfg:
     """
     Center position of the terrain in the world frame.
     """
+    center_orientation: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)
+    """
+    Center orientation of the terrain in the world frame."""
+    
     static_friction_range: tuple[float, float] = (0.5, 0.5)
     """
     Static friction range to sample for each patch when terrain_type is patched.

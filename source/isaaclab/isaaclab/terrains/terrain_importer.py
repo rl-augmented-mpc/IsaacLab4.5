@@ -291,6 +291,7 @@ class TerrainImporter:
             prim_path, 
             mesh, 
             translation=self.cfg.center_position,
+            orientation=self.cfg.center_orientation,
             visual_material=self.cfg.visual_material, 
             physics_material=self.cfg.physics_material, 
             disable_colllider=self.cfg.disable_colllider,

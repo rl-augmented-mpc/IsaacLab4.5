@@ -16,14 +16,17 @@ from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.utils import configclass
 
 # Task core
-from isaaclab_tasks.direct.hector.common.task_reward import VelocityTrackingReward, AliveReward, ContactTrackingReward, PoseTrackingReward, SagittalFPSimilarityReward
-from isaaclab_tasks.direct.hector.common.task_penalty import VelocityTrackingPenalty, TwistPenalty, FeetSlidePenalty, JointPenalty, ActionSaturationPenalty
-
-from isaaclab_tasks.direct.hector.common.sampler import UniformLineSampler, UniformCubicSampler, GridCubicSampler, QuaternionSampler, CircularSampler, CircularOrientationSampler
-from isaaclab_tasks.direct.hector.common.curriculum import  CurriculumRateSampler, CurriculumLineSampler, CurriculumUniformLineSampler, CurriculumUniformCubicSampler, CurriculumQuaternionSampler
-from isaaclab_tasks.direct.hector.core_cfg.terrain_cfg import CurriculumFrictionPatchTerrain, FrictionPatchTerrain
+from isaaclab_tasks.direct.hector.common.task_reward import VelocityTrackingReward, AliveReward, ContactTrackingReward, PoseTrackingReward, \
+    SagittalFPSimilarityReward, SwingFootTrackingReward
+from isaaclab_tasks.direct.hector.common.task_penalty import OrientationRegularizationPenalty, ActionRegularizationPenalty, \
+    TwistPenalty, FeetSlidePenalty, JointPenalty, ActionSaturationPenalty, TerminationPenalty, CurriculumActionRegularizationPenalty, \
+        FootDistanceRegularizationPenalty, CurriculumTorqueRegularizationPenalty, VelocityPenalty, AngularVelocityPenalty
 
 # Task cfg
+from isaaclab_tasks.direct.hector.common.sampler import UniformLineSampler, UniformCubicSampler, GridCubicSampler, QuaternionSampler, CircularSampler, CircularOrientationSampler
+from isaaclab_tasks.direct.hector.common.curriculum import  CurriculumRateSampler, CurriculumLineSampler, CurriculumUniformLineSampler, CurriculumUniformCubicSampler, CurriculumQuaternionSampler
+from isaaclab_tasks.direct.hector.core_cfg import terrain_cfg
+
 from isaaclab_tasks.direct.hector.task_cfg.base_arch_cfg import BaseArchCfg
 
 # macros 
@@ -49,8 +52,7 @@ class HierarchicalArchCfg(BaseArchCfg):
     nominal_gait_stepping_frequency = 1.0
     nominal_foot_height = 0.12
     
-    terrain = CurriculumFrictionPatchTerrain
-    # terrain = FrictionPatchTerrain
+    terrain = terrain_cfg.CurriculumFrictionPatchTerrain
     
     # RL observation, action parameters
     action_space = 3
@@ -74,10 +76,10 @@ class HierarchicalArchCfg(BaseArchCfg):
         )
     
     # Curriculum sampler
-    curriculum_max_steps = 5000
+    curriculum_max_steps = 3000
     center = (terrain.center_position[0], terrain.center_position[1], 0.0)
 
-    robot_position_sampler = CircularSampler(radius=0.8, z_range=(0.55, 0.55))
+    robot_position_sampler = CircularSampler(radius=0.6, z_range=(0.55, 0.55))
     robot_quat_sampler = CircularOrientationSampler(
         x_range=(-math.pi/18, math.pi/18),
     )
@@ -118,9 +120,12 @@ class HierarchicalArchCfg(BaseArchCfg):
     reward_parameter: VelocityTrackingReward = VelocityTrackingReward(height_similarity_weight=0.66, 
                                                             lin_vel_similarity_weight=0.66,
                                                             ang_vel_similarity_weight=0.66,
-                                                            height_similarity_coeff=0.5, 
-                                                            lin_vel_similarity_coeff=0.5,
-                                                            ang_vel_similarity_coeff=0.5,
+                                                            height_similarity_coeff=4.0, 
+                                                            lin_vel_similarity_coeff=4.0,
+                                                            ang_vel_similarity_coeff=4.0,
+                                                            # height_similarity_coeff=0.5, 
+                                                            # lin_vel_similarity_coeff=0.5,
+                                                            # ang_vel_similarity_coeff=0.5,
                                                             # height_reward_mode="gaussian",
                                                             # lin_vel_reward_mode="gaussian",
                                                             # ang_vel_reward_mode="gaussian"
@@ -129,31 +134,53 @@ class HierarchicalArchCfg(BaseArchCfg):
                                                             ang_vel_reward_mode="exponential"
                                                             )
     pose_tracking_reward_parameter: PoseTrackingReward = PoseTrackingReward(
-        position_weight=0.66, yaw_weight=0.66, 
-        position_coeff=0.8, yaw_coeff=0.8,
+        position_weight=0.0, # disable 
+        yaw_weight=0.0, # disable
+        position_coeff=1.0, 
+        yaw_coeff=1.0,
         # position_reward_mode="gaussian", 
         # yaw_reward_mode="gaussian"
         position_reward_mode="exponential", 
         yaw_reward_mode="exponential"
         )
-    alive_reward_parameter: AliveReward = AliveReward(alive_weight=0.33)
+    alive_reward_parameter: AliveReward = AliveReward(alive_weight=0.66)
+    swing_foot_tracking_reward_parameter: SwingFootTrackingReward = SwingFootTrackingReward(
+        swing_foot_weight=0.0, # disable
+        swing_foot_coeff=2.0,
+        swing_foot_reward_mode="gaussian"
+    )
     
     # penalty
-    penalty_parameter: VelocityTrackingPenalty = VelocityTrackingPenalty(roll_deviation_weight=0.66, 
-                                                               pitch_deviation_weight=0.66, 
-                                                               action_penalty_weight=0.05, 
-                                                               energy_penalty_weight=0.05,
-                                                               foot_energy_penalty_weight=0.00)
-    twist_penalty_parameter: TwistPenalty = TwistPenalty(vx_bound=(0.6, 1.0), 
-                                                         vy_bound=(0.5, 1.0), 
-                                                         wz_bound=(0.6, 1.0), 
-                                                         vx_penalty_weight=0.1,
-                                                         vy_penalty_weight=0.1,
-                                                         wz_penalty_weight=0.1)
-    action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.66, action_bound=(0.9, 1.0))
+    orientation_penalty_parameter: OrientationRegularizationPenalty = OrientationRegularizationPenalty(
+        roll_penalty_weight=0.0, 
+        pitch_penalty_weight=0.0,
+        roll_range=(-math.pi/18, math.pi/18),
+        pitch_range=(-math.pi/18, math.pi/18),
+    )
+    
+    velocity_penalty_parameter: VelocityPenalty = VelocityPenalty(
+        velocity_penalty_weight=0.66, 
+    )
+    angular_velocity_penalty_parameter: AngularVelocityPenalty = AngularVelocityPenalty(
+        ang_velocity_penalty_weight=0.66,
+    )
+    
+    action_penalty_parameter: CurriculumActionRegularizationPenalty = CurriculumActionRegularizationPenalty(
+        action_penalty_weight_start=5e-4, 
+        action_penalty_weight_end=5e-4,
+        energy_penalty_weight_start=5e-4,
+        energy_penalty_weight_end=5e-4, 
+        rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps),
+        )
+    torque_penalty_parameter: CurriculumTorqueRegularizationPenalty = CurriculumTorqueRegularizationPenalty(
+        torque_penalty_weight_start=1e-5,
+        torque_penalty_weight_end=1e-5, 
+        rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps),
+    )
+    
+    foot_distance_penalty_parameter: FootDistanceRegularizationPenalty = FootDistanceRegularizationPenalty(foot_distance_penalty_weight=0.66, foot_distance_bound=(0.3, 0.5))
     foot_slide_penalty_parameter: FeetSlidePenalty = FeetSlidePenalty(feet_slide_weight=0.1)
-    left_hip_roll_joint_penalty_parameter: JointPenalty = JointPenalty(joint_penalty_weight=0.66, joint_pos_bound=(torch.pi/18, torch.pi/6))
-    right_hip_roll_joint_penalty_parameter: JointPenalty = JointPenalty(joint_penalty_weight=0.66, joint_pos_bound=(torch.pi/18, torch.pi/6))
+    action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.66, action_bound=(0.9, 1.0))
 
 
 @configclass
@@ -168,20 +195,10 @@ class HierarchicalArchPrimeCfg(HierarchicalArchCfg):
     action_ub = [6.0,  6.0, 6.0] + [0.2, 2.0, 2.0]
 
 @configclass
-class HierarchicalArchAccelPFCfg(HierarchicalArchCfg):
-    episode_length_s =20
-    observation_space = 64
-    state_space = 64
-    action_space = 10
-    
-    # action bound hyper parameter
-    action_lb = [-6.0, -6.0, -6.0] + [-0.2, -2.0, -2.0] + [-0.02, -0.02, -0.01, -0.01]
-    action_ub = [6.0,  6.0, 6.0] + [0.2, 2.0, 2.0] + [0.1, 0.1, 0.01, 0.01]
-
-
-@configclass
 class HierarchicalArchPrimeFullCfg(HierarchicalArchCfg):
     episode_length_s =20
+    num_history = 1
+    
     observation_space = 72
     state_space = 72
     action_space = 18
@@ -200,3 +217,14 @@ class HierarchicalArchPrimeFullCfg(HierarchicalArchCfg):
         [-v for v in inv_inertia_scale] + [-v for v in inv_inertia_scale]
     action_ub = lin_accel_scale + ang_accel_scale + inv_mass_scale_ub + inv_mass_scale_ub + \
         inv_inertia_scale + inv_inertia_scale
+
+@configclass
+class HierarchicalArchAccelPFCfg(HierarchicalArchCfg):
+    episode_length_s =20
+    observation_space = 64
+    state_space = 64
+    action_space = 10
+    
+    # action bound hyper parameter
+    action_lb = [-6.0, -6.0, -6.0] + [-0.2, -2.0, -2.0] + [-0.02, -0.02, -0.01, -0.01]
+    action_ub = [6.0,  6.0, 6.0] + [0.2, 2.0, 2.0] + [0.1, 0.1, 0.01, 0.01]
