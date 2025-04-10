@@ -605,7 +605,7 @@ class HierarchicalArchPrimeFull(HierarchicalArch):
     def __init__(self, cfg: HierarchicalArchPrimeFullCfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
         self.num_history = self.cfg.num_history
-        self.history_buffer = HistoryBuffer(self.num_envs, self.num_history, self.cfg.num_observations, torch.float32, self.device)
+        self.history_buffer = HistoryBuffer(self.num_envs, self.num_history, self.cfg.observation_space, torch.float32, self.device)
         
     def _split_action(self, policy_action:torch.Tensor)->tuple:
         """
