@@ -1,3 +1,4 @@
+
 import torch
 from dataclasses import dataclass
 
@@ -15,14 +16,22 @@ def compute_square_reward(
     )->torch.Tensor:
     return scale/(1.0+error)
 
-# gaussian kernel with mean=0
 @torch.jit.script
 def compute_exponential_reward(
     error: torch.Tensor, # normed error
     temperature: float = 1.0,
     scale: float = 1.0,
     )->torch.Tensor:
-    return scale*torch.exp(-torch.square(error)/temperature)
+    return scale*torch.exp(-temperature*error)
+
+# gaussian kernel with mean=0
+@torch.jit.script
+def compute_gaussian_reward(
+    error: torch.Tensor, # normed error
+    temperature: float = 1.0,
+    scale: float = 1.0,
+    )->torch.Tensor:
+    return scale*torch.exp(-temperature*torch.square(error))
 
 @dataclass
 class AliveReward:
@@ -45,6 +54,8 @@ class SagittalFPSimilarityReward:
             fp_reward = compute_square_reward(fp_error, scale=1.0)
         elif self.fp_reward_mode == "exponential":
             fp_reward = compute_exponential_reward(fp_error, scale=1.0, temperature=self.fp_similarity_coeff)
+        elif self.fp_reward_mode == "gaussian":
+            fp_reward = compute_gaussian_reward(fp_error, scale=1.0, temperature=self.fp_similarity_coeff)
         
         fp_reward = self.fp_similarity_weight * fp_reward.squeeze(1)
         return fp_reward
@@ -62,9 +73,9 @@ class VelocityTrackingReward:
     ang_vel_reward_mode:str="square"
     
     def __post_init__(self):
-        assert self.height_reward_mode in ["linear", "square", "exponential"]
-        assert self.lin_vel_reward_mode in ["linear", "square", "exponential"]
-        assert self.ang_vel_reward_mode in ["linear", "square", "exponential"]
+        assert self.height_reward_mode in ["linear", "square", "exponential", "gaussian"]
+        assert self.lin_vel_reward_mode in ["linear", "square", "exponential", "gaussian"]
+        assert self.ang_vel_reward_mode in ["linear", "square", "exponential", "gaussian"]
     
     def compute_reward(self, 
                        root_pos: torch.Tensor, 
@@ -81,10 +92,8 @@ class VelocityTrackingReward:
         desired_root_ang_vel_b: (num_envs, 1)
         """
         
-        # height_error = reference_height*torch.ones(root_pos.shape[0], 1, device=root_pos.device) - root_pos[:, 2:3]
-        height_error = torch.abs(reference_height - root_pos[:, 2:3])
-        # lin_vel_error = torch.norm(desired_root_lin_vel_b - root_lin_vel_b[:, :2], dim=1).view(-1, 1) # vx and vy
-        lin_vel_error = torch.abs(desired_root_lin_vel_b[:, :1] - root_lin_vel_b[:, :1]).view(-1, 1) # vx
+        height_error = torch.abs(reference_height - root_pos[:, 2:3]).view(-1, 1)
+        lin_vel_error = torch.norm(desired_root_lin_vel_b - root_lin_vel_b[:, :2], dim=1).view(-1, 1) # norm(error_vx, error_vy)
         ang_vel_error = torch.abs(desired_root_ang_vel_b - root_ang_vel_b[:, 2:]).view(-1, 1)
         
         if self.height_reward_mode == "linear":
@@ -93,6 +102,8 @@ class VelocityTrackingReward:
             height_reward = torch.sum(compute_square_reward(height_error, scale=1.0), -1)
         elif self.height_reward_mode == "exponential":
             height_reward = torch.sum(compute_exponential_reward(height_error, scale=1.0, temperature=self.height_similarity_coeff), -1)
+        elif self.height_reward_mode == "gaussian":
+            height_reward = torch.sum(compute_gaussian_reward(height_error, scale=1.0, temperature=self.height_similarity_coeff), -1)
         
         if self.lin_vel_reward_mode == "linear":
             lin_vel_reward = torch.sum(compute_linear_reward(lin_vel_error, scale=1.0), -1)
@@ -100,6 +111,8 @@ class VelocityTrackingReward:
             lin_vel_reward = torch.sum(compute_square_reward(lin_vel_error, scale=1.0), -1)
         elif self.lin_vel_reward_mode == "exponential":
             lin_vel_reward = torch.sum(compute_exponential_reward(lin_vel_error, scale=1.0, temperature=self.lin_vel_similarity_coeff), -1)
+        elif self.lin_vel_reward_mode == "gaussian":
+            lin_vel_reward = torch.sum(compute_gaussian_reward(lin_vel_error, scale=1.0, temperature=self.lin_vel_similarity_coeff), -1)
         
         if self.ang_vel_reward_mode == "linear":
             ang_vel_reward = torch.sum(compute_linear_reward(torch.square(ang_vel_error), scale=1.0), -1)
@@ -107,6 +120,8 @@ class VelocityTrackingReward:
             ang_vel_reward = torch.sum(compute_square_reward(torch.square(ang_vel_error), scale=1.0), -1)
         elif self.ang_vel_reward_mode == "exponential":
             ang_vel_reward = torch.sum(compute_exponential_reward(ang_vel_error, scale=1.0, temperature=self.ang_vel_similarity_coeff), -1)
+        elif self.ang_vel_reward_mode == "gaussian":
+            ang_vel_reward = torch.sum(compute_gaussian_reward(ang_vel_error, scale=1.0, temperature=self.ang_vel_similarity_coeff), -1)
         
         height_reward = self.height_similarity_weight*height_reward
         lin_vel_reward = self.lin_vel_similarity_weight*lin_vel_reward
@@ -125,8 +140,8 @@ class PoseTrackingReward:
     yaw_reward_mode:str="square"
     
     def __post_init__(self):
-        assert self.position_reward_mode in ["linear", "square", "exponential"]
-        assert self.yaw_reward_mode in ["linear", "square", "exponential"]
+        assert self.position_reward_mode in ["linear", "square", "exponential", "gaussian"]
+        assert self.yaw_reward_mode in ["linear", "square", "exponential", "gaussian"]
     
     def compute_reward(self, 
                        root_pos: torch.Tensor,
@@ -143,6 +158,8 @@ class PoseTrackingReward:
             position_reward = torch.sum(compute_square_reward(position_error, scale=1.0), -1)
         elif self.position_reward_mode == "exponential":
             position_reward = torch.sum(compute_exponential_reward(position_error, scale=1.0, temperature=self.position_coeff), -1)
+        elif self.position_reward_mode == "gaussian":
+            position_reward = torch.sum(compute_gaussian_reward(position_error, scale=1.0, temperature=self.position_coeff), -1)
         
         if self.yaw_reward_mode == "linear":
             yaw_reward = torch.sum(compute_linear_reward(yaw_error, scale=1.0), -1)
@@ -150,12 +167,38 @@ class PoseTrackingReward:
             yaw_reward = torch.sum(compute_square_reward(yaw_error, scale=1.0), -1)
         elif self.yaw_reward_mode == "exponential":
             yaw_reward = torch.sum(compute_exponential_reward(yaw_error, scale=1.0, temperature=self.yaw_coeff), -1)
+        elif self.yaw_reward_mode == "gaussian":
+            yaw_reward = torch.sum(compute_gaussian_reward(yaw_error, scale=1.0, temperature=self.yaw_coeff), -1)
         
         position_reward = self.position_weight*position_reward
         yaw_reward = self.yaw_weight*yaw_reward
         
         return position_reward, yaw_reward
+
+@dataclass
+class SwingFootTrackingReward:
+    swing_foot_weight: float = 1.0
+    swing_foot_coeff: float = 0.25
+    swing_foot_reward_mode:str="square"
     
+    def __post_init__(self):
+        assert self.swing_foot_reward_mode in ["linear", "square", "exponential", "gaussian"]
+    
+    def compute_reward(self, 
+                       swing_foot_pos: torch.Tensor, 
+                       ref_swing_foot_pos: torch.Tensor)->torch.Tensor:
+        
+        swing_foot_error = torch.norm(ref_swing_foot_pos - swing_foot_pos, dim=1, keepdim=True)
+        if self.swing_foot_reward_mode == "linear":
+            swing_foot_reward = torch.sum(compute_linear_reward(swing_foot_error, scale=1.0), 1)
+        elif self.swing_foot_reward_mode == "square":
+            swing_foot_reward = torch.sum(compute_square_reward(swing_foot_error, scale=1.0), 1)
+        elif self.swing_foot_reward_mode == "exponential":
+            swing_foot_reward = torch.sum(compute_exponential_reward(swing_foot_error, scale=1.0, temperature=self.swing_foot_coeff), 1)
+        elif self.swing_foot_reward_mode == "gaussian":
+            swing_foot_reward = torch.sum(compute_gaussian_reward(swing_foot_error, scale=1.0, temperature=self.swing_foot_coeff), 1)
+        swing_foot_reward = self.swing_foot_weight * swing_foot_reward
+        return swing_foot_reward # type: ignore
 
 @dataclass
 class GoalTrackingReward:
@@ -167,9 +210,9 @@ class GoalTrackingReward:
     goal_yaw_dist_reward_mode:str="square"
     
     def __post_init__(self):
-        assert self.height_reward_mode in ["linear", "square", "exponential"]
-        assert self.goal_pos_dist_reward_mode in ["linear", "square", "exponential"]
-        assert self.goal_yaw_dist_reward_mode in ["linear", "square", "exponential"]
+        assert self.height_reward_mode in ["linear", "square", "exponential", "gaussian"]
+        assert self.goal_pos_dist_reward_mode in ["linear", "square", "exponential", "gaussian"]
+        assert self.goal_yaw_dist_reward_mode in ["linear", "square", "exponential", "gaussian"]
     
     def compute_reward(self, 
                        root_height: torch.Tensor, #(num_envs, 1)
@@ -187,6 +230,8 @@ class GoalTrackingReward:
             height_reward = torch.sum(compute_square_reward(height_error, scale=1.0), -1)
         elif self.height_reward_mode == "exponential":
             height_reward = torch.sum(compute_exponential_reward(height_error, scale=1.0, temperature=0.5), -1)
+        elif self.height_reward_mode == "gaussian":
+            height_reward = torch.sum(compute_gaussian_reward(height_error, scale=1.0, temperature=0.5), -1)
         
         if self.goal_pos_dist_reward_mode == "linear":
             goal_pos_dist_reward = torch.sum(compute_linear_reward(goal_pos_error, scale=1.0), -1)
@@ -194,6 +239,8 @@ class GoalTrackingReward:
             goal_pos_dist_reward = torch.sum(compute_square_reward(goal_pos_error, scale=1.0), -1)
         elif self.goal_pos_dist_reward_mode == "exponential":
             goal_pos_dist_reward = torch.sum(compute_exponential_reward(goal_pos_error, scale=1.0, temperature=0.05), -1)
+        elif self.goal_pos_dist_reward_mode == "gaussian":
+            goal_pos_dist_reward = torch.sum(compute_gaussian_reward(goal_pos_error, scale=1.0, temperature=0.05), -1)
         
         if self.goal_yaw_dist_reward_mode == "linear":
             goal_yaw_dist_reward = torch.sum(compute_linear_reward(goal_yaw_error, scale=1.0), -1)
@@ -201,6 +248,8 @@ class GoalTrackingReward:
             goal_yaw_dist_reward = torch.sum(compute_square_reward(goal_yaw_error, scale=1.0), -1)
         elif self.goal_yaw_dist_reward_mode == "exponential":
             goal_yaw_dist_reward = torch.sum(compute_exponential_reward(goal_yaw_error, scale=1.0, temperature=0.05), -1)
+        elif self.goal_yaw_dist_reward_mode == "gaussian":
+            goal_yaw_dist_reward = torch.sum(compute_gaussian_reward(goal_yaw_error, scale=1.0, temperature=0.05), -1)
         
         height_reward = self.height_similarity_weight*height_reward
         goal_pos_dist_reward = self.goal_pos_dist_weight*goal_pos_dist_reward
@@ -215,7 +264,7 @@ class ContactTrackingReward:
     contact_reward_mode:str="square"
     
     def __post_init__(self):
-        assert self.contact_reward_mode in ["linear", "square", "exponential"]
+        assert self.contact_reward_mode in ["linear", "square", "exponential", "gaussian"]
     
     def compute_reward(self, 
                        gait_contact: torch.Tensor, #(num_envs, 2)
@@ -228,6 +277,8 @@ class ContactTrackingReward:
             contact_reward = compute_square_reward(contact_error, scale=1.0)
         elif self.contact_reward_mode == "exponential":
             contact_reward = compute_exponential_reward(contact_error, scale=1.0, temperature=self.contact_similarity_coeff)
+        elif self.contact_reward_mode == "gaussian":
+            contact_reward = compute_gaussian_reward(contact_error, scale=1.0, temperature=self.contact_similarity_coeff)
         
         weight = self.contact_similarity_weight * torch.ones_like(contact_error)
         contact_reward = weight * contact_reward
@@ -284,8 +335,11 @@ if __name__ == "__main__":
     
     # check error reward 
     error = torch.linspace(0.0, 0.05, 100) * 100
-    gaussian_reward = compute_exponential_reward(error, temperature=0.5, scale=1.0)
-    plt.plot(error, gaussian_reward)
+    gaussian_reward = compute_gaussian_reward(error, temperature=2.0, scale=1.0)
+    exp_reward = compute_exponential_reward(error, temperature=2.0, scale=1.0)
+    plt.plot(error, exp_reward, label="Exponential")
+    plt.plot(error, gaussian_reward, label="Gaussian")
     plt.xlabel("Error")
     plt.ylabel("Reward")
+    plt.legend()
     plt.show()

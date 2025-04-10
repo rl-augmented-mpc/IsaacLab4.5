@@ -43,6 +43,7 @@ gym.register(
         "env_cfg_entry_point": f"{__name__}.task_cfg.hierarchical_arch_cfg:HierarchicalArchPrimeFullCfg",
         # "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOGRURunnerCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOLSTMRunnerCfg",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo.yaml",
         # "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:PPORunnerCfg",
         # "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:SACRunnerCfg",
     },

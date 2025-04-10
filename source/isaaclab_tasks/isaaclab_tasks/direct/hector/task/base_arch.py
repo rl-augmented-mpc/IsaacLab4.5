@@ -16,7 +16,7 @@ import carb
 import isaaclab.sim as sim_utils
 from isaaclab.assets import Articulation
 from isaaclab.envs import DirectRLEnv
-from isaaclab.sensors import ContactSensor
+from isaaclab.sensors import ContactSensor, RayCaster
 from isaaclab.utils.math import matrix_from_quat, quat_from_matrix
 
 # Task core
@@ -70,13 +70,24 @@ class BaseArch(DirectRLEnv):
         # RL observation
         self._obs = torch.zeros(self.num_envs, gym.spaces.flatdim(self.single_observation_space["policy"]), device=self.device)
         
+        # height scan 
+        self.height_map = None
+        
+        # contact state
+        self._gt_grf = torch.zeros(self.num_envs, 6, device=self.device)
+        self._gt_contact = torch.zeros(self.num_envs, 2, device=self.device)
+        
         # MPC output
         self._grfm_mpc = torch.zeros(self.num_envs, 12, device=self.device, dtype=torch.float32)
         self._accel_gyro_mpc = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32)
         self._gait_contact = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
         self._swing_phase = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
         self._reibert_fps = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32)
-        self._augmented_fps = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32) # reibert + residual
+        self._reibert_fps_b = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32) # in body frame
+        self._augmented_fps = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32)
+        self._augmented_fps_b = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32) # in body frame
+        self._foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32)
+        self._ref_foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32)
         
         # Buffer for residual learning
         self._joint_action_augmented = np.zeros((self.num_envs, 10), dtype=np.float32)
@@ -89,14 +100,12 @@ class BaseArch(DirectRLEnv):
         self._gait_stepping_frequency = self.cfg.nominal_gait_stepping_frequency * np.ones(self.num_envs, dtype=np.float32)
         self._foot_height = self.cfg.nominal_foot_height * np.ones(self.num_envs, dtype=np.float32)
         
-        # contact state
-        self._gt_grf = torch.zeros(self.num_envs, 6, device=self.device)
-        self._gt_contact = torch.zeros(self.num_envs, 2, device=self.device)
-        
-        # desired commands for MPC
+        # desired commands
+        self._desired_root_lin_vel_b = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
+        self._desired_root_ang_vel_b = torch.zeros(self.num_envs, 1, device=self.device, dtype=torch.float32)
         self._desired_twist = np.zeros((self.num_envs, 3), dtype=np.float32)
-        self._desired_height = np.zeros(self.num_envs, dtype=np.float32)
-        self._desired_gait = np.ones(self.num_envs, dtype=np.int32)
+        self._desired_height = self.cfg.reference_height * np.ones(self.num_envs, dtype=np.float32)
+        self._desired_gait = 2 * np.ones(self.num_envs, dtype=np.int32)
         self._desired_roll_pitch = np.zeros((self.num_envs, 2), dtype=np.float32)
         self._desired_twist_np = np.zeros((self.num_envs, 3), dtype=np.float32)
         self._dsp_duration = np.zeros(self.num_envs, dtype=np.float32)
@@ -107,34 +116,33 @@ class BaseArch(DirectRLEnv):
             control_dt=self.cfg.dt, control_iteration_between_mpc=self.cfg.iteration_between_mpc, 
             horizon_length=self.cfg.horizon_length, mpc_decimation=self.cfg.mpc_decimation)
         self.mpc = [MPCWrapper(mpc_conf) for _ in range(self.num_envs)] # class array
+        for i in range(self.num_envs):
+            self.mpc[i].set_planner("Raibert")
+            # self.mpc[i].set_planner("LIP")
         self.mpc_ctrl_counter = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
         
         # for logging
         self.episode_reward_sums = {
-            "height_reward": 0.0,
-            "lin_vel_reward": 0.0,
-            "ang_vel_reward": 0.0,
-            "alive_reward": 0.0,
-            "contact_reward": 0.0,
-            "position_reward": 0.0,
-            "yaw_reward": 0.0,
-            "sagital_fp_reward": 0.0,
+            "height_reward": torch.zeros(self.num_envs, device=self.device),
+            "lin_vel_reward": torch.zeros(self.num_envs, device=self.device),
+            "ang_vel_reward": torch.zeros(self.num_envs, device=self.device),
+            "alive_reward": torch.zeros(self.num_envs, device=self.device),
+            "contact_reward": torch.zeros(self.num_envs, device=self.device),
+            "position_reward": torch.zeros(self.num_envs, device=self.device),
+            "yaw_reward": torch.zeros(self.num_envs, device=self.device),
+            "swing_foot_tracking_reward": torch.zeros(self.num_envs, device=self.device),
         }
         
         self.episode_penalty_sums = {
-            "roll_penalty": 0.0,
-            "pitch_penalty": 0.0,
-            "action_penalty": 0.0,
-            "energy_penalty": 0.0,
-            "foot_energy_penalty": 0.0,
-            "vx_penalty": 0.0,
-            "vy_penalty": 0.0,
-            "wz_penalty": 0.0,
-            "feet_slide_penalty": 0.0,
-            "left_hip_roll_penalty": 0.0,
-            "right_hip_roll_penalty": 0.0,
-            "hip_pitch_deviation_penalty": 0.0,
-            "action_saturation_penalty": 0.0,
+            "velocity_penalty": torch.zeros(self.num_envs, device=self.device), # this is a velocity penalty for the root linear velocity
+            "ang_velocity_penalty": torch.zeros(self.num_envs, device=self.device), # angular velocity penalty for the root angular velocity
+            "feet_slide_penalty": torch.zeros(self.num_envs, device=self.device),
+            "hip_pitch_deviation_penalty": torch.zeros(self.num_envs, device=self.device),
+            "foot_distance_penalty": torch.zeros(self.num_envs, device=self.device),
+            "action_saturation_penalty": torch.zeros(self.num_envs, device=self.device),
+            "action_penalty": torch.zeros(self.num_envs, device=self.device),
+            "energy_penalty": torch.zeros(self.num_envs, device=self.device),
+            "torque_penalty": torch.zeros(self.num_envs, device=self.device),
         }
         
         # rendering
@@ -153,6 +161,10 @@ class BaseArch(DirectRLEnv):
         # sensors
         self._contact_sensor = ContactSensor(self.cfg.contact_sensor)
         self.scene.sensors["contact_sensor"] = self._contact_sensor
+        
+        # ray caster
+        self._raycaster = RayCaster(self.cfg.ray_caster)
+        self.scene.sensors["raycaster"] = self._raycaster
         
         # light
         self._light = sim_utils.spawn_light(self.cfg.light.prim_path, self.cfg.light.spawn, orientation=(0.819152, 0.0, 0.5735764, 0.0))
@@ -231,10 +243,13 @@ class BaseArch(DirectRLEnv):
         swing_phase = []
         reibert_fps = []
         augmented_fps = []
+        foot_pos_b = []
+        foot_ref_pos_b = []
         
         self._get_state()
         for i in range(len(self.mpc)):
             self.mpc[i].set_swing_parameters(stepping_frequency=self._gait_stepping_frequency[i], foot_height=self._foot_height[i])
+            self.mpc[i].set_terrain_slope(self.cfg.terrain_slope)
             self.mpc[i].add_foot_placement_residual(self._foot_placement_residuals[i])
             self.mpc[i].set_srbd_residual(A_residual=self._A_residual[i], B_residual=self._B_residual[i])
             self.mpc[i].update_state(self._state[i].cpu().numpy())
@@ -246,13 +261,30 @@ class BaseArch(DirectRLEnv):
             swing_phase.append(self.mpc[i].swing_phase)
             reibert_fps.append(self.mpc[i].reibert_foot_placement)
             augmented_fps.append(self.mpc[i].foot_placement)
+            foot_pos_b.append(self.mpc[i].foot_pos_b)
+            foot_ref_pos_b.append(self.mpc[i].ref_foot_pos_b)
         
         self._accel_gyro_mpc = torch.from_numpy(np.array(accel_gyro)).to(self.device).view(self.num_envs, 6).to(torch.float32)
         self._grfm_mpc = torch.from_numpy(np.array(grfm)).to(self.device).view(self.num_envs, 12).to(torch.float32)
         self._gait_contact = torch.from_numpy(np.array(gait_contact)).to(self.device).view(self.num_envs, 2).to(torch.float32)
         self._swing_phase = torch.from_numpy(np.array(swing_phase)).to(self.device).view(self.num_envs, 2).to(torch.float32)
         self._reibert_fps = torch.from_numpy(np.array(reibert_fps)).to(self.device).view(self.num_envs, 4).to(torch.float32)
+
+        # transform rb fps to body frame
+        self._reibert_fps_b[:, 0] = self._reibert_fps[:, 0]*torch.cos(self._root_yaw.squeeze()) + self._reibert_fps[:, 1]*torch.sin(self._root_yaw.squeeze()) - self._root_pos[:, 0]
+        self._reibert_fps_b[:, 1] = -self._reibert_fps[:, 0]*torch.sin(self._root_yaw.squeeze()) + self._reibert_fps[:, 1]*torch.cos(self._root_yaw.squeeze()) - self._root_pos[:, 1]
+        self._reibert_fps_b[:, 2] = self._reibert_fps[:, 2]*torch.cos(self._root_yaw.squeeze()) + self._reibert_fps[:, 3]*torch.sin(self._root_yaw.squeeze()) - self._root_pos[:, 0]
+        self._reibert_fps_b[:, 3] = -self._reibert_fps[:, 2]*torch.sin(self._root_yaw.squeeze()) + self._reibert_fps[:, 3]*torch.cos(self._root_yaw.squeeze()) - self._root_pos[:, 1]
+
         self._augmented_fps = torch.from_numpy(np.array(augmented_fps)).to(self.device).view(self.num_envs, 4).to(torch.float32)
+        # transform augmented fps to body frame
+        self._augmented_fps_b[:, 0] = self._augmented_fps[:, 0]*torch.cos(self._root_yaw.squeeze()) + self._augmented_fps[:, 1]*torch.sin(self._root_yaw.squeeze()) - self._root_pos[:, 0]
+        self._augmented_fps_b[:, 1] = -self._augmented_fps[:, 0]*torch.sin(self._root_yaw.squeeze()) + self._augmented_fps[:, 1]*torch.cos(self._root_yaw.squeeze()) - self._root_pos[:, 1]
+        self._augmented_fps_b[:, 2] = self._augmented_fps[:, 2]*torch.cos(self._root_yaw.squeeze()) + self._augmented_fps[:, 3]*torch.sin(self._root_yaw.squeeze()) - self._root_pos[:, 0]
+        self._augmented_fps_b[:, 3] = -self._augmented_fps[:, 2]*torch.sin(self._root_yaw.squeeze()) + self._augmented_fps[:, 3]*torch.cos(self._root_yaw.squeeze()) - self._root_pos[:, 1]
+
+        self._foot_pos_b = torch.from_numpy(np.array(foot_pos_b)).to(self.device).view(self.num_envs, 6).to(torch.float32)
+        self._ref_foot_pos_b = torch.from_numpy(np.array(foot_ref_pos_b)).to(self.device).view(self.num_envs, 6).to(torch.float32)
         
     def _set_mpc_reference(self):
         """
@@ -284,13 +316,13 @@ class BaseArch(DirectRLEnv):
         self._root_yaw = torch.atan2(2*(self._root_quat[:, 0]*self._root_quat[:, 3] + self._root_quat[:, 1]*self._root_quat[:, 2]), 1 - 2*(self._root_quat[:, 2]**2 + self._root_quat[:, 3]**2)).view(-1, 1)
         self._root_yaw = torch.atan2(torch.sin(self._root_yaw), torch.cos(self._root_yaw)) # standardize to -pi to pi
         
+        self._root_pos = self._robot_api.root_pos_local
         # process z position same as hardware code
         # https://github.gatech.edu/GeorgiaTechLIDARGroup/HECTOR_HW_new/blob/Unified_Framework/Interface/HW_interface/src/stateestimator/PositionVelocityEstimator.cpp
-        self._root_pos = self._robot_api.root_pos_local
-        toe_index, _ = self._robot.find_bodies(["L_toe", "R_toe"], preserve_order=True)
-        foot_pos = (self._robot_api.body_pos_w[:, toe_index, 2]-0.04) - self._robot_api.root_pos_w [:, 2].view(-1, 1) # com to foot in world frame
-        phZ, _ = torch.max(-foot_pos, dim=1)
-        self._root_pos[:, 2] = phZ
+        # toe_index, _ = self._robot.find_bodies(["L_toe", "R_toe"], preserve_order=True)
+        # foot_pos = (self._robot_api.body_pos_w[:, toe_index, 2]-0.04) - self._robot_api.root_pos_w [:, 2].view(-1, 1) # com to foot in world frame
+        # phZ, _ = torch.max(-foot_pos, dim=1)
+        # self._root_pos[:, 2] = phZ
         
         self._root_lin_vel_b = self._robot_api.root_lin_vel_b
         self._root_ang_vel_b = self._robot_api.root_ang_vel_b
@@ -352,6 +384,10 @@ class BaseArch(DirectRLEnv):
         else:
             self._gt_grf = contact_force.view(-1, 6).to(self.device)
             self._gt_contact = (torch.norm(self._contact_sensor.data.net_forces_w, dim=-1) > 1.0).to(torch.float32).view(-1, 2)
+    
+    def _get_exteroceptive_observation(self)->None:
+        # self.height_map = torch.clamp(self._raycaster.data.ray_hits_w[..., 2], min=-1, max=1) # global height
+        self.height_map = (self._raycaster.data.ray_hits_w[..., 2] - self._raycaster.data.pos_w[:, 2].unsqueeze(1)).clip(-2.0, 2.0) # local height wrt to base
     
     
     def _reset_idx(self, env_ids: Sequence[int])->None:

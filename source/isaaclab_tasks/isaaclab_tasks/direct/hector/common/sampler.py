@@ -63,6 +63,8 @@ class UniformCubicSampler:
         
         points = np.stack((x_vals, y_vals, z_vals), axis=-1).tolist()
         return points
+    
+## Position sampler ##
 
 @dataclass
 class CircularSampler:
@@ -70,13 +72,11 @@ class CircularSampler:
     z_range: List[float] | Tuple[float, float]
     
     def __post_init__(self):
-        assert self.radius > 0
+        assert self.radius >= 0
         assert len(self.z_range) == 2
     
     def sample(self, center: np.ndarray, num_samples: int) -> list[tuple[float, float, float]]:
-        # Evenly spaced angles in [0, 2π)
         theta = np.linspace(0, 2*np.pi, num_samples, endpoint=False)
-        # Random global shift
         shift = np.random.uniform(0, 2*np.pi)
         theta = theta + shift
 
@@ -88,19 +88,74 @@ class CircularSampler:
         return points
 
 @dataclass
-class CircularOrientationSampler:
-    x_range: List[float] | Tuple[float, float]
+class CircularSamplerWithLimit:
+    radius: float
+    z_range: List[float] | Tuple[float, float]
     
     def __post_init__(self):
-        assert len(self.x_range) == 2
+        assert self.radius >= 0
+        assert len(self.z_range) == 2
     
-    def sample(self, positions: np.ndarray, num_samples: int) -> list[tuple[float, float, float, float]]:
-        assert positions.shape[0] == num_samples
-        yaw = np.arctan2(positions[:, 1], positions[:, 0])
-        yaw_delta = np.random.uniform(self.x_range[0], self.x_range[1], num_samples)
-        yaw = yaw + yaw_delta
-        quat = np.stack([np.cos(yaw/2), np.zeros_like(yaw), np.zeros_like(yaw), np.sin(yaw/2)], axis=-1).tolist()
-        return quat
+    def sample(self, center: np.ndarray, num_samples: int) -> list[tuple[float, float, float]]:
+        coord_mask = np.random.randint(0, 2, num_samples)
+        theta = np.random.uniform(-np.pi/3, np.pi/3, num_samples)*coord_mask + np.random.uniform(np.pi - np.pi/3, np.pi + np.pi/3, num_samples)*(1-coord_mask)
+
+        x_vals = self.radius * np.cos(theta) + center[..., 0]
+        y_vals = self.radius * np.sin(theta) + center[..., 1]
+        z_vals = np.random.uniform(self.z_range[0], self.z_range[1], num_samples)
+
+        points = np.stack((x_vals, y_vals, z_vals), axis=-1).tolist()
+        return points
+
+@dataclass
+class SquareSampler:
+    radius: float
+    z_range: List[float] | Tuple[float, float]
+    
+    def __post_init__(self):
+        assert self.radius > 0, "Radius must be positive"
+        assert len(self.z_range) == 2, "z_range must have exactly two elements"
+    
+    def sample(self, center: np.ndarray, num_samples: int) -> list[tuple[float, float, float]]:
+        """
+        Sample num_samples points along the square edge.
+        The square is centered at 'center' with side length = 2*radius.
+        Each point gets a z coordinate uniformly sampled from z_range.
+        """
+        perimeter = 8 * self.radius
+        # Evenly spaced distances along the perimeter
+        distances = np.linspace(0, perimeter, num_samples, endpoint=False).astype(np.float32)
+        # Apply a random global shift to "rotate" the starting point along the perimeter
+        shift = np.random.uniform(0, perimeter)
+        distances = (distances + shift) % perimeter
+        
+        points = []
+        for d in distances:
+            # Bottom edge: from left to right
+            if d < 2 * self.radius:
+                x = center[0] - self.radius + d
+                y = center[1] - self.radius
+            # Right edge: from bottom to top
+            elif d < 4 * self.radius:
+                d_prime = d - 2 * self.radius
+                x = center[0] + self.radius
+                y = center[1] - self.radius + d_prime
+            # Top edge: from right to left
+            elif d < 6 * self.radius:
+                d_prime = d - 4 * self.radius
+                x = center[0] + self.radius - d_prime
+                y = center[1] + self.radius
+            # Left edge: from top to bottom
+            else:
+                d_prime = d - 6 * self.radius
+                x = center[0] - self.radius
+                y = center[1] + self.radius - d_prime
+            
+            z = np.random.uniform(self.z_range[0], self.z_range[1])
+            points.append((x, y, z))
+        
+        return points
+
 
 @dataclass
 class InnerCircularSampler:
@@ -125,6 +180,37 @@ class InnerCircularSampler:
 
         points = np.stack((x_vals, y_vals, z_vals), axis=-1).tolist()
         return points
+
+## orientation sampler ##
+
+@dataclass
+class CircularOrientationSampler:
+    x_range: List[float] | Tuple[float, float]
+    
+    def __post_init__(self):
+        assert len(self.x_range) == 2
+    
+    def sample(self, positions: np.ndarray, num_samples: int) -> list[tuple[float, float, float, float]]:
+        assert positions.shape[0] == num_samples
+        
+        yaw = np.arctan2(positions[:, 1], positions[:, 0])
+        yaw_delta = np.random.uniform(self.x_range[0], self.x_range[1], num_samples)
+        yaw = yaw + yaw_delta
+        
+        quat = np.stack([np.cos(yaw/2), np.zeros_like(yaw), np.zeros_like(yaw), np.sin(yaw/2)], axis=-1).tolist()
+        return quat
+
+@dataclass
+class BinaryOrientationSampler:
+    def sample(self, positions: np.ndarray, num_samples: int) -> list[tuple[float, float, float, float]]:
+        assert positions.shape[0] == num_samples
+        
+        yaw = np.zeros(positions.shape[0])
+        yaw[positions[:, 0] < 0] = 0
+        yaw[positions[:, 0] > 0] = np.pi
+        
+        quat = np.stack([np.cos(yaw/2), np.zeros_like(yaw), np.zeros_like(yaw), np.sin(yaw/2)], axis=-1).tolist()
+        return quat
 
 ### Grid ###
 

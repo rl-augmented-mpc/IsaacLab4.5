@@ -33,7 +33,7 @@ from isaaclab_tasks.direct.hector.common.task_reward import VelocityTrackingRewa
 from isaaclab_tasks.direct.hector.common.task_penalty import VelocityTrackingPenalty, TwistPenalty, FeetSlidePenalty, JointPenalty, ActionSaturationPenalty
 from isaaclab_tasks.direct.hector.common.sampler import UniformLineSampler, UniforPlaneSampler, UniformCubicSampler, QuaternionSampler
 from isaaclab_tasks.direct.hector.common.curriculum import CurriculumRateSampler, CurriculumUniformCubicSampler, CurriculumQuaternionSampler
-from isaaclab_tasks.direct.hector.core_cfg.terrain_cfg import BaseTerrain
+from isaaclab_tasks.direct.hector.core_cfg import terrain_cfg
 
 # Macros
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR, NVIDIA_NUCLEUS_DIR
@@ -99,7 +99,7 @@ class BaseArchCfg(DirectRLEnvCfg):
         )
     
     # terrain
-    terrain = BaseTerrain
+    terrain = terrain_cfg.BaseTerrain
     
     # robot
     robot: ArticulationCfg = HECTOR_CFG
@@ -129,17 +129,14 @@ class BaseArchCfg(DirectRLEnvCfg):
             },
         )
     
-    # LiDAR
+     # LiDAR
     ray_caster = RayCasterCfg(
         prim_path=f"{ENV_REGEX_NS}/Robot/base",
-        update_period=1 / 60,
-        offset=RayCasterCfg.OffsetCfg(pos=(0, 0, 0.0)),
+        update_period=0.1,
+        offset=RayCasterCfg.OffsetCfg(pos=(0, 0, 0)),
         mesh_prim_paths=["/World/ground"],
         attach_yaw_only=True,
-        pattern_cfg=patterns.LidarPatternCfg(
-            channels=100, vertical_fov_range=[-90, 90], horizontal_fov_range=[-90, 90], horizontal_res=1.0
-        ),
-        max_distance=100,
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.05, size=(0.5, 0.5)),
     )
     
     # light
@@ -149,7 +146,7 @@ class BaseArchCfg(DirectRLEnvCfg):
         light = AssetBaseCfg(
             prim_path="/World/skyLight",
             spawn=sim_utils.DomeLightCfg(
-                intensity=2000.0,
+                intensity=1000.0,
                 texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
             ),
         )
@@ -157,7 +154,7 @@ class BaseArchCfg(DirectRLEnvCfg):
         light = AssetBaseCfg(
             prim_path="/World/distantLight",
             spawn=sim_utils.DistantLightCfg(
-                intensity=3000.0,
+                intensity=1000.0,
             )
         )
     
