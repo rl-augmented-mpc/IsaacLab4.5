@@ -267,7 +267,7 @@ class HierarchicalArch(BaseArch):
             ),
             dim=-1,
         )
-        observation = {"policy": self._obs}
+        observation = {"policy": self._obs, "critic": self._obs}
         return observation
     
     def _reset_idx(self, env_ids: Sequence[int])->None:
@@ -329,6 +329,58 @@ class HierarchicalArch(BaseArch):
             center_coord = np.zeros((len(curriculum_idx), 2))
         return center_coord
     
+    def _reset_robot(self, env_ids: Sequence[int])->None:
+        ### set position ###
+        curriculum_idx = np.floor(self.cfg.terrain_curriculum_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)))
+        # if (self.common_step_counter//self.cfg.num_steps_per_env > self.cfg.second_curriculum_start):
+        #     curriculum_idx = curriculum_idx*0 + self.cfg.terrain.num_curriculums-1
+        self.curriculum_idx = curriculum_idx
+        center_coord = self._get_sub_terrain_center(curriculum_idx)
+        position = self.cfg.robot_position_sampler.sample(center_coord, len(env_ids))
+        quat = self.cfg.robot_quat_sampler.sample(np.array(position)[:, :2] - center_coord, len(position))
+        
+        position = torch.tensor(position, device=self.device).view(-1, 3)
+        quat = torch.tensor(quat, device=self.device).view(-1, 4)
+        default_root_pose = torch.cat((position, quat), dim=-1)
+        
+        # override the default state
+        self._robot_api.reset_default_pose(default_root_pose, env_ids) # type: ignore
+        
+        ### set joint state ###
+        joint_pos = self._robot_api.default_joint_pos[:, self._joint_ids][env_ids]
+        joint_vel = self._robot_api.default_joint_vel[:, self._joint_ids][env_ids]
+        self._joint_pos[env_ids] = joint_pos
+        self._joint_vel[env_ids] = joint_vel
+        self._add_joint_offset(env_ids)
+        
+        ### write reset to sim ###
+        self._robot_api.write_root_pose_to_sim(default_root_pose, env_ids) # type: ignore
+        self._robot_api.write_root_velocity_to_sim(self._robot_api.default_root_state[env_ids, 7:], env_ids) # type: ignore
+        self._robot_api.write_joint_state_to_sim(joint_pos, joint_vel, self._joint_ids, env_ids) # type: ignore
+        
+        ### reset mpc reference and gait ###
+        if not self.cfg.curriculum_inference:
+            twist_cmd = np.array(self.cfg.robot_target_velocity_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore
+            self._desired_twist_np[env_ids.cpu().numpy()] = twist_cmd # type: ignore
+        # reset gait
+        self._dsp_duration[env_ids.cpu().numpy()] = np.array(self.cfg.robot_double_support_length_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore
+        self._ssp_duration[env_ids.cpu().numpy()] = np.array(self.cfg.robot_single_support_length_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore
+        self.mpc_ctrl_counter[env_ids] = 0
+        for i in env_ids.cpu().numpy(): # type: ignore
+            self.mpc[i].reset()
+            self.mpc[i].update_gait_parameter(np.array([self._dsp_duration[i], self._dsp_duration[i]]), np.array([self._ssp_duration[i], self._ssp_duration[i]]))
+        
+        # reset reference trajectory
+        self._ref_pos = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
+        self._ref_yaw = torch.zeros(self.num_envs, 1, device=self.device, dtype=torch.float32)
+        
+        if not self.cfg.inference:
+            # update view port to look at the current active terrain
+            camera_delta = [0, -7.0, 1.0]
+            self.viewport_camera_controller.update_view_location(
+                eye=(center_coord[0, 0]+camera_delta[0], center_coord[0, 1]+camera_delta[1], camera_delta[2]), 
+                lookat=(center_coord[0, 0], center_coord[0, 1], 0.0)) # type: ignore
+    
     def _get_rewards(self)->torch.Tensor:
         # reward
         self.height_reward, self.lin_vel_reward, self.ang_vel_reward = \
@@ -358,22 +410,18 @@ class HierarchicalArch(BaseArch):
         
         # penalty
         self.roll_penalty, self.pitch_penalty = self.cfg.orientation_penalty_parameter.compute_penalty(self._root_quat)
-        self.action_penalty, self.energy_penalty = self.cfg.action_penalty_parameter.compute_penalty(
-            self._actions, 
-            self._previous_actions, 
-            self.common_step_counter//self.cfg.num_steps_per_env)
-        self.vx_penalty, self.vy_penalty, self.wz_penalty = self.cfg.twist_penalty_parameter.compute_penalty(
-            self._root_lin_vel_b,
-            self._root_ang_vel_b
-            )
         self.velocity_penalty = self.cfg.velocity_penalty_parameter.compute_penalty(self._root_lin_vel_b)
         self.ang_velocity_penalty = self.cfg.angular_velocity_penalty_parameter.compute_penalty(self._root_ang_vel_b)
         
         self.foot_slide_penalty = self.cfg.foot_slide_penalty_parameter.compute_penalty(self._robot_api.body_lin_vel_w[:, -2:, :2], self._gt_contact) # ankle at last 2 body index
-        self.action_saturation_penalty = self.cfg.action_saturation_penalty_parameter.compute_penalty(self._actions)
-        self.termination_penalty = self.cfg.termination_penalty_parameter.compute_penalty(self.reset_terminated)
         self.foot_distance_penalty = self.cfg.foot_distance_penalty_parameter.compute_penalty(self._foot_pos_b[:, :3], self._foot_pos_b[:, 3:])
+        
+        self.action_penalty, self.energy_penalty = self.cfg.action_penalty_parameter.compute_penalty(
+            self._actions, 
+            self._previous_actions, 
+            self.common_step_counter//self.cfg.num_steps_per_env)
         self.torque_penalty = self.cfg.torque_penalty_parameter.compute_penalty(self._joint_actions, self.common_step_counter//self.cfg.num_steps_per_env)
+        self.action_saturation_penalty = self.cfg.action_saturation_penalty_parameter.compute_penalty(self._actions)
         
         # scale rewards and penalty with time step (following reward manager in manager based rl env)
         self.height_reward = self.height_reward * self.step_dt
@@ -386,9 +434,6 @@ class HierarchicalArch(BaseArch):
         
         self.roll_penalty = self.roll_penalty * self.step_dt
         self.pitch_penalty = self.pitch_penalty * self.step_dt
-        self.vx_penalty = self.vx_penalty * self.step_dt
-        self.vy_penalty = self.vy_penalty * self.step_dt
-        self.wz_penalty = self.wz_penalty * self.step_dt
 
         self.velocity_penalty = self.velocity_penalty * self.step_dt
         self.ang_velocity_penalty = self.ang_velocity_penalty * self.step_dt
@@ -401,7 +446,7 @@ class HierarchicalArch(BaseArch):
         self.torque_penalty = self.torque_penalty * self.step_dt
          
         reward = self.height_reward + self.lin_vel_reward + self.ang_vel_reward + self.position_reward + self.yaw_reward + self.swing_foot_tracking_reward + self.alive_reward
-        penalty = self.roll_penalty + self.pitch_penalty + self.action_penalty + self.energy_penalty + self.vx_penalty + self.vy_penalty + self.wz_penalty + \
+        penalty = self.roll_penalty + self.pitch_penalty + self.action_penalty + self.energy_penalty + \
             self.foot_slide_penalty + self.action_saturation_penalty + self.foot_distance_penalty + self.torque_penalty + self.velocity_penalty + self.ang_velocity_penalty
         
         total_reward = reward - penalty
@@ -573,7 +618,7 @@ class HierarchicalArchPrime(HierarchicalArch):
             ),
             dim=-1,
         )
-        observation = {"policy": self._obs}
+        observation = {"policy": self._obs, "critic": self._obs}
         return observation
     
     ### specific to the architecture ###
@@ -683,7 +728,8 @@ class HierarchicalArchPrimeFull(HierarchicalArch):
             self.history_buffer.pop(reset_id)
         self.history_buffer.push(self._obs)
         # observation = {"policy": self._obs}
-        observation = {"policy": self.history_buffer.data_flat}
+        obs = self.history_buffer.data_flat
+        observation = {"policy": obs, "critic": obs}
         return observation
     
     def log_action(self)->None:
