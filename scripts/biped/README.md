@@ -1,9 +1,9 @@
-## Hector IsaacLab simulation 
+# Hector IsaacLab simulation 
 
 ## Before begin
 
 ### Install IsaacSim 4.5
-See this [docs](https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/pip_installation.html#installing-isaac-sim) \
+See official [docs](https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/pip_installation.html#installing-isaac-sim) \
 Use conda and pip install IsaacSim4.5. 
 
 ### Clone this repository
@@ -35,6 +35,11 @@ We use modified library of rsl-rl and rl_games (recommended).
 ```bash
 git clone git@github.com:jnskkmhr/rl_games.git
 git clone -b devel git@github.com:jnskkmhr/rsl_rl.git
+
+# and install
+./isaaclab.sh -p -m pip install -e {/path/to/rsl_rl}
+./isaaclab.sh -p -m pip install -e {/path/to/rl_games}
+./isaaclab.sh -p -m pip install ray
 ```
 
 ## Run code
@@ -60,10 +65,10 @@ After a while, you will see the logs under `logs` directory (for example `logs/r
 ./isaaclab.sh -p scripts/biped/rl_games/train.py --task SteppingStone --num_envs 32 --video --headless
 ```
 
-### Run trained policy 
+### Inference
 ```bash
-./isaaclab.sh -p scripts/biped/rsl_rl/benchmark.py --task Hector-Hierarchical-Prime-Rigid --num_envs 5 --use_rl
+./isaaclab.sh -p scripts/biped/rsl_rl/benchmark.py --task SteppingStone  --num_envs 5 --use_rl
 
 # with logging
-./isaaclab.sh -p scripts/biped/rsl_rl/benchmark.py --task Hector-Hierarchical-Prime-Rigid --num_envs 5 --use_rl --log
+./isaaclab.sh -p scripts/biped/rsl_rl/benchmark.py --task SteppingStone  --num_envs 5 --use_rl --log
 ```
