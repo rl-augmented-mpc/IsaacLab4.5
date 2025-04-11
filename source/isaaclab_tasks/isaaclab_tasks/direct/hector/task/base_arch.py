@@ -309,7 +309,6 @@ class BaseArch(DirectRLEnv):
         self._desired_root_lin_vel_b[:, 0] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 0]).to(self.device)
         self._desired_root_lin_vel_b[:, 1] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 1]).to(self.device)
         self._desired_root_ang_vel_b[:, 0] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 2]).to(self.device)
-        self._desired_height = self.cfg.reference_height * np.ones(self.num_envs, dtype=np.float32)
         self._desired_gait[:] = 2
     
     def _get_state(self) -> None:
