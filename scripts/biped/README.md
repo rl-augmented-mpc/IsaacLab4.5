@@ -44,20 +44,20 @@ git clone -b devel git@github.com:jnskkmhr/rsl_rl.git
 Only MPC
 
 ```bash
-./isaaclab.sh -p scripts/biped/run_direct.py --task Hector-Hierarchical-Prime-Rigid --num_envs 1 --max_trials 10 --episode_length 20
+./isaaclab.sh -p scripts/biped/run_direct_env.py --task SteppingStone --num_envs 1 --max_trials 10 --episode_length 20
 ```
 
 ### Train RL 
 
 #### (RSl-RL)
 ```bash
-./isaaclab.sh -p scripts/biped/rsl_rl/train.py --task SteppingStone --num_envs 64 --video --headless
+./isaaclab.sh -p scripts/biped/rsl_rl/train.py --task SteppingStone --num_envs 32 --video --headless
 ```
 After a while, you will see the logs under `logs` directory (for example `logs/rsl_rl/ppo_rsl_rl_lstm_friction/2025-03-17_15-31-27`). 
 
 #### (RL-Games)
 ```bash
-./isaaclab.sh -p scripts/biped/rl_games/train.py --task SteppingStone --num_envs 64 --video --headless
+./isaaclab.sh -p scripts/biped/rl_games/train.py --task SteppingStone --num_envs 32 --video --headless
 ```
 
 ### Run trained policy 
