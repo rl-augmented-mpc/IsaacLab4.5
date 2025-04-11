@@ -100,7 +100,8 @@ class HierarchicalArch(BaseArch):
         self.scene.filter_collisions(global_prim_paths=[self.cfg.terrain.prim_path])
         
         # light
-        self._light = sim_utils.spawn_light(self.cfg.light.prim_path, self.cfg.light.spawn, orientation=(0.8433914, 0.0, 0.5372996, 0.0))
+        self._light = sim_utils.spawn_light(self.cfg.light.prim_path, self.cfg.light.spawn, orientation=(0.0, 0.0, 0.0, 1.0))
+        # self._light = sim_utils.spawn_light(self.cfg.light.prim_path, self.cfg.light.spawn, orientation=(0.8433914, 0.0, 0.5372996, 0.0))
         
         # update viewer
         curriculum_idx = 0
@@ -331,8 +332,6 @@ class HierarchicalArch(BaseArch):
     def _reset_robot(self, env_ids: Sequence[int])->None:
         ### set position ###
         curriculum_idx = np.floor(self.cfg.terrain_curriculum_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)))
-        # if (self.common_step_counter//self.cfg.num_steps_per_env > self.cfg.second_curriculum_start):
-        #     curriculum_idx = curriculum_idx*0 + self.cfg.terrain.num_curriculums-1
         self.curriculum_idx = curriculum_idx
         center_coord = self._get_sub_terrain_center(curriculum_idx)
         position = self.cfg.robot_position_sampler.sample(center_coord, len(env_ids))
@@ -361,6 +360,7 @@ class HierarchicalArch(BaseArch):
         if not self.cfg.curriculum_inference:
             twist_cmd = np.array(self.cfg.robot_target_velocity_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore
             self._desired_twist_np[env_ids.cpu().numpy()] = twist_cmd # type: ignore
+        
         # reset gait
         self._dsp_duration[env_ids.cpu().numpy()] = np.array(self.cfg.robot_double_support_length_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore
         self._ssp_duration[env_ids.cpu().numpy()] = np.array(self.cfg.robot_single_support_length_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore
@@ -455,7 +455,8 @@ class HierarchicalArch(BaseArch):
             self.extras["log"] = dict()
         self.log_state()
         self.log_action()
-        self.log_episode_reward()
+        self.log_episode_return()
+        self.log_reward()
         return total_reward
     
     def _get_dones(self)->tuple[torch.Tensor, torch.Tensor]:
@@ -478,23 +479,22 @@ class HierarchicalArch(BaseArch):
         
         return reset, time_out
     
-    ### specific to the architecture ###
-    def log_episode_reward(self)->None:
-        self.episode_reward_sums["height_reward"] += self.height_reward[0].item()
-        self.episode_reward_sums["lin_vel_reward"] += self.lin_vel_reward[0].item()
-        self.episode_reward_sums["ang_vel_reward"] += self.ang_vel_reward[0].item()
-        self.episode_reward_sums["alive_reward"] += self.alive_reward[0].item()
-        self.episode_reward_sums["position_reward"] += self.position_reward[0].item()
-        self.episode_reward_sums["yaw_reward"] += self.yaw_reward[0].item()
+    def log_episode_return(self)->None:
+        self.episode_reward_sums["height_reward"] += self.height_reward
+        self.episode_reward_sums["lin_vel_reward"] += self.lin_vel_reward
+        self.episode_reward_sums["ang_vel_reward"] += self.ang_vel_reward
+        self.episode_reward_sums["alive_reward"] += self.alive_reward
+        self.episode_reward_sums["position_reward"] += self.position_reward
+        self.episode_reward_sums["yaw_reward"] += self.yaw_reward
 
-        self.episode_penalty_sums["velocity_penalty"] += self.velocity_penalty[0].item() 
-        self.episode_penalty_sums["ang_velocity_penalty"] += self.ang_velocity_penalty[0].item() 
-        self.episode_penalty_sums["feet_slide_penalty"] += self.foot_slide_penalty[0].item()
-        self.episode_penalty_sums["foot_distance_penalty"] += self.foot_distance_penalty[0].item()
-        self.episode_penalty_sums["action_penalty"] += self.action_penalty[0].item()
-        self.episode_penalty_sums["energy_penalty"] += self.energy_penalty[0].item()
-        self.episode_penalty_sums["action_saturation_penalty"] += self.action_saturation_penalty[0].item()
-        self.episode_penalty_sums["torque_penalty"] += self.torque_penalty[0].item()
+        self.episode_penalty_sums["velocity_penalty"] += self.velocity_penalty
+        self.episode_penalty_sums["ang_velocity_penalty"] += self.ang_velocity_penalty
+        self.episode_penalty_sums["feet_slide_penalty"] += self.foot_slide_penalty
+        self.episode_penalty_sums["foot_distance_penalty"] += self.foot_distance_penalty
+        self.episode_penalty_sums["action_penalty"] += self.action_penalty
+        self.episode_penalty_sums["energy_penalty"] += self.energy_penalty
+        self.episode_penalty_sums["action_saturation_penalty"] += self.action_saturation_penalty
+        self.episode_penalty_sums["torque_penalty"] += self.torque_penalty
     
     def log_curriculum(self)->None:
         log = {}
@@ -502,17 +502,39 @@ class HierarchicalArch(BaseArch):
             curriculum_idx = self.curriculum_idx[0]
             log["curriculum/curriculum_idx"] = curriculum_idx
         self.extras["log"].update(log)
-        
+    
+    def log_reward(self)->None:
+        log = {}
+        if self.common_step_counter % self.cfg.num_steps_per_env:
+            log["reward/height_reward"] = self.height_reward.mean().item()
+            log["reward/lin_vel_reward"] = self.lin_vel_reward.mean().item()
+            log["reward/ang_vel_reward"] = self.ang_vel_reward.mean().item()
+            log["reward/alive_reward"] = self.alive_reward.mean().item()
+            log["reward/position_reward"] = self.position_reward.mean().item()
+            log["reward/yaw_reward"] = self.yaw_reward.mean().item()
+            log["reward/swing_foot_tracking_reward"] = self.swing_foot_tracking_reward.mean().item()
+
+            log["penalty/velocity_penalty"] = self.velocity_penalty.mean().item()
+            log["penalty/ang_velocity_penalty"] = self.ang_velocity_penalty.mean().item()
+            log["penalty/feet_slide_penalty"] = self.foot_slide_penalty.mean().item()
+            log["penalty/foot_distance_penalty"] = self.foot_distance_penalty.mean().item()
+            log["penalty/action_penalty"] = self.action_penalty.mean().item()
+            log["penalty/energy_penalty"] = self.energy_penalty.mean().item()
+            log["penalty/action_saturation_penalty"] = self.action_saturation_penalty.mean().item()
+            log["penalty/torque_penalty"] = self.torque_penalty.mean().item()
+        self.extras["log"].update(log)
+    
     def log_state(self)->None:
         log = {}
         if self.common_step_counter % self.cfg.num_steps_per_env:
-            root_pos = self._root_pos[0].cpu().numpy()
-            root_lin_vel_b = self._root_lin_vel_b[0].cpu().numpy()
-            root_ang_vel_b = self._root_ang_vel_b[0].cpu().numpy()
-            desired_root_lin_vel_b = self._desired_root_lin_vel_b[0].cpu().numpy()
-            desired_root_ang_vel_b = self._desired_root_ang_vel_b[0].cpu().numpy()
-            mpc_centroidal_accel = self._accel_gyro_mpc[0, :3].cpu().numpy()
-            mpc_centroidal_ang_accel = self._accel_gyro_mpc[0, 3:].cpu().numpy()
+            root_pos = self._root_pos.mean(dim=0).cpu().numpy()
+            root_lin_vel_b = self._root_lin_vel_b.mean(dim=0).cpu().numpy()
+            root_ang_vel_b = self._root_ang_vel_b.mean(dim=0).cpu().numpy()
+            desired_root_lin_vel_b = self._desired_root_lin_vel_b.mean(dim=0).cpu().numpy()
+            desired_root_ang_vel_b = self._desired_root_ang_vel_b.mean(dim=0).cpu().numpy()
+            mpc_centroidal_accel = self._accel_gyro_mpc[:, :3].mean(dim=0).cpu().numpy()
+            mpc_centroidal_ang_accel = self._accel_gyro_mpc[:, 3:].mean(dim=0).cpu().numpy()
+
             log["state/root_pos_x"] = root_pos[0]
             log["state/root_pos_y"] = root_pos[1]
             log["state/root_pos_z"] = root_pos[2]
@@ -534,13 +556,13 @@ class HierarchicalArch(BaseArch):
         log = {}
         if self.common_step_counter % self.cfg.num_steps_per_env:
             # raw action
-            centroidal_acceleration = self._actions[0, :3].cpu().numpy()
+            centroidal_acceleration = self._actions[:, :3].mean(dim=0).cpu().numpy()
             log["raw_action/centroidal_acceleration_x"] = centroidal_acceleration[0]
             log["raw_action/centroidal_acceleration_y"] = centroidal_acceleration[1]
             log["raw_action/centroidal_acceleration_z"] = centroidal_acceleration[2]
             
             # clipped action
-            centroidal_acceleration = self._actions_op[0, :3].cpu().numpy()
+            centroidal_acceleration = self._actions_op[:, 3:].mean(dim=0).cpu().numpy()
             log["action/centroidal_acceleration_x"] = centroidal_acceleration[0]
             log["action/centroidal_acceleration_y"] = centroidal_acceleration[1]
             log["action/centroidal_acceleration_z"] = centroidal_acceleration[2]
@@ -624,8 +646,8 @@ class HierarchicalArchPrime(HierarchicalArch):
     def log_action(self)->None:
         log = {}
         if self.common_step_counter % self.cfg.num_steps_per_env:
-            centroidal_acceleration = self._actions[0, :3].cpu().numpy()
-            centroidal_ang_acceleration = self._actions[0, 3:6].cpu().numpy()
+            centroidal_acceleration = self._actions[:, :3].mean(dim=0).cpu().numpy()
+            centroidal_ang_acceleration = self._actions[:, 3:6].mean(dim=0).cpu().numpy()
             log["raw_action/centroidal_acceleration_x"] = centroidal_acceleration[0]
             log["raw_action/centroidal_acceleration_y"] = centroidal_acceleration[1]
             log["raw_action/centroidal_acceleration_z"] = centroidal_acceleration[2]
@@ -633,8 +655,8 @@ class HierarchicalArchPrime(HierarchicalArch):
             log["raw_action/centroidal_ang_acceleration_y"] = centroidal_ang_acceleration[1]
             log["raw_action/centroidal_ang_acceleration_z"] = centroidal_ang_acceleration[2]
             
-            centroidal_acceleration = self._actions_op[0, :3].cpu().numpy()
-            centroidal_ang_acceleration = self._actions_op[0, 3:6].cpu().numpy()
+            centroidal_acceleration = self._actions_op[:, :3].mean(dim=0).cpu().numpy()
+            centroidal_ang_acceleration = self._actions_op[:, 3:6].mean(dim=0).cpu().numpy()
             log["action/centroidal_acceleration_x"] = centroidal_acceleration[0]
             log["action/centroidal_acceleration_y"] = centroidal_acceleration[1]
             log["action/centroidal_acceleration_z"] = centroidal_acceleration[2]
@@ -734,16 +756,17 @@ class HierarchicalArchPrimeFull(HierarchicalArch):
     def log_action(self)->None:
         log = {}
         if self.common_step_counter % self.cfg.num_steps_per_env:
-            centroidal_acceleration = self._actions[0, :3].cpu().numpy()
-            centroidal_ang_acceleration = self._actions[0, 3:6].cpu().numpy()
+            centroidal_acceleration = self._actions[:, :3].mean(dim=0).cpu().numpy()
+            centroidal_ang_acceleration = self._actions[:, 3:6].mean(dim=0).cpu().numpy()
             log["raw_action/centroidal_acceleration_x"] = centroidal_acceleration[0]
             log["raw_action/centroidal_acceleration_y"] = centroidal_acceleration[1]
             log["raw_action/centroidal_acceleration_z"] = centroidal_acceleration[2]
             log["raw_action/centroidal_ang_acceleration_x"] = centroidal_ang_acceleration[0]
             log["raw_action/centroidal_ang_acceleration_y"] = centroidal_ang_acceleration[1]
             log["raw_action/centroidal_ang_acceleration_z"] = centroidal_ang_acceleration[2]
-            centroidal_acceleration = self._actions_op[0, :3].cpu().numpy()
-            centroidal_ang_acceleration = self._actions_op[0, 3:6].cpu().numpy()
+
+            centroidal_acceleration = self._actions_op[:, :3].mean(dim=0).cpu().numpy()
+            centroidal_ang_acceleration = self._actions_op[:, 3:6].mean(dim=0).cpu().numpy()
             log["action/centroidal_acceleration_x"] = centroidal_acceleration[0]
             log["action/centroidal_acceleration_y"] = centroidal_acceleration[1]
             log["action/centroidal_acceleration_z"] = centroidal_acceleration[2]
