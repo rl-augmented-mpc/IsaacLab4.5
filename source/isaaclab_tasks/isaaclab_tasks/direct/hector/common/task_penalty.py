@@ -46,8 +46,11 @@ class OrientationRegularizationPenalty:
         pitch = torch.asin(2*(root_quat[:, 0]*root_quat[:, 2] - root_quat[:, 3]*root_quat[:, 1]))
         pitch = torch.atan2(torch.sin(pitch), torch.cos(pitch)) # standardize to -pi to pi
         
-        roll_penalty = compute_gaussian_penalty(roll.view(-1, 1), scale=1.0, min_value=self.roll_range[0], max_value=self.roll_range[1], temperature=4.0)
-        pitch_penalty = compute_gaussian_penalty(pitch.view(-1, 1), scale=1.0, min_value=self.pitch_range[0], max_value=self.pitch_range[1], temperature=4.0)
+        roll_penalty = self.roll_penalty_weight * compute_linear_penalty(roll.view(-1, 1), scale=1.0, min_value=self.roll_range[0], max_value=self.roll_range[1])
+        pitch_penalty = self.pitch_penalty_weight * compute_linear_penalty(pitch.view(-1, 1), scale=1.0, min_value=self.pitch_range[0], max_value=self.pitch_range[1])
+        
+        # roll_penalty = self.roll_penalty_weight * compute_gaussian_penalty(roll.view(-1, 1), scale=1.0, min_value=self.roll_range[0], max_value=self.roll_range[1], temperature=4.0)
+        # pitch_penalty = self.pitch_penalty_weight * compute_gaussian_penalty(pitch.view(-1, 1), scale=1.0, min_value=self.pitch_range[0], max_value=self.pitch_range[1], temperature=4.0)
         
         return roll_penalty, pitch_penalty
 
@@ -159,8 +162,8 @@ class FootDistanceRegularizationPenalty:
     
     def compute_penalty(self, left_foot_pos_b:torch.Tensor, right_foot_pos_b:torch.Tensor)->torch.Tensor:
         foot_distance = left_foot_pos_b[:, 1:2] - right_foot_pos_b[:, 1:2]
-        # foot_distance_penalty = compute_linear_penalty(foot_distance.view(-1, 1), scale=1.0, min_value=self.foot_distance_bound[0], max_value=self.foot_distance_bound[1])
-        foot_distance_penalty = compute_gaussian_penalty(foot_distance.view(-1, 1), scale=1.0, min_value=self.foot_distance_bound[0], max_value=self.foot_distance_bound[1], temperature=4.0)
+        foot_distance_penalty = compute_linear_penalty(foot_distance.view(-1, 1), scale=1.0, min_value=self.foot_distance_bound[0], max_value=self.foot_distance_bound[1])
+        # foot_distance_penalty = compute_gaussian_penalty(foot_distance.view(-1, 1), scale=1.0, min_value=self.foot_distance_bound[0], max_value=self.foot_distance_bound[1], temperature=4.0)
         foot_distance_penalty = self.foot_distance_penalty_weight*foot_distance_penalty
         return foot_distance_penalty
 
@@ -177,8 +180,8 @@ class JointPenalty:
     
     def compute_penalty(self, joint_pos: torch.Tensor)->torch.Tensor:
         joint_pos = torch.abs(joint_pos).view(-1, 1)
-        # joint_penalty = compute_linear_penalty(joint_pos.view(-1, 1), scale=1.0, min_value=self.joint_pos_bound[0], max_value=self.joint_pos_bound[1])
-        joint_penalty = compute_gaussian_penalty(joint_pos, scale=1.0, min_value=self.joint_pos_bound[0], max_value=self.joint_pos_bound[1], temperature=2.0)
+        joint_penalty = compute_linear_penalty(joint_pos.view(-1, 1), scale=1.0, min_value=self.joint_pos_bound[0], max_value=self.joint_pos_bound[1])
+        # joint_penalty = compute_gaussian_penalty(joint_pos, scale=1.0, min_value=self.joint_pos_bound[0], max_value=self.joint_pos_bound[1], temperature=2.0)
         joint_penalty = self.joint_penalty_weight*joint_penalty
         return joint_penalty
 
@@ -194,7 +197,7 @@ class FeetSlidePenalty:
     
     def compute_penalty(self, foot_velocity: torch.Tensor, contact: torch.Tensor)->torch.Tensor:
         feet_slide_penalty = torch.sum(torch.square(torch.norm(foot_velocity, 2) * contact), dim=1) # get tangential norm
-        feet_slide_penalty = compute_gaussian_penalty(feet_slide_penalty.view(-1, 1), scale=1.0, min_value=2.0, max_value=4.0, temperature=4.0)
+        # feet_slide_penalty = compute_gaussian_penalty(feet_slide_penalty.view(-1, 1), scale=1.0, min_value=2.0, max_value=4.0, temperature=4.0)
         feet_slide_penalty = self.feet_slide_weight*feet_slide_penalty
         return feet_slide_penalty
 
