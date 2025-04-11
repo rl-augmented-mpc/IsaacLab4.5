@@ -45,14 +45,14 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     # ========================
     # Observation/Action space
     # ========================
-    dt=1/400 # physics dt
-    policy_dt = 0.01
-    traj_sample = 10
+    dt=1/500 # physics dt
+    policy_dt = 0.01 # RL policy dt
+    traj_sample = int(policy_dt/dt)
     decimation = int(policy_dt/dt)
 
-    observation_space = 90
-    state_space = 90
-    action_space = 20
+    action_space = traj_sample*2
+    observation_space = 70+action_space
+    state_space = 70+action_space
     num_history = 3
     num_extero_observations = int((1.0/0.05 + 1)*(1.0/0.05 + 1))
 
