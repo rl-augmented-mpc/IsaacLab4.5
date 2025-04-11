@@ -125,25 +125,17 @@ class HierarchicalArchCfg(BaseArchCfg):
                                                             height_similarity_coeff=4.0, 
                                                             lin_vel_similarity_coeff=4.0,
                                                             ang_vel_similarity_coeff=4.0,
-                                                            # height_similarity_coeff=0.5, 
-                                                            # lin_vel_similarity_coeff=0.5,
-                                                            # ang_vel_similarity_coeff=0.5,
-                                                            # height_reward_mode="gaussian",
-                                                            # lin_vel_reward_mode="gaussian",
-                                                            # ang_vel_reward_mode="gaussian"
-                                                            height_reward_mode="exponential",
-                                                            lin_vel_reward_mode="exponential",
-                                                            ang_vel_reward_mode="exponential"
+                                                            height_reward_mode="gaussian",
+                                                            lin_vel_reward_mode="gaussian",
+                                                            ang_vel_reward_mode="gaussian"
                                                             )
     pose_tracking_reward_parameter: PoseTrackingReward = PoseTrackingReward(
         position_weight=0.0, # disable 
         yaw_weight=0.0, # disable
         position_coeff=1.0, 
         yaw_coeff=1.0,
-        # position_reward_mode="gaussian", 
-        # yaw_reward_mode="gaussian"
-        position_reward_mode="exponential", 
-        yaw_reward_mode="exponential"
+        position_reward_mode="gaussian", 
+        yaw_reward_mode="gaussian",
         )
     alive_reward_parameter: AliveReward = AliveReward(alive_weight=0.66)
     swing_foot_tracking_reward_parameter: SwingFootTrackingReward = SwingFootTrackingReward(
@@ -167,6 +159,18 @@ class HierarchicalArchCfg(BaseArchCfg):
         ang_velocity_penalty_weight=0.66,
     )
     
+    foot_distance_penalty_parameter: FootDistanceRegularizationPenalty = FootDistanceRegularizationPenalty(foot_distance_penalty_weight=0.66, foot_distance_bound=(0.3, 0.5))
+    foot_slide_penalty_parameter: FeetSlidePenalty = FeetSlidePenalty(feet_slide_weight=0.1)
+
+    toe_left_joint_penalty_parameter: JointPenalty = JointPenalty(
+        joint_penalty_weight=0.1, 
+        joint_pos_bound=(torch.pi/18, torch.pi/6),
+    )
+    toe_right_joint_penalty_parameter: JointPenalty = JointPenalty(
+        joint_penalty_weight=0.1, 
+        joint_pos_bound=(torch.pi/18, torch.pi/6),
+    )
+
     action_penalty_parameter: CurriculumActionRegularizationPenalty = CurriculumActionRegularizationPenalty(
         action_penalty_weight_start=5e-4, 
         action_penalty_weight_end=5e-4,
@@ -179,9 +183,6 @@ class HierarchicalArchCfg(BaseArchCfg):
         torque_penalty_weight_end=1e-5, 
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps),
     )
-    
-    foot_distance_penalty_parameter: FootDistanceRegularizationPenalty = FootDistanceRegularizationPenalty(foot_distance_penalty_weight=0.66, foot_distance_bound=(0.3, 0.5))
-    foot_slide_penalty_parameter: FeetSlidePenalty = FeetSlidePenalty(feet_slide_weight=0.1)
     action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.66, action_bound=(0.9, 1.0))
 
 

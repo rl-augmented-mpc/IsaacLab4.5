@@ -103,8 +103,8 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     
     # reward
     reward_parameter: VelocityTrackingReward = VelocityTrackingReward(height_similarity_weight=0.66, 
-                                                            lin_vel_similarity_weight=0.66,
-                                                            ang_vel_similarity_weight=0.66,
+                                                            lin_vel_similarity_weight=0.33,
+                                                            ang_vel_similarity_weight=0.33,
                                                             height_similarity_coeff=4.0, 
                                                             lin_vel_similarity_coeff=4.0,
                                                             ang_vel_similarity_coeff=4.0,
@@ -143,6 +143,15 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     
     foot_distance_penalty_parameter: FootDistanceRegularizationPenalty = FootDistanceRegularizationPenalty(foot_distance_penalty_weight=0.5, foot_distance_bound=(0.3, 0.5))
     foot_slide_penalty_parameter: FeetSlidePenalty = FeetSlidePenalty(feet_slide_weight=0.5)
+
+    toe_left_joint_penalty_parameter: JointPenalty = JointPenalty(
+        joint_penalty_weight=0.33, 
+        joint_pos_bound=(torch.pi/18, torch.pi/6),
+    )
+    toe_right_joint_penalty_parameter: JointPenalty = JointPenalty(
+        joint_penalty_weight=0.33, 
+        joint_pos_bound=(torch.pi/18, torch.pi/6),
+    )
     
     action_penalty_parameter: CurriculumActionRegularizationPenalty = CurriculumActionRegularizationPenalty(
         action_penalty_weight_start=5e-4, 
@@ -156,4 +165,4 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         torque_penalty_weight_end=1e-4, 
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1),
     )
-    action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.66, action_bound=(0.9, 1.0))
+    action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.0, action_bound=(0.9, 1.0))

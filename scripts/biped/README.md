@@ -26,7 +26,7 @@ cd ~/IsaacLab
 
 ### Build hector controller
 ```bash
-git clone https://github.gatech.edu/GeorgiaTechLIDARGroup/HECTOR_HW_new.git -b feature/gait_param_reset_code
+git clone https://github.gatech.edu/GeorgiaTechLIDARGroup/HECTOR_HW_new.git -b devel/slope_terrain
 ./isaaclab.sh -p -m pip install -e {/path/to/hector/controller}
 ```
 

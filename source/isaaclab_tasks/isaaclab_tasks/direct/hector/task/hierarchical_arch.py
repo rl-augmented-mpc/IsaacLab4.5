@@ -65,6 +65,8 @@ class HierarchicalArch(BaseArch):
             "action_penalty": torch.zeros(self.num_envs, device=self.device),
             "energy_penalty": torch.zeros(self.num_envs, device=self.device),
             "torque_penalty": torch.zeros(self.num_envs, device=self.device),
+            "toe_left_penalty": torch.zeros(self.num_envs, device=self.device),
+            "toe_right_penalty": torch.zeros(self.num_envs, device=self.device),
         }
     
     def _setup_scene(self)->None:
@@ -356,7 +358,7 @@ class HierarchicalArch(BaseArch):
             self._root_pos,
             self._root_lin_vel_b,
             self._root_ang_vel_b,
-            self.cfg.reference_height,
+            torch.from_numpy(self._desired_height).to(self.device),
             self._desired_root_lin_vel_b,
             self._desired_root_ang_vel_b,
         )
@@ -383,6 +385,9 @@ class HierarchicalArch(BaseArch):
         
         self.foot_slide_penalty = self.cfg.foot_slide_penalty_parameter.compute_penalty(self._robot_api.body_lin_vel_w[:, -2:, :2], self._gt_contact) # ankle at last 2 body index
         self.foot_distance_penalty = self.cfg.foot_distance_penalty_parameter.compute_penalty(self._foot_pos_b[:, :3], self._foot_pos_b[:, 3:])
+
+        self.toe_left_joint_penalty = self.cfg.toe_left_joint_penalty_parameter.compute_penalty(self._robot_api.joint_pos[:, -2])
+        self.toe_right_joint_penalty = self.cfg.toe_right_joint_penalty_parameter.compute_penalty(self._robot_api.joint_pos[:, -1])
         
         self.action_penalty, self.energy_penalty = self.cfg.action_penalty_parameter.compute_penalty(
             self._actions, 
@@ -406,16 +411,23 @@ class HierarchicalArch(BaseArch):
         self.velocity_penalty = self.velocity_penalty * self.step_dt
         self.ang_velocity_penalty = self.ang_velocity_penalty * self.step_dt
 
+        self.foot_slide_penalty = self.foot_slide_penalty * self.step_dt
+        self.foot_distance_penalty = self.foot_distance_penalty * self.step_dt
+
+        self.toe_left_joint_penalty = self.toe_left_joint_penalty * self.step_dt
+        self.toe_right_joint_penalty = self.toe_right_joint_penalty * self.step_dt
+
         self.action_penalty = self.action_penalty * self.step_dt
         self.energy_penalty = self.energy_penalty * self.step_dt
-        self.foot_slide_penalty = self.foot_slide_penalty * self.step_dt
         self.action_saturation_penalty = self.action_saturation_penalty * self.step_dt
-        self.foot_distance_penalty = self.foot_distance_penalty * self.step_dt
         self.torque_penalty = self.torque_penalty * self.step_dt
          
-        reward = self.height_reward + self.lin_vel_reward + self.ang_vel_reward + self.position_reward + self.yaw_reward + self.swing_foot_tracking_reward + self.alive_reward
+        reward = self.height_reward + self.lin_vel_reward + self.ang_vel_reward + self.position_reward + self.yaw_reward + \
+            self.swing_foot_tracking_reward + self.alive_reward
         penalty = self.roll_penalty + self.pitch_penalty + self.action_penalty + self.energy_penalty + \
-            self.foot_slide_penalty + self.action_saturation_penalty + self.foot_distance_penalty + self.torque_penalty + self.velocity_penalty + self.ang_velocity_penalty
+            self.foot_slide_penalty + self.action_saturation_penalty + self.foot_distance_penalty + \
+            self.toe_left_joint_penalty + self.toe_right_joint_penalty + \
+                self.torque_penalty + self.velocity_penalty + self.ang_velocity_penalty
         
         total_reward = reward - penalty
         
@@ -464,6 +476,9 @@ class HierarchicalArch(BaseArch):
         self.episode_penalty_sums["energy_penalty"] += self.energy_penalty
         self.episode_penalty_sums["action_saturation_penalty"] += self.action_saturation_penalty
         self.episode_penalty_sums["torque_penalty"] += self.torque_penalty
+        self.episode_penalty_sums["toe_left_joint_penalty"] += self.toe_left_joint_penalty
+        self.episode_penalty_sums["toe_right_joint_penalty"] += self.toe_right_joint_penalty
+        
     
     def log_curriculum(self)->None:
         log = {}
@@ -491,6 +506,9 @@ class HierarchicalArch(BaseArch):
             log["penalty/energy_penalty"] = self.energy_penalty.mean().item()
             log["penalty/action_saturation_penalty"] = self.action_saturation_penalty.mean().item()
             log["penalty/torque_penalty"] = self.torque_penalty.mean().item()
+            log["penalty/toe_left_joint_penalty"] = self.toe_left_joint_penalty.mean().item()
+            log["penalty/toe_right_joint_penalty"] = self.toe_right_joint_penalty.mean().item()
+
         self.extras["log"].update(log)
     
     def log_state(self)->None:
