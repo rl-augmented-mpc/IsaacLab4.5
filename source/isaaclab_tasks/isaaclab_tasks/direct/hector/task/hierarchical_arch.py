@@ -30,7 +30,7 @@ from  isaaclab_tasks.direct.hector.common.utils.data_util import HistoryBuffer
 from isaaclab_tasks.direct.hector.common.visualization_marker import FootPlacementVisualizer, VelocityVisualizer, SwingFootVisualizer
 
 # Task cfg
-from isaaclab_tasks.direct.hector.task_cfg.hierarchical_arch_cfg import HierarchicalArchCfg, HierarchicalArchPrimeCfg, HierarchicalArchAccelPFCfg, HierarchicalArchPrimeFullCfg
+from isaaclab_tasks.direct.hector.task_cfg.hierarchical_arch_cfg import HierarchicalArchCfg, HierarchicalArchPrimeCfg, HierarchicalArchPrimeFullCfg
 
 # Base class
 from isaaclab_tasks.direct.hector.task.base_arch import BaseArch
@@ -206,42 +206,41 @@ class HierarchicalArch(BaseArch):
         self.visualize_marker()
     
     def visualize_marker(self):
-        if self.common_step_counter % (self.cfg.rendering_interval/self.cfg.decimation) == 0:
-            reibert_fps = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
-            augmented_fps = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
-            default_position = self._robot_api.default_root_state[:, :3]
-            default_position[:, 2] = self._robot_api.root_pos_w[:, 2] - self._root_pos[:, 2]
-            reibert_fps[:, 0, :2] = self._reibert_fps[:, :2]
-            reibert_fps[:, 1, :2] = self._reibert_fps[:, 2:]
-            augmented_fps[:, 0, :2] = self._augmented_fps[:, :2]
-            augmented_fps[:, 1, :2] = self._augmented_fps[:, 2:]
-            
-            # convert local foot placement to simulation global frame
-            reibert_fps[:, 0, :] = torch.bmm(self._init_rot_mat, reibert_fps[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position
-            reibert_fps[:, 1, :] = torch.bmm(self._init_rot_mat, reibert_fps[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position 
-            augmented_fps[:, 0, :] = torch.bmm(self._init_rot_mat, augmented_fps[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position
-            augmented_fps[:, 1, :] = torch.bmm(self._init_rot_mat, augmented_fps[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position
-            
-            # hide foot placement marker when foot is in contact
-            reibert_fps[:, 0, 2] -= self._gait_contact[:, 0] * 5.0
-            reibert_fps[:, 1, 2] -= self._gait_contact[:, 1] * 5.0
-            augmented_fps[:, 0, 2] -= self._gait_contact[:, 0] * 5.0
-            augmented_fps[:, 1, 2] -= self._gait_contact[:, 1] * 5.0
-            
-            
-            # swing foot
-            left_swing = (self._root_rot_mat @ self._ref_foot_pos_b[:, :3].unsqueeze(2)).squeeze(2) + self._root_pos
-            right_swing = (self._root_rot_mat @ self._ref_foot_pos_b[:, 3:].unsqueeze(2)).squeeze(2) + self._root_pos
-            
-            left_swing = (self._init_rot_mat @ left_swing.unsqueeze(-1)).squeeze(-1) + default_position
-            right_swing = (self._init_rot_mat @ right_swing.unsqueeze(-1)).squeeze(-1) + default_position
-            swing_reference = torch.stack((left_swing, right_swing), dim=1)
-            
-            orientation = self._robot_api.root_quat_w.repeat(4, 1)
-            
-            self.foot_placement_visualizer.visualize(reibert_fps, augmented_fps, orientation)
-            self._velocity_visualizer.visualize(self._robot_api.root_pos_w, self._robot_api.root_quat_w, self._robot_api.root_lin_vel_b)
-            self.swing_foot_visualizer.visualize(swing_reference)
+        reibert_fps = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
+        augmented_fps = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
+        default_position = self._robot_api.default_root_state[:, :3]
+        default_position[:, 2] = self._robot_api.root_pos_w[:, 2] - self._root_pos[:, 2]
+        reibert_fps[:, 0, :2] = self._reibert_fps[:, :2]
+        reibert_fps[:, 1, :2] = self._reibert_fps[:, 2:]
+        augmented_fps[:, 0, :2] = self._augmented_fps[:, :2]
+        augmented_fps[:, 1, :2] = self._augmented_fps[:, 2:]
+        
+        # convert local foot placement to simulation global frame
+        reibert_fps[:, 0, :] = torch.bmm(self._init_rot_mat, reibert_fps[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position
+        reibert_fps[:, 1, :] = torch.bmm(self._init_rot_mat, reibert_fps[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position 
+        augmented_fps[:, 0, :] = torch.bmm(self._init_rot_mat, augmented_fps[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position
+        augmented_fps[:, 1, :] = torch.bmm(self._init_rot_mat, augmented_fps[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position
+        
+        # hide foot placement marker when foot is in contact
+        reibert_fps[:, 0, 2] -= self._gait_contact[:, 0] * 5.0
+        reibert_fps[:, 1, 2] -= self._gait_contact[:, 1] * 5.0
+        augmented_fps[:, 0, 2] -= self._gait_contact[:, 0] * 5.0
+        augmented_fps[:, 1, 2] -= self._gait_contact[:, 1] * 5.0
+        
+        
+        # swing foot
+        left_swing = (self._root_rot_mat @ self._ref_foot_pos_b[:, :3].unsqueeze(2)).squeeze(2) + self._root_pos
+        right_swing = (self._root_rot_mat @ self._ref_foot_pos_b[:, 3:].unsqueeze(2)).squeeze(2) + self._root_pos
+        
+        left_swing = (self._init_rot_mat @ left_swing.unsqueeze(-1)).squeeze(-1) + default_position
+        right_swing = (self._init_rot_mat @ right_swing.unsqueeze(-1)).squeeze(-1) + default_position
+        swing_reference = torch.stack((left_swing, right_swing), dim=1)
+        
+        orientation = self._robot_api.root_quat_w.repeat(4, 1)
+        
+        self.foot_placement_visualizer.visualize(reibert_fps, augmented_fps, orientation)
+        self._velocity_visualizer.visualize(self._robot_api.root_pos_w, self._robot_api.root_quat_w, self._robot_api.root_lin_vel_b)
+        self.swing_foot_visualizer.visualize(swing_reference)
     
     def _get_observations(self) -> dict:
         """
@@ -751,119 +750,4 @@ class HierarchicalArchPrimeFull(HierarchicalArch):
             log["action/centroidal_ang_acceleration_x"] = centroidal_ang_acceleration[0]
             log["action/centroidal_ang_acceleration_y"] = centroidal_ang_acceleration[1]
             log["action/centroidal_ang_acceleration_z"] = centroidal_ang_acceleration[2]
-        self.extras["log"].update(log)
-    
-
-class HierarchicalArchAccelPF(HierarchicalArch):
-    """Hierarchical Architecture with linear/angular acceleration and sagital foot placement.
-    """
-    cfg: HierarchicalArchAccelPFCfg
-    
-    def __init__(self, cfg: HierarchicalArchCfg, render_mode: str | None = None, **kwargs):
-        super().__init__(cfg, render_mode, **kwargs)
-    
-    def _split_action(self, policy_action:torch.Tensor)->tuple:
-        """
-        Split policy action into centroidal acceleration and foot height.
-        """
-        centroidal_acceleration = policy_action[:, :3]
-        centroidal_ang_acceleration = policy_action[:, 3:6]
-        residual_foot_placement = policy_action[:, 6:10]
-        return centroidal_acceleration, centroidal_ang_acceleration, residual_foot_placement
-    
-    def _apply_action(self)->None:
-        """
-        Actuation control loop
-        **********************
-        This is kind of like motor actuation loop.
-        It is actually not applying self._action to articulation, 
-        but rather setting joint effort target.
-        And this effort target is passed to actuator model to get dof torques.
-        Finally, env.step method calls write_data_to_sim() to write torque to articulation.
-        """
-        # process rl actions
-        centroidal_accel, centroidal_ang_accel, residual_foot_placement = self._split_action(self._actions_op)
-        saggital_residual_foot_placement = residual_foot_placement[:, 0:2] # left, right sagittal
-        lateral_residual_foot_placement = residual_foot_placement[:, 2:] # left, right lateral
-        
-        # transform from local to global frame
-        centroidal_accel = torch.bmm(self._root_rot_mat, centroidal_accel.unsqueeze(-1)).squeeze(-1)
-        centroidal_ang_accel = torch.bmm(self._root_rot_mat, centroidal_ang_accel.unsqueeze(-1)).squeeze(-1)
-        self._A_residual[:, 6:9, -1] = centroidal_accel.cpu().numpy()
-        self._A_residual[:, 9:12, -1] = centroidal_ang_accel.cpu().numpy()
-        self._foot_placement_residuals[:, 0] = (saggital_residual_foot_placement[:, 0] * torch.cos(self._root_yaw.squeeze()) - lateral_residual_foot_placement[:, 0] * torch.sin(self._root_yaw.squeeze())).cpu().numpy()
-        self._foot_placement_residuals[:, 1] = (saggital_residual_foot_placement[:, 0] * torch.sin(self._root_yaw.squeeze()) + lateral_residual_foot_placement[:, 0] * torch.cos(self._root_yaw.squeeze())).cpu().numpy()
-        self._foot_placement_residuals[:, 2] = (saggital_residual_foot_placement[:, 1] * torch.cos(self._root_yaw.squeeze()) - lateral_residual_foot_placement[:, 1] * torch.sin(self._root_yaw.squeeze())).cpu().numpy()
-        self._foot_placement_residuals[:, 3] = (saggital_residual_foot_placement[:, 1] * torch.sin(self._root_yaw.squeeze()) + lateral_residual_foot_placement[:, 1] * torch.cos(self._root_yaw.squeeze())).cpu().numpy()
-        
-        # run mpc controller
-        self._run_mpc()
-        
-        # run low level control with updated GRFM
-        joint_torque_augmented = np.zeros((self.num_envs, 10), dtype=np.float32)
-        for i in range(len(self.mpc)):
-            joint_torque_augmented[i] = self.mpc[i].get_action()
-        self._joint_actions = torch.from_numpy(joint_torque_augmented).to(self.device).view(self.num_envs, -1)
-        self._robot_api.set_joint_effort_target(self._joint_actions, self._joint_ids)
-        
-        self.visualize_marker()
-    
-    def _get_observations(self) -> dict:
-        """
-        Get actor and critic observations.
-        """
-        self._previous_actions = self._actions.clone()
-        self._get_contact_observation()
-        self._obs = torch.cat(
-            (
-                self._root_pos[:, 2:], #0:1 (only height)
-                self._root_quat, #1:5
-                self._root_lin_vel_b, #5:8
-                self._root_ang_vel_b, #8:11
-                self._desired_root_lin_vel_b, #11:13
-                self._desired_root_ang_vel_b, #13:14
-                self._joint_pos, #14:24
-                self._joint_vel, #24:34
-                self._joint_effort, #34:44
-                self._previous_actions, #44:54
-                self._accel_gyro_mpc, #54:60
-                self._gait_contact, #60:62
-                self._swing_phase, #62:64
-            ),
-            dim=-1,
-        )
-        observation = {"policy": self._obs}
-        return observation
-    
-    def log_action(self)->None:
-        log = {}
-        if self.common_step_counter % self.cfg.num_steps_per_env:
-            centroidal_acceleration = self._actions[0, :3].cpu().numpy()
-            centroidal_ang_acceleration = self._actions[0, 3:6].cpu().numpy()
-            foot_placement = self._actions[0, 6:].cpu().numpy()
-            log["raw_action/centroidal_acceleration_x"] = centroidal_acceleration[0]
-            log["raw_action/centroidal_acceleration_y"] = centroidal_acceleration[1]
-            log["raw_action/centroidal_acceleration_z"] = centroidal_acceleration[2]
-            log["raw_action/centroidal_ang_acceleration_x"] = centroidal_ang_acceleration[0]
-            log["raw_action/centroidal_ang_acceleration_y"] = centroidal_ang_acceleration[1]
-            log["raw_action/centroidal_ang_acceleration_z"] = centroidal_ang_acceleration[2]
-            log["raw_action/sagital_foot_placement_left"] = foot_placement[0]
-            log["raw_action/lateral_foot_placement_left"] = foot_placement[1]
-            log["raw_action/sagital_foot_placement_right"] = foot_placement[2]
-            log["raw_action/lateral_foot_placement_right"] = foot_placement[3]
-            
-            centroidal_acceleration = self._actions_op[0, :3].cpu().numpy()
-            centroidal_ang_acceleration = self._actions_op[0, 3:6].cpu().numpy()
-            foot_placement = self._actions[0, 6:].cpu().numpy()
-            log["action/centroidal_acceleration_x"] = centroidal_acceleration[0]
-            log["action/centroidal_acceleration_y"] = centroidal_acceleration[1]
-            log["action/centroidal_acceleration_z"] = centroidal_acceleration[2]
-            log["action/centroidal_ang_acceleration_x"] = centroidal_ang_acceleration[0]
-            log["action/centroidal_ang_acceleration_y"] = centroidal_ang_acceleration[1]
-            log["action/centroidal_ang_acceleration_z"] = centroidal_ang_acceleration[2]
-            log["raw_action/sagital_foot_placement_left"] = foot_placement[0]
-            log["raw_action/lateral_foot_placement_left"] = foot_placement[1]
-            log["raw_action/sagital_foot_placement_right"] = foot_placement[2]
-            log["raw_action/lateral_foot_placement_right"] = foot_placement[3]
-            
         self.extras["log"].update(log)

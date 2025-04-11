@@ -148,6 +148,18 @@ class HfWaveTerrainCfg(HfTerrainBaseCfg):
     num_waves: int = 1.0
     """The number of waves to generate. Defaults to 1.0."""
 
+@configclass
+class HfFractalTerrainCfg(HfTerrainBaseCfg):
+    """Configuration for a wave height field terrain."""
+
+    function = hf_terrains.fractale_terrain
+
+    amplitude_range: tuple[float, float] = MISSING
+    """The minimum and maximum amplitude of the wave (in m)."""
+    
+    flat_terrain_size: tuple[int, int] = (10, 10)
+    """The number of pixels of flat terrain at the center"""
+
 
 @configclass
 class HfSteppingStonesTerrainCfg(HfTerrainBaseCfg):

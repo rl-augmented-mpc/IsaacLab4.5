@@ -559,14 +559,14 @@ def box_terrain(
     box_2_ratio = 0.6
 
     # Generate the top box
-    dim = (cfg.platform_width, cfg.platform_width, terrain_height + total_height)
+    dim = (cfg.platform_length, cfg.platform_width, terrain_height + total_height)
     pos = (0.5 * cfg.size[0], 0.5 * cfg.size[1], (total_height - terrain_height) / 2)
     box_mesh = trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
     meshes_list.append(box_mesh)
     # Generate the lower box
     if cfg.double_box:
         # calculate the size of the lower box
-        outer_box_x = cfg.platform_width + (cfg.size[0] - cfg.platform_width) * box_2_ratio
+        outer_box_x = cfg.platform_length + (cfg.size[0] - cfg.platform_length) * box_2_ratio
         outer_box_y = cfg.platform_width + (cfg.size[1] - cfg.platform_width) * box_2_ratio
         # create the lower box
         dim = (outer_box_x, outer_box_y, terrain_height + total_height / 2)

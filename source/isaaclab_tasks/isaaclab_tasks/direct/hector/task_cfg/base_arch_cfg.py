@@ -49,12 +49,38 @@ class BaseArchCfg(DirectRLEnvCfg):
     inference = False
     curriculum_inference = False
     episode_length_s = 10.0
-    num_steps_per_env = 24 # see rsl cfg (horizon for rollout)
+    num_steps_per_env = 24 # RL horizon length
+    dt=1/400
+
+    # ============================
+    # MPC configurations
+    # ============================
+    # each stance/swing phase includes 10 mpc time steps
+    # this means iteration_between_mpc = phase_steps/(10*dt)
+    # mpc is updated at 100Hz
     
-    dt=0.002 #500Hz 
-    rendering_interval = 10 # 50Hz
-    mpc_decimation = 5 # 100Hz
-    decimation = 5 # 100Hz (RL)
+    # parameter tables
+    # ===================================
+    # dt=1/1000, iteration_between_mpc=20
+    # dt=1/500, iteration_between_mpc=10
+    # dt=1/400, iteration_between_mpc=8
+    # dt=1/200, iteration_between_mpc=4
+    # ===================================
+    each_phase_time = 0.2
+    ssp_duration = int(each_phase_time/dt) # single support 0.2s
+    dsp_duration = int(0.0/dt) # double support
+    reference_height = 0.55
+    nominal_gait_stepping_frequency = 1.0
+    nominal_foot_height = 0.12
+    rendering_interval = int(0.02/dt) # 50Hz
+    mpc_decimation = int(0.01/dt) # 100Hz
+    decimation = int(0.01/dt) # 100Hz (RL)
+    iteration_between_mpc = int(each_phase_time/(10*dt)) # mpc time step discritization (dt_mpc = dt*iteration_between_mpc)
+    horizon_length = 10
+
+    # ===============================
+    # observation/action space
+    # ===============================
     
     # TODO: override this in the derived class
     observation_space = MISSING # actor observation space
@@ -62,6 +88,8 @@ class BaseArchCfg(DirectRLEnvCfg):
     action_space = MISSING # action space
     num_joint_actions:int = 1
     num_states:int = 1
+    num_history:int = 1
+    num_extero_observations:int = 0
     
     # TODO: override this in the derived class
     # observation, action settings
@@ -71,14 +99,6 @@ class BaseArchCfg(DirectRLEnvCfg):
     observation_ub:float = 1
     clip_action:bool = True # clip to -1 to 1 with tanh
     scale_action:bool = True # scale max value to action_ub
-    
-    # MPC parameters
-    gait_change_cutoff = 200
-    iteration_between_mpc = 10 # mpc time step discritization (dt_mpc = dt*iteration_between_mpc)
-    horizon_length = 10
-    reference_height = 0.55
-    nominal_gait_stepping_frequency = 1.0
-    nominal_foot_height = 0.12
     
     # ================================
     # Environment configurations
@@ -105,7 +125,7 @@ class BaseArchCfg(DirectRLEnvCfg):
     robot: ArticulationCfg = HECTOR_CFG
     robot.prim_path = f"{ENV_REGEX_NS}/Robot"
     
-    # sensors
+    # force sensor
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
         prim_path=f"{ENV_REGEX_NS}/Robot/[L|R]_toe", 
         # filter_prim_paths_expr = ["/World/ground"],
@@ -136,7 +156,7 @@ class BaseArchCfg(DirectRLEnvCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0, 0, 0)),
         mesh_prim_paths=["/World/ground"],
         attach_yaw_only=True,
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.05, size=(0.5, 0.5)),
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.05, size=(1.0, 1.0)),
     )
     
     # light

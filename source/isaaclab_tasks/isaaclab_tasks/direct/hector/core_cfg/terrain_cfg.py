@@ -79,7 +79,7 @@ FrictionPatchTerrain = TerrainImporterCfg(
     num_curriculums=1,
 )
 
-quat = Rotation.from_euler('xyz', [0, -10, 0], degrees=True).as_quat().astype(np.float32).tolist()
+quat = Rotation.from_euler('xyz', [0, 0, 0], degrees=True).as_quat().astype(np.float32).tolist()
 BaseTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="generator",
@@ -115,291 +115,323 @@ BaseTerrain = TerrainImporterCfg(
 )
 
 
-# ObstacleTerrain = TerrainImporterCfg(
-#     prim_path="/World/ground",
-#     terrain_type="generator",
-#     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-#         size=(20.0, 20.0), # size of sub-terrain
-#         border_width=0.0,
-#         num_rows=2,
-#         num_cols=2,
-#         horizontal_scale=0.1,
-#         vertical_scale=0.005,
-#         slope_threshold=0.75,
-#         use_cache=False,
-#         curriculum=True,
-#         sub_terrains={
-#             "boxes1": terrain_gen.MeshBoxTerrainCfg(
-#             # proportion=0.2, box_height_range=(0.06, 0.06), platform_width=5.0, platform_length=0.5
-#             proportion=0.2, box_height_range=(0.07, 0.07), platform_width=5.0, platform_length=0.5
-#             ),
-#             "boxes2": terrain_gen.MeshBoxTerrainCfg(
-#             proportion=0.2, box_height_range=(0.08, 0.08), platform_width=4.0, platform_length=0.5
-#             ), 
-#             "boxes3": terrain_gen.MeshBoxTerrainCfg(
-#             proportion=0.2, box_height_range=(0.09, 0.09), platform_width=5.0, platform_length=0.5
-#             ), 
-#             "boxes4": terrain_gen.MeshBoxTerrainCfg(
-#             proportion=0.2, box_height_range=(0.1, 0.1), platform_width=5.0, platform_length=0.5
-#             )
-#         },
-#     ),
-#     collision_group=-1,
-#     physics_material=sim_utils.RigidBodyMaterialCfg(
-#         friction_combine_mode="multiply",
-#         restitution_combine_mode="multiply",
-#         static_friction=1.0,
-#         dynamic_friction=1.0,
-#     ),
-#     visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
-#     debug_vis=False,
-#     disable_colllider=False,
-#     num_curriculums=4
-# )
+ObstacleTerrain = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="generator",
+    terrain_generator= terrain_gen.TerrainGeneratorCfg(
+        size=(20.0, 20.0), # size of sub-terrain
+        border_width=0.0,
+        num_rows=2,
+        num_cols=2,
+        horizontal_scale=0.1,
+        vertical_scale=0.005,
+        slope_threshold=0.75,
+        use_cache=False,
+        curriculum=True,
+        sub_terrains={
+            "boxes1": terrain_gen.MeshBoxTerrainCfg(
+            # proportion=0.2, box_height_range=(0.06, 0.06), platform_width=5.0, platform_length=0.5
+            proportion=0.2, box_height_range=(0.07, 0.07), platform_width=5.0, platform_length=0.5
+            ),
+            "boxes2": terrain_gen.MeshBoxTerrainCfg(
+            proportion=0.2, box_height_range=(0.08, 0.08), platform_width=4.0, platform_length=0.5
+            ), 
+            "boxes3": terrain_gen.MeshBoxTerrainCfg(
+            proportion=0.2, box_height_range=(0.09, 0.09), platform_width=5.0, platform_length=0.5
+            ), 
+            "boxes4": terrain_gen.MeshBoxTerrainCfg(
+            proportion=0.2, box_height_range=(0.1, 0.1), platform_width=5.0, platform_length=0.5
+            )
+        },
+    ),
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=1.0,
+        dynamic_friction=1.0,
+    ),
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    debug_vis=False,
+    disable_colllider=False,
+    num_curriculums=4
+)
 
-# BoxTerrain = TerrainImporterCfg(
-#     prim_path="/World/ground",
-#     terrain_type="generator",
-#     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-#         size=(20.0, 20.0), # size of sub-terrain
-#         border_width=0.0,
-#         num_rows=2,
-#         num_cols=2,
-#         horizontal_scale=0.1,
-#         vertical_scale=0.005,
-#         slope_threshold=0.75,
-#         use_cache=False,
-#         curriculum=True,
-#         sub_terrains={
-#             "boxes1": terrain_gen.MeshRandomGridTerrainCfg(
-#             proportion=0.2, grid_width=0.2, grid_height_range=(0.03, 0.04), platform_width=1.5
-#             ),
-#             "boxes2": terrain_gen.MeshRandomGridTerrainCfg(
-#             proportion=0.2, grid_width=0.2, grid_height_range=(0.04, 0.05), platform_width=1.5
-#             ), 
-#             "boxes3": terrain_gen.MeshRandomGridTerrainCfg(
-#             proportion=0.2, grid_width=0.2, grid_height_range=(0.05, 0.06), platform_width=1.5
-#             ), 
-#             "boxes4": terrain_gen.MeshRandomGridTerrainCfg(
-#             proportion=0.2, grid_width=0.2, grid_height_range=(0.06, 0.07), platform_width=1.5
-#             )
-#         },
-#     ),
-#     collision_group=-1,
-#     physics_material=sim_utils.RigidBodyMaterialCfg(
-#         friction_combine_mode="multiply",
-#         restitution_combine_mode="multiply",
-#         static_friction=1.0,
-#         dynamic_friction=1.0,
-#     ),
-#     visual_material=sim_utils.MdlFileCfg(
-#         mdl_path=f"{ISAACLAB_NUCLEUS_DIR}/Materials/TilesMarbleSpiderWhiteBrickBondHoned/TilesMarbleSpiderWhiteBrickBondHoned.mdl",
-#         project_uvw=True,
-#         texture_scale=(0.25, 0.25),
-#     ),
-#     debug_vis=False,
-#     disable_colllider=False,
-#     num_curriculums=4
-# )
+SteppingTerrain = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="generator",
+    terrain_generator= terrain_gen.TerrainGeneratorCfg(
+        size=(20.0, 20.0), # size of sub-terrain
+        border_width=0.0,
+        num_rows=1,
+        num_cols=1,
+        horizontal_scale=0.1,
+        vertical_scale=0.005,
+        slope_threshold=0.75,
+        use_cache=False,
+        curriculum=True,
+        sub_terrains={
+            "boxes1": terrain_gen.MeshBoxTerrainCfg(
+            proportion=0.2, box_height_range=(0.08, 0.08), platform_width=5.0, platform_length=0.5
+            ),
+        },
+    ),
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=1.0,
+        dynamic_friction=1.0,
+    ),
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    debug_vis=False,
+    disable_colllider=False,
+    num_curriculums=1
+)
 
-# sub_terrains = {}
-# slop_range = (0.2, 0.8)
-# curriculum_x = 3
-# curriculum_y = 3
-# nx = 60
-# ny = 60
-# for i in range(nx*ny):
-#     i_x = i // ny
-#     i_y = i % ny
+BoxTerrain = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="generator",
+    terrain_generator= terrain_gen.TerrainGeneratorCfg(
+        size=(20.0, 20.0), # size of sub-terrain
+        border_width=0.0,
+        num_rows=2,
+        num_cols=2,
+        horizontal_scale=0.1,
+        vertical_scale=0.005,
+        slope_threshold=0.75,
+        use_cache=False,
+        curriculum=True,
+        sub_terrains={
+            "boxes1": terrain_gen.MeshRandomGridTerrainCfg(
+            proportion=0.2, grid_width=0.2, grid_height_range=(0.03, 0.04), platform_width=1.5
+            ),
+            "boxes2": terrain_gen.MeshRandomGridTerrainCfg(
+            proportion=0.2, grid_width=0.2, grid_height_range=(0.04, 0.05), platform_width=1.5
+            ), 
+            "boxes3": terrain_gen.MeshRandomGridTerrainCfg(
+            proportion=0.2, grid_width=0.2, grid_height_range=(0.05, 0.06), platform_width=1.5
+            ), 
+            "boxes4": terrain_gen.MeshRandomGridTerrainCfg(
+            proportion=0.2, grid_width=0.2, grid_height_range=(0.06, 0.07), platform_width=1.5
+            )
+        },
+    ),
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=1.0,
+        dynamic_friction=1.0,
+    ),
+    visual_material=sim_utils.MdlFileCfg(
+        mdl_path=f"{ISAACLAB_NUCLEUS_DIR}/Materials/TilesMarbleSpiderWhiteBrickBondHoned/TilesMarbleSpiderWhiteBrickBondHoned.mdl",
+        project_uvw=True,
+        texture_scale=(0.25, 0.25),
+    ),
+    debug_vis=False,
+    disable_colllider=False,
+    num_curriculums=4
+)
+
+sub_terrains = {}
+slop_range = (0.2, 0.8)
+curriculum_x = 3
+curriculum_y = 3
+nx = 60
+ny = 60
+for i in range(nx*ny):
+    i_x = i // ny
+    i_y = i % ny
     
-#     local_slope_range = (slop_range[0] + i * (slop_range[1] - slop_range[0]) / (nx*ny), slop_range[0] + (i+1) * (slop_range[1] - slop_range[0]) / (nx*ny))
-#     inv = int(np.random.randint(0, 2))
-#     inv = True if inv == 1 else False
+    local_slope_range = (slop_range[0] + i * (slop_range[1] - slop_range[0]) / (nx*ny), slop_range[0] + (i+1) * (slop_range[1] - slop_range[0]) / (nx*ny))
+    inv = int(np.random.randint(0, 2))
+    inv = True if inv == 1 else False
     
-#     # place flat terrain at each local center
-#     if (i_x % (nx//curriculum_x) >= (nx//curriculum_x)//2 -1 and i_x% (nx//curriculum_x) <= (nx//curriculum_x)//2) \
-#         and (i_y % (ny//curriculum_y) >= (ny//curriculum_y)//2 -1 and i_y% (ny//curriculum_y) <= (ny//curriculum_y)//2):
-#         sub_terrains[f"flat{i}"] = terrain_gen.MeshPlaneTerrainCfg(proportion=0.2, height=0.0, size=(0.5, 0.5))
-#     else:
-#         sub_terrains[f"box{i}"] = terrain_gen.HfPyramidSlopedTerrainCfg(
-#             size=(0.5, 0.5),
-#             slope_range=local_slope_range, 
-#             platform_width=0.05, 
-#             border_width=0.03,
-#             inverted=inv
-#             )
+    # place flat terrain at each local center
+    if (i_x % (nx//curriculum_x) >= (nx//curriculum_x)//2 -1 and i_x% (nx//curriculum_x) <= (nx//curriculum_x)//2) \
+        and (i_y % (ny//curriculum_y) >= (ny//curriculum_y)//2 -1 and i_y% (ny//curriculum_y) <= (ny//curriculum_y)//2):
+        sub_terrains[f"flat{i}"] = terrain_gen.MeshPlaneTerrainCfg(proportion=0.2, height=0.0, size=(0.5, 0.5))
+    else:
+        sub_terrains[f"box{i}"] = terrain_gen.HfPyramidSlopedTerrainCfg(
+            size=(0.5, 0.5),
+            slope_range=local_slope_range, 
+            platform_width=0.05, 
+            border_width=0.03,
+            inverted=inv
+            )
 
-# PyramidHfTerrain = TerrainImporterCfg(
-#     prim_path="/World/ground",
-#     terrain_type="generator",
-#     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-#         size=(0.5, 0.5), # size of sub-terrain
-#         border_width=0.0,
-#         num_rows=ny,
-#         num_cols=nx,
-#         horizontal_scale=0.03,
-#         vertical_scale=0.005,
-#         slope_threshold=0.75,
-#         use_cache=False,
-#         curriculum=True,
-#         sub_terrains=sub_terrains,
-#     ),
-#     collision_group=-1,
-#     physics_material=sim_utils.RigidBodyMaterialCfg(
-#         friction_combine_mode="multiply",
-#         restitution_combine_mode="multiply",
-#         static_friction=0.5,
-#         dynamic_friction=0.5,
-#     ),
-#     visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
-#     debug_vis=False,
-#     disable_colllider=False,
-#     num_curriculums=curriculum_x*curriculum_y,
-# )
-
-
-# FractalTerrain = TerrainImporterCfg(
-#     prim_path="/World/ground",
-#     terrain_type="generator",
-#     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-#         size=(10.0, 10.0), # size of sub-terrain
-#         border_width=0.0,
-#         num_rows=2,
-#         num_cols=2,
-#         horizontal_scale=0.1,
-#         vertical_scale=0.005,
-#         slope_threshold=0.75,
-#         use_cache=False,
-#         curriculum=True,
-#         sub_terrains={
-#             "terrain1": terrain_gen.HfFractalTerrainCfg(
-#             proportion=0.2,
-#             amplitude_range=(0.0, 0.2),
-#             ),
-#             "terrain2": terrain_gen.HfFractalTerrainCfg(
-#             proportion=0.2,
-#             amplitude_range=(0.0, 0.3),
-#             ),
-#             "terrain3": terrain_gen.HfFractalTerrainCfg(
-#             proportion=0.2,
-#             amplitude_range=(0.0, 0.4),
-#             ),
-#             "terrain4": terrain_gen.HfFractalTerrainCfg(
-#             proportion=0.2,
-#             amplitude_range=(0.0, 0.5),
-#             ),
-#         },
-#     ),
-#     collision_group=-1,
-#     physics_material=sim_utils.RigidBodyMaterialCfg(
-#         friction_combine_mode="multiply",
-#         restitution_combine_mode="multiply",
-#         static_friction=0.5,
-#         dynamic_friction=0.5,
-#     ),
-#     visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
-#     debug_vis=False,
-#     disable_colllider=False,
-#     num_curriculums=4,
-# )
+PyramidHfTerrain = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="generator",
+    terrain_generator= terrain_gen.TerrainGeneratorCfg(
+        size=(0.5, 0.5), # size of sub-terrain
+        border_width=0.0,
+        num_rows=ny,
+        num_cols=nx,
+        horizontal_scale=0.03,
+        vertical_scale=0.005,
+        slope_threshold=0.75,
+        use_cache=False,
+        curriculum=True,
+        sub_terrains=sub_terrains,
+    ),
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=0.5,
+        dynamic_friction=0.5,
+    ),
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    debug_vis=False,
+    disable_colllider=False,
+    num_curriculums=curriculum_x*curriculum_y,
+)
 
 
-# CubicTerrain = TerrainImporterCfg(
-#     prim_path="/World/ground",
-#     terrain_type="generator",
-#     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-#         size=(15.0, 15.0), # size of sub-terrain
-#         border_width=0.0,
-#         num_rows=2,
-#         num_cols=2,
-#         horizontal_scale=0.1,
-#         vertical_scale=0.005,
-#         slope_threshold=0.75,
-#         use_cache=False,
-#         curriculum=True,
-#         sub_terrains={
-#             "terrain1": terrain_gen.MeshRepeatedBoxesTerrainCfg(
-#                 object_type="box", 
-#                 max_height_noise=0.00, 
-#                 platform_width=0.2,
-#                 object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-#                     num_objects=600, 
-#                     height=0.05, 
-#                     size=(0.2, 0.2),
-#                     max_yx_angle=20.0, 
-#                 ), 
-#                 object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-#                     num_objects=600, 
-#                     height=0.05, 
-#                     size=(0.2, 0.2),
-#                     max_yx_angle=20.0, 
-#                 )
-#             ), 
-#             "terrain2": terrain_gen.MeshRepeatedBoxesTerrainCfg(
-#                 object_type="box", 
-#                 max_height_noise=0.05, 
-#                 platform_width=0.2,
-#                 object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-#                     num_objects=600, 
-#                     height=0.08, 
-#                     size=(0.2, 0.2),
-#                     max_yx_angle=30.0, 
-#                 ), 
-#                 object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-#                     num_objects=600, 
-#                     height=0.08, 
-#                     size=(0.2, 0.2),
-#                     max_yx_angle=30.0, 
-#                 )
-#             ), 
-#             "terrain3": terrain_gen.MeshRepeatedBoxesTerrainCfg(
-#                 object_type="box", 
-#                 max_height_noise=0.05, 
-#                 platform_width=0.2,
-#                 object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-#                     num_objects=600, 
-#                     height=0.1, 
-#                     size=(0.2, 0.2),
-#                     max_yx_angle=40.0, 
-#                 ), 
-#                 object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-#                     num_objects=600, 
-#                     height=0.1, 
-#                     size=(0.2, 0.2),
-#                     max_yx_angle=40.0, 
-#                 )
-#             ), 
-#             "terrain4": terrain_gen.MeshRepeatedBoxesTerrainCfg(
-#                 object_type="box", 
-#                 max_height_noise=0.05, 
-#                 platform_width=0.2,
-#                 object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-#                     num_objects=700, 
-#                     height=0.12, 
-#                     size=(0.2, 0.2),
-#                     max_yx_angle=45.0, 
-#                 ), 
-#                 object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-#                     num_objects=700, 
-#                     height=0.12, 
-#                     size=(0.2, 0.2),
-#                     max_yx_angle=45.0, 
-#                 )
-#             )
-#         },
-#     ),
-#     collision_group=-1,
-#     physics_material=sim_utils.RigidBodyMaterialCfg(
-#         friction_combine_mode="multiply",
-#         restitution_combine_mode="multiply",
-#         static_friction=0.9,
-#         dynamic_friction=0.9,
-#     ),
-#     visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2)),
-#     debug_vis=False,
-#     disable_colllider=False,
-#     num_curriculums=4,
-# )
+FractalTerrain = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="generator",
+    terrain_generator= terrain_gen.TerrainGeneratorCfg(
+        size=(10.0, 10.0), # size of sub-terrain
+        border_width=0.0,
+        num_rows=2,
+        num_cols=2,
+        horizontal_scale=0.1,
+        vertical_scale=0.005,
+        slope_threshold=0.75,
+        use_cache=False,
+        curriculum=True,
+        sub_terrains={
+            "terrain1": terrain_gen.HfFractalTerrainCfg(
+            proportion=0.2,
+            amplitude_range=(0.0, 0.2),
+            ),
+            "terrain2": terrain_gen.HfFractalTerrainCfg(
+            proportion=0.2,
+            amplitude_range=(0.0, 0.3),
+            ),
+            "terrain3": terrain_gen.HfFractalTerrainCfg(
+            proportion=0.2,
+            amplitude_range=(0.0, 0.4),
+            ),
+            "terrain4": terrain_gen.HfFractalTerrainCfg(
+            proportion=0.2,
+            amplitude_range=(0.0, 0.5),
+            ),
+        },
+    ),
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=0.5,
+        dynamic_friction=0.5,
+    ),
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    debug_vis=False,
+    disable_colllider=False,
+    num_curriculums=4,
+)
+
+
+CubicTerrain = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="generator",
+    terrain_generator= terrain_gen.TerrainGeneratorCfg(
+        size=(15.0, 15.0), # size of sub-terrain
+        border_width=0.0,
+        num_rows=2,
+        num_cols=2,
+        horizontal_scale=0.1,
+        vertical_scale=0.005,
+        slope_threshold=0.75,
+        use_cache=False,
+        curriculum=True,
+        sub_terrains={
+            "terrain1": terrain_gen.MeshRepeatedBoxesTerrainCfg(
+                object_type="box", 
+                max_height_noise=0.00, 
+                platform_width=0.2,
+                object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+                    num_objects=600, 
+                    height=0.05, 
+                    size=(0.2, 0.2),
+                    max_yx_angle=20.0, 
+                ), 
+                object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+                    num_objects=600, 
+                    height=0.05, 
+                    size=(0.2, 0.2),
+                    max_yx_angle=20.0, 
+                )
+            ), 
+            "terrain2": terrain_gen.MeshRepeatedBoxesTerrainCfg(
+                object_type="box", 
+                max_height_noise=0.05, 
+                platform_width=0.2,
+                object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+                    num_objects=600, 
+                    height=0.08, 
+                    size=(0.2, 0.2),
+                    max_yx_angle=30.0, 
+                ), 
+                object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+                    num_objects=600, 
+                    height=0.08, 
+                    size=(0.2, 0.2),
+                    max_yx_angle=30.0, 
+                )
+            ), 
+            "terrain3": terrain_gen.MeshRepeatedBoxesTerrainCfg(
+                object_type="box", 
+                max_height_noise=0.05, 
+                platform_width=0.2,
+                object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+                    num_objects=600, 
+                    height=0.1, 
+                    size=(0.2, 0.2),
+                    max_yx_angle=40.0, 
+                ), 
+                object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+                    num_objects=600, 
+                    height=0.1, 
+                    size=(0.2, 0.2),
+                    max_yx_angle=40.0, 
+                )
+            ), 
+            "terrain4": terrain_gen.MeshRepeatedBoxesTerrainCfg(
+                object_type="box", 
+                max_height_noise=0.05, 
+                platform_width=0.2,
+                object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+                    num_objects=700, 
+                    height=0.12, 
+                    size=(0.2, 0.2),
+                    max_yx_angle=45.0, 
+                ), 
+                object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+                    num_objects=700, 
+                    height=0.12, 
+                    size=(0.2, 0.2),
+                    max_yx_angle=45.0, 
+                )
+            )
+        },
+    ),
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=0.9,
+        dynamic_friction=0.9,
+    ),
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2)),
+    debug_vis=False,
+    disable_colllider=False,
+    num_curriculums=4,
+)
 
 
 

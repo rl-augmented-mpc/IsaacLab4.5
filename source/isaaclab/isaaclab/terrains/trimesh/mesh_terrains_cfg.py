@@ -129,7 +129,9 @@ class MeshBoxTerrainCfg(SubTerrainBaseCfg):
     box_height_range: tuple[float, float] = MISSING
     """The minimum and maximum height of the box (in m)."""
     platform_width: float = 1.0
-    """The width of the square platform at the center of the terrain. Defaults to 1.0."""
+    """The width (y) of the rectangular platform at the center of the terrain. Defaults to 1.0."""
+    platform_length: float = 1.0
+    """The length (x) of the rectangular platform at the center of the terrain. Defaults to 1.0."""
     double_box: bool = False
     """If True, the pit contains two levels of stairs/boxes. Defaults to False."""
 
