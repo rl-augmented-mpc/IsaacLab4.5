@@ -31,8 +31,8 @@ full_path = os.path.dirname(os.path.realpath(__file__))
 HECTOR_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/hector_oct8.usd",
-        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/hector_flat_foot_bounding_cube.usd", # flat foot
-        # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/hector_flat_foot_small_bounding_cube.usd", # flat foot without cover
+        # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/hector_flat_foot_bounding_cube.usd", # flat foot
+        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/hector_flat_foot_small_bounding_cube.usd", # flat foot without cover
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -46,7 +46,7 @@ HECTOR_CFG = ArticulationCfg(
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=True,
             solver_position_iteration_count=4,
-            solver_velocity_iteration_count=1,
+            solver_velocity_iteration_count=0,
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(

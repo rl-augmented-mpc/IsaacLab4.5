@@ -48,9 +48,9 @@ class BaseArch(DirectRLEnv):
         self._joint_ids, self._joint_names = self._robot.find_joints(self.cfg.joint_names, preserve_order=True)
         
         # actions
-        self._actions = torch.zeros(self.num_envs, gym.spaces.flatdim(self.single_action_space), device=self.device)
-        self._actions_op = torch.zeros(self.num_envs, gym.spaces.flatdim(self.single_action_space), device=self.device)
-        self._previous_actions = torch.zeros(self.num_envs, gym.spaces.flatdim(self.single_action_space), device=self.device)
+        self._actions = torch.zeros(self.num_envs, self.cfg.action_space, device=self.device)
+        self._actions_op = torch.zeros(self.num_envs, self.cfg.action_space, device=self.device)
+        self._previous_actions = torch.zeros(self.num_envs, self.cfg.action_space, device=self.device)
         self._joint_actions = torch.zeros(self.num_envs, self.cfg.num_joint_actions, device=self.device)
         self.action_lb = torch.tensor(self.cfg.action_lb, device=self.device, dtype=torch.float32)
         self.action_ub = torch.tensor(self.cfg.action_ub, device=self.device, dtype=torch.float32)
@@ -65,16 +65,15 @@ class BaseArch(DirectRLEnv):
         self._ref_yaw = torch.zeros(self.num_envs, 1, device=self.device, dtype=torch.float32)
         self._root_lin_vel_b = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
         self._root_ang_vel_b = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
-        self._desired_root_lin_vel_b = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
-        self._desired_root_ang_vel_b = torch.zeros(self.num_envs, 1, device=self.device, dtype=torch.float32)
         self._joint_pos = torch.zeros(self.num_envs, self.cfg.num_joint_actions, device=self.device, dtype=torch.float32)
         self._joint_vel = torch.zeros(self.num_envs, self.cfg.num_joint_actions, device=self.device, dtype=torch.float32)
         self._joint_effort = torch.zeros(self.num_envs, self.cfg.num_joint_actions, device=self.device, dtype=torch.float32)
+        self._joint_effort_target = torch.zeros(self.num_envs, self.cfg.num_joint_actions, device=self.device, dtype=torch.float32)
         self._joint_accel = torch.zeros(self.num_envs, self.cfg.num_joint_actions, device=self.device, dtype=torch.float32)
         self._state = torch.zeros(self.num_envs, self.cfg.num_states, device=self.device, dtype=torch.float32)
         
         # RL observation
-        self._obs = torch.zeros(self.num_envs, gym.spaces.flatdim(self.single_observation_space["policy"]), device=self.device)
+        self._obs = torch.zeros(self.num_envs, self.cfg.observation_space, device=self.device)
         
         # height scan 
         self.height_map = None
@@ -124,6 +123,7 @@ class BaseArch(DirectRLEnv):
         mpc_conf = MPC_Conf(
             control_dt=self.cfg.dt, control_iteration_between_mpc=self.cfg.iteration_between_mpc, 
             horizon_length=self.cfg.horizon_length, mpc_decimation=self.cfg.mpc_decimation)
+        
         self.mpc = [MPCWrapper(mpc_conf) for _ in range(self.num_envs)] # class array
         for i in range(self.num_envs):
             self.mpc[i].set_planner("Raibert")
@@ -153,9 +153,6 @@ class BaseArch(DirectRLEnv):
             "energy_penalty": torch.zeros(self.num_envs, device=self.device),
             "torque_penalty": torch.zeros(self.num_envs, device=self.device),
         }
-        
-        # rendering
-        self.is_rendering = self.sim.has_gui() or self.sim.has_rtx_sensors()
     
     def _setup_scene(self)->None:
         """
@@ -184,10 +181,6 @@ class BaseArch(DirectRLEnv):
         Process RL output.
         """
         self._actions = actions.clone()
-        # scale action to -1 to 1
-        if self.cfg.clip_action:
-            self._actions = torch.tanh(self._actions)
-        # rescale action
         if self.cfg.scale_action:
             self._actions_op = self._actions * self.action_ub
         else:
@@ -240,7 +233,6 @@ class BaseArch(DirectRLEnv):
         foot_pos_b = []
         foot_ref_pos_b = []
         
-        self._get_state()
         for i in range(len(self.mpc)):
             self.mpc[i].set_swing_parameters(stepping_frequency=self._gait_stepping_frequency[i], foot_height=self._foot_height[i])
             self.mpc[i].set_terrain_slope(self.cfg.terrain_slope)
@@ -271,7 +263,6 @@ class BaseArch(DirectRLEnv):
         self._reibert_fps_b[:, 3] = -self._reibert_fps[:, 2]*torch.sin(self._root_yaw.squeeze()) + self._reibert_fps[:, 3]*torch.cos(self._root_yaw.squeeze()) - self._root_pos[:, 1]
 
         self._augmented_fps = torch.from_numpy(np.array(augmented_fps)).to(self.device).view(self.num_envs, 4).to(torch.float32)
-
         # transform augmented fps to body frame
         self._augmented_fps_b[:, 0] = self._augmented_fps[:, 0]*torch.cos(self._root_yaw.squeeze()) + self._augmented_fps[:, 1]*torch.sin(self._root_yaw.squeeze()) - self._root_pos[:, 0]
         self._augmented_fps_b[:, 1] = -self._augmented_fps[:, 0]*torch.sin(self._root_yaw.squeeze()) + self._augmented_fps[:, 1]*torch.cos(self._root_yaw.squeeze()) - self._root_pos[:, 1]
@@ -303,9 +294,10 @@ class BaseArch(DirectRLEnv):
         Then, gradually increase the command velocity for the first 0.5s (ramp up phase).
         After this, the command should be set to gait=2 and desired velocity.
         """
-        ramp_up_step = int(0.1/self.physics_dt)
-        ramp_up_coef = torch.clip(self.mpc_ctrl_counter/ramp_up_step, 0.0, 1.0)
-        # ramp_up_coef = 1.0
+        ramp_up_duration = 0.1
+        ramp_up_step = int(ramp_up_duration/self.physics_dt)
+        # ramp_up_coef = torch.clip(self.mpc_ctrl_counter/ramp_up_step, 0.0, 1.0)
+        ramp_up_coef = 1.0
         self._desired_root_lin_vel_b[:, 0] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 0]).to(self.device)
         self._desired_root_lin_vel_b[:, 1] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 1]).to(self.device)
         self._desired_root_ang_vel_b[:, 0] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 2]).to(self.device)
@@ -317,7 +309,7 @@ class BaseArch(DirectRLEnv):
         NOTE that the center of mass pose is relative to the initial spawn position (i.e. odometry adding nominal height as offset). 
         """
         
-        self._init_rot_mat = self._robot_api._init_rot # type: ignore
+        self._init_rot_mat = self._robot_api._init_rot
         self._root_rot_mat = self._robot_api.root_rot_mat_local
         self._root_quat = self._robot_api.root_quat_local
         
@@ -325,9 +317,10 @@ class BaseArch(DirectRLEnv):
         self._root_yaw = torch.atan2(2*(self._root_quat[:, 0]*self._root_quat[:, 3] + self._root_quat[:, 1]*self._root_quat[:, 2]), 1 - 2*(self._root_quat[:, 2]**2 + self._root_quat[:, 3]**2)).view(-1, 1)
         self._root_yaw = torch.atan2(torch.sin(self._root_yaw), torch.cos(self._root_yaw)) # standardize to -pi to pi
         
-        self._root_pos = self._robot_api.root_pos_local
         # process z position same as hardware code
+        self._root_pos = self._robot_api.root_pos_local
         # https://github.gatech.edu/GeorgiaTechLIDARGroup/HECTOR_HW_new/blob/Unified_Framework/Interface/HW_interface/src/stateestimator/PositionVelocityEstimator.cpp
+        # Is this right for non-flat terrain? probably not...
         # toe_index, _ = self._robot.find_bodies(["L_toe", "R_toe"], preserve_order=True)
         # foot_pos = (self._robot_api.body_pos_w[:, toe_index, 2]-0.04) - self._robot_api.root_pos_w [:, 2].view(-1, 1) # com to foot in world frame
         # phZ, _ = torch.max(-foot_pos, dim=1)
@@ -340,6 +333,7 @@ class BaseArch(DirectRLEnv):
         self._add_joint_offset()
         self._joint_vel = self._robot_api.joint_vel[:, self._joint_ids]
         self._joint_effort = self._robot_api.joint_effort[:, self._joint_ids]
+        # self._joint_effort_target = self._robot_api.joint_effort_target[:, self._joint_ids]
         
         # reference calculation 
         self._ref_yaw = self._ref_yaw + self._desired_root_ang_vel_b[:, 0:1] * self.cfg.dt

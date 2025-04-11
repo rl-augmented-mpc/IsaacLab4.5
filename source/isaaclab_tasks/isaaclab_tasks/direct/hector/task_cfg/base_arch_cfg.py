@@ -77,6 +77,7 @@ class BaseArchCfg(DirectRLEnvCfg):
     decimation = int(0.01/dt) # 100Hz (RL)
     iteration_between_mpc = int(each_phase_time/(10*dt)) # mpc time step discritization (dt_mpc = dt*iteration_between_mpc)
     horizon_length = 10
+    terrain_slope = 0.0
 
     # ===============================
     # observation/action space

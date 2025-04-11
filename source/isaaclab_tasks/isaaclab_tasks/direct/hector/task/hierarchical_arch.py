@@ -138,40 +138,6 @@ class HierarchicalArch(BaseArch):
             self._desired_twist_np[env_ids.cpu().numpy()] = robot_twist # type: ignore
         self._update_mpc_input()
     
-    def _run_mpc(self)->None:
-        """
-        Run MPC and update GRFM and contact state.
-        MPC runs at every dt*mpc_decimation (200Hz)
-        """
-        accel_gyro = []
-        grfm = []
-        gait_contact = []
-        swing_phase = []
-        reibert_fps = []
-        augmented_fps = []
-        
-        self._get_state()
-        for i in range(len(self.mpc)):
-            self.mpc[i].set_swing_parameters(stepping_frequency=self._gait_stepping_frequency[i], foot_height=self._foot_height[i])
-            self.mpc[i].add_foot_placement_residual(self._foot_placement_residuals[i])
-            self.mpc[i].set_srbd_residual(A_residual=self._A_residual[i], B_residual=self._B_residual[i])
-            self.mpc[i].update_state(self._state[i].cpu().numpy())
-            self.mpc[i].run()
-            
-            accel_gyro.append(self.mpc[i].accel_gyro(self._root_rot_mat[i].cpu().numpy()))
-            grfm.append(self.mpc[i].grfm)
-            gait_contact.append(self.mpc[i].contact_state)
-            swing_phase.append(self.mpc[i].swing_phase)
-            reibert_fps.append(self.mpc[i].reibert_foot_placement)
-            augmented_fps.append(self.mpc[i].foot_placement)
-        
-        self._accel_gyro_mpc = torch.from_numpy(np.array(accel_gyro)).to(self.device).view(self.num_envs, 6).to(torch.float32)
-        self._grfm_mpc = torch.from_numpy(np.array(grfm)).to(self.device).view(self.num_envs, 12).to(torch.float32)
-        self._gait_contact = torch.from_numpy(np.array(gait_contact)).to(self.device).view(self.num_envs, 2).to(torch.float32)
-        self._swing_phase = torch.from_numpy(np.array(swing_phase)).to(self.device).view(self.num_envs, 2).to(torch.float32)
-        self._reibert_fps = torch.from_numpy(np.array(reibert_fps)).to(self.device).view(self.num_envs, 4).to(torch.float32)
-        self._augmented_fps = torch.from_numpy(np.array(augmented_fps)).to(self.device).view(self.num_envs, 4).to(torch.float32)
-    
     def _split_action(self, policy_action:torch.Tensor)->torch.Tensor:
         """
         Split policy action into centroidal acceleration,
@@ -194,6 +160,9 @@ class HierarchicalArch(BaseArch):
         # centroidal_accel = torch.bmm(self._root_rot_mat, centroidal_accel.unsqueeze(-1)).squeeze(-1)
         self._A_residual[:, 6:9, -1] = centroidal_accel.cpu().numpy()
         
+        # get proprioceptive
+        self._get_state()
+
         # run mpc controller
         self._run_mpc()
         
@@ -603,6 +572,9 @@ class HierarchicalArchPrime(HierarchicalArch):
         self._A_residual[:, 6:9, -1] = centroidal_accel.cpu().numpy()
         self._A_residual[:, 9:12, -1] = centroidal_ang_accel.cpu().numpy()
         
+        # get proprioceptive
+        self._get_state()
+
         # run mpc controller
         self._run_mpc()
         
@@ -708,6 +680,9 @@ class HierarchicalArchPrimeFull(HierarchicalArch):
         self._B_residual[:, 9:12, 0:3] = torch.diag_embed(added_mass_inv1).cpu().numpy()
         self._B_residual[:, 9:12, 3:6] = torch.diag_embed(added_mass_inv2).cpu().numpy()
 
+        # get proprioceptive
+        self._get_state()
+        
         # run mpc controller
         self._run_mpc()
 
