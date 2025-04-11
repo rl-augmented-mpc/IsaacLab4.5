@@ -21,13 +21,12 @@ from isaaclab_tasks.direct.hector.common.task_reward import VelocityTrackingRewa
 from isaaclab_tasks.direct.hector.common.task_penalty import OrientationRegularizationPenalty, ActionRegularizationPenalty, \
     TwistPenalty, FeetSlidePenalty, JointPenalty, ActionSaturationPenalty, TerminationPenalty, CurriculumActionRegularizationPenalty, \
         FootDistanceRegularizationPenalty, CurriculumTorqueRegularizationPenalty, VelocityPenalty, AngularVelocityPenalty
-
-# Task cfg
 from isaaclab_tasks.direct.hector.common.sampler import CircularSamplerWithLimit, BinaryOrientationSampler
 from isaaclab_tasks.direct.hector.common.curriculum import  CurriculumRateSampler, CurriculumLineSampler, CurriculumUniformLineSampler, \
     CurriculumUniformCubicSampler, CurriculumQuaternionSampler
 from isaaclab_tasks.direct.hector.core_cfg import terrain_cfg
 
+# Task cfg
 from isaaclab_tasks.direct.hector.task_cfg.hierarchical_arch_cfg import HierarchicalArchCfg
 
 # macros 
@@ -130,8 +129,8 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     
     # penalty
     orientation_penalty_parameter: OrientationRegularizationPenalty = OrientationRegularizationPenalty(
-        roll_penalty_weight=0.5, 
-        pitch_penalty_weight=0.5, 
+        roll_penalty_weight=0.33, 
+        pitch_penalty_weight=0.33, 
         roll_range=(torch.pi/6, torch.pi/3), 
         pitch_range=(torch.pi/6, torch.pi/3))
     
@@ -157,4 +156,4 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         torque_penalty_weight_end=1e-4, 
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1),
     )
-    action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.5, action_bound=(0.9, 1.0))
+    action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.66, action_bound=(0.9, 1.0))

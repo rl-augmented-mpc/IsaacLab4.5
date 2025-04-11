@@ -413,23 +413,17 @@ class BaseArch(DirectRLEnv):
     def _get_dones(self)->tuple[torch.Tensor, torch.Tensor]:
         raise NotImplementedError
     
-    def log_episode_reward(self)->None:
+    def log_episode_return(self)->None:
         raise NotImplementedError
     
     def log_state(self)->None:
-        log = {}
-        if self.common_step_counter % self.cfg.num_steps_per_env:
-            # add state to log
-            pass
-        self.extras["log"].update(log)
+        raise NotImplementedError
     
     def log_action(self)->None:
-        log = {}
-        if self.common_step_counter % self.cfg.num_steps_per_env:
-            # add action to log
-            pass
-        self.extras["log"].update(log)
-
+        raise NotImplementedError
+    
+    def log_reward(self)->None:
+        raise NotImplementedError
     
     def _configure_gym_env_spaces(self):
         """
