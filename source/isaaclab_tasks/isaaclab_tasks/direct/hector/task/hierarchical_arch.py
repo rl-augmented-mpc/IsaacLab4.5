@@ -65,8 +65,8 @@ class HierarchicalArch(BaseArch):
             "action_penalty": torch.zeros(self.num_envs, device=self.device),
             "energy_penalty": torch.zeros(self.num_envs, device=self.device),
             "torque_penalty": torch.zeros(self.num_envs, device=self.device),
-            "toe_left_penalty": torch.zeros(self.num_envs, device=self.device),
-            "toe_right_penalty": torch.zeros(self.num_envs, device=self.device),
+            "toe_left_joint_penalty": torch.zeros(self.num_envs, device=self.device),
+            "toe_right_joint_penalty": torch.zeros(self.num_envs, device=self.device),
         }
     
     def _setup_scene(self)->None:
@@ -393,6 +393,7 @@ class HierarchicalArch(BaseArch):
             self._actions, 
             self._previous_actions, 
             self.common_step_counter//self.cfg.num_steps_per_env)
+        
         self.torque_penalty = self.cfg.torque_penalty_parameter.compute_penalty(self._joint_actions, self.common_step_counter//self.cfg.num_steps_per_env)
         self.action_saturation_penalty = self.cfg.action_saturation_penalty_parameter.compute_penalty(self._actions)
         
@@ -424,6 +425,7 @@ class HierarchicalArch(BaseArch):
          
         reward = self.height_reward + self.lin_vel_reward + self.ang_vel_reward + self.position_reward + self.yaw_reward + \
             self.swing_foot_tracking_reward + self.alive_reward
+        
         penalty = self.roll_penalty + self.pitch_penalty + self.action_penalty + self.energy_penalty + \
             self.foot_slide_penalty + self.action_saturation_penalty + self.foot_distance_penalty + \
             self.toe_left_joint_penalty + self.toe_right_joint_penalty + \

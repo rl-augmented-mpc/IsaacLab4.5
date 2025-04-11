@@ -81,7 +81,7 @@ class VelocityTrackingReward:
                        root_pos: torch.Tensor, 
                        root_lin_vel_b: torch.Tensor, 
                        root_ang_vel_b: torch.Tensor,
-                       reference_height:float,
+                       reference_height:torch.Tensor,
                        desired_root_lin_vel_b: torch.Tensor, 
                        desired_root_ang_vel_b: torch.Tensor)->tuple:
         """
@@ -92,7 +92,7 @@ class VelocityTrackingReward:
         desired_root_ang_vel_b: (num_envs, 1)
         """
         
-        height_error = torch.abs(reference_height - root_pos[:, 2:3]).view(-1, 1)
+        height_error = torch.abs(reference_height.view(-1, 1) - root_pos[:, 2:3]).view(-1, 1)
         lin_vel_error = torch.norm(desired_root_lin_vel_b - root_lin_vel_b[:, :2], dim=1).view(-1, 1) # norm(error_vx, error_vy)
         ang_vel_error = torch.abs(desired_root_ang_vel_b - root_ang_vel_b[:, 2:]).view(-1, 1)
         
