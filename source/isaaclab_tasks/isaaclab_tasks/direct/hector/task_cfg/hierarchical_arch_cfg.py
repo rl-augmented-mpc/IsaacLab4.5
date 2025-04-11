@@ -39,22 +39,15 @@ class HierarchicalArchCfg(BaseArchCfg):
     # ================================
     # Common configurations
     # ================================
-    seed = 10
+    seed = 42
     inference = False
     curriculum_inference = False
+    dt=1/400 # 400Hz
     
-    dt=1/500 #500Hz 
-    rendering_interval = 10 # 50Hz
-    mpc_decimation = 5 # 100Hz
-    decimation = 5 # 100Hz (RL)
-    
-    reference_height = 0.55
-    nominal_gait_stepping_frequency = 1.0
-    nominal_foot_height = 0.12
-    
-    terrain = terrain_cfg.CurriculumFrictionPatchTerrain
-    
-    # RL observation, action parameters
+    # ===============================
+    # observation/action space
+    # ===============================
+
     action_space = 3
     observation_space = 54
     state_space = 54
@@ -68,6 +61,14 @@ class HierarchicalArchCfg(BaseArchCfg):
     observation_ub = 50.0
     clip_action = True # clip to -1 to 1
     scale_action = True # scale max value to action_ub
+
+
+    # ================================
+    # Environment configurations
+    # ================================
+
+    terrain = terrain_cfg.CurriculumFrictionPatchTerrain
+    # terrain = terrain_cfg.BaseTerrain
     
     # scene 
     scene: InteractiveSceneCfg = InteractiveSceneCfg(
@@ -75,10 +76,15 @@ class HierarchicalArchCfg(BaseArchCfg):
         env_spacing=0.0,
         )
     
+    # ================================
+    # Task configurations
+    # ================================
+
     # Curriculum sampler
     curriculum_max_steps = 3000
     center = (terrain.center_position[0], terrain.center_position[1], 0.0)
 
+    # robot spawner
     robot_position_sampler = CircularSampler(radius=0.6, z_range=(0.55, 0.55))
     robot_quat_sampler = CircularOrientationSampler(
         x_range=(-math.pi/18, math.pi/18),
@@ -94,27 +100,23 @@ class HierarchicalArchCfg(BaseArchCfg):
         z_range_start=(0.0, 0.0), z_range_end=(-0.5, 0.5),
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
     )
-    
-    # robot_double_support_length_sampler = CurriculumUniformLineSampler(
-    #     x_range_start=(int(0.0/dt), int(0.05/dt)), x_range_end=(int(0.0/dt), int(0.15/dt)),
-    #     rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
-    # )
-    # robot_single_support_length_sampler = CurriculumUniformLineSampler(
-    #     x_range_start=(int(0.3/dt), int(0.3/dt)), x_range_end=(int(0.4/dt), int(0.45/dt)),
-    #     rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
-    # )
+
+    # robot gait
+    each_phase_time = 0.2
+    ssp_duration = int(each_phase_time/dt) # single support 0.2s
+    dsp_duration = int(0.0/dt) # double support
     robot_double_support_length_sampler = CurriculumUniformLineSampler(
-        x_range_start=(int(0.0/dt), int(0.0/dt)), x_range_end=(int(0.0/dt), int(0.0/dt)),
+        x_range_start=(dsp_duration, dsp_duration), x_range_end=(dsp_duration, dsp_duration),
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
     )
     robot_single_support_length_sampler = CurriculumUniformLineSampler(
-        x_range_start=(int(0.2/dt), int(0.2/dt)), x_range_end=(int(0.2/dt), int(0.2/dt)),
+        x_range_start=(ssp_duration, ssp_duration), x_range_end=(ssp_duration, ssp_duration),
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
     )
     
-    ############################
-    ## Reward configurations ###
-    ############################
+    # ========================
+    # Reward configurations 
+    # ========================
     
     # reward
     reward_parameter: VelocityTrackingReward = VelocityTrackingReward(height_similarity_weight=0.66, 
@@ -217,14 +219,3 @@ class HierarchicalArchPrimeFullCfg(HierarchicalArchCfg):
         [-v for v in inv_inertia_scale] + [-v for v in inv_inertia_scale]
     action_ub = lin_accel_scale + ang_accel_scale + inv_mass_scale_ub + inv_mass_scale_ub + \
         inv_inertia_scale + inv_inertia_scale
-
-@configclass
-class HierarchicalArchAccelPFCfg(HierarchicalArchCfg):
-    episode_length_s =20
-    observation_space = 64
-    state_space = 64
-    action_space = 10
-    
-    # action bound hyper parameter
-    action_lb = [-6.0, -6.0, -6.0] + [-0.2, -2.0, -2.0] + [-0.02, -0.02, -0.01, -0.01]
-    action_ub = [6.0,  6.0, 6.0] + [0.2, 2.0, 2.0] + [0.1, 0.1, 0.01, 0.01]

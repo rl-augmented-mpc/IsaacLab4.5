@@ -13,7 +13,7 @@ params:
 
   model:
     # name: continuous_a2c_logstd
-    name: continuous_a2c_tanh
+    name: continuous_a2c_tanh # tanh squashed gaussian
 
   # doesn't have this fine grained control but made it close
   network:
@@ -47,8 +47,8 @@ params:
   load_path: '' # path to the checkpoint to load
 
   config:
-    name: ppo_rl_games_friction_mlp
-    # name: ppo_rl_games_discrete_mlp
+    # name: ppo_rl_games_friction_mlp
+    name: ppo_rl_games_stepping_stone_mlp
     env_name: rlgpu
     device: 'cuda:0'
     device_name: 'cuda:0'
@@ -75,8 +75,7 @@ params:
     truncate_grads: True
     e_clip: 0.2
     horizon_length: 24
-    minibatch_size: 384 # num_envs*horizon/num_mini_batch
-    # minibatch_size_per_env: 4
+    minibatch_size: 384 # num_envs*horizon/num_mini_batch=64*24/4
     mini_epochs: 5
     critic_coef: 0.5
     clip_value: false
@@ -90,4 +89,4 @@ params:
     logger: wandb
     wandb_project_name: rl_mpc
     wandb_entity: jnskkmr
-    name: ppo_rl_games_friction_mlp
+    name: ppo_rl_games_stepping_stone_mlp

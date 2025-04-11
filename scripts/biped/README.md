@@ -4,7 +4,7 @@
 
 ### Install IsaacSim 4.5
 See this [docs](https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/pip_installation.html#installing-isaac-sim) \
-Use conda and pip install of IsaacSim4.5. 
+Use conda and pip install IsaacSim4.5. 
 
 ### Clone this repository
 ```bash
@@ -30,6 +30,13 @@ git clone https://github.gatech.edu/GeorgiaTechLIDARGroup/HECTOR_HW_new.git -b f
 ./isaaclab.sh -p -m pip install -e {/path/to/hector/controller}
 ```
 
+### Install RL libraries
+We use modified library of rsl-rl and rl_games (recommended). 
+```bash
+git clone git@github.com:jnskkmhr/rl_games.git
+git clone -b devel git@github.com:jnskkmhr/rsl_rl.git
+```
+
 ## Run code
 
 ### Run MPC
@@ -41,17 +48,22 @@ Only MPC
 ```
 
 ### Train RL 
-This is only available for direct based 
+
+#### (RSl-RL)
 ```bash
-./isaaclab.sh -p scripts/biped/rsl/train.py --task Hector-Hierarchical-Prime-Rigid --num_envs 64 --videos --headless
+./isaaclab.sh -p scripts/biped/rsl_rl/train.py --task SteppingStone --num_envs 64 --video --headless
 ```
 After a while, you will see the logs under `logs` directory (for example `logs/rsl_rl/ppo_rsl_rl_lstm_friction/2025-03-17_15-31-27`). 
 
-### Run trained policy 
-This is only available for direct based 
+#### (RL-Games)
 ```bash
-./isaaclab.sh -p scripts/biped/rsl/benchmark.py --task Hector-Hierarchical-Prime-Rigid --num_envs 5 --use_rl
+./isaaclab.sh -p scripts/biped/rl_games/train.py --task SteppingStone --num_envs 64 --video --headless
+```
+
+### Run trained policy 
+```bash
+./isaaclab.sh -p scripts/biped/rsl_rl/benchmark.py --task Hector-Hierarchical-Prime-Rigid --num_envs 5 --use_rl
 
 # with logging
-./isaaclab.sh -p scripts/biped/rsl/benchmark.py --task Hector-Hierarchical-Prime-Rigid --num_envs 5 --use_rl --log
+./isaaclab.sh -p scripts/biped/rsl_rl/benchmark.py --task Hector-Hierarchical-Prime-Rigid --num_envs 5 --use_rl --log
 ```

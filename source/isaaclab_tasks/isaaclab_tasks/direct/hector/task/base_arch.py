@@ -10,12 +10,18 @@ import gymnasium as gym
 import numpy as np
 import torch
 from collections.abc import Sequence
+from dataclasses import MISSING
 import carb
+
+# IsaacSim core
+import omni.kit.app
+import omni.log
 
 # Isaaclab core
 import isaaclab.sim as sim_utils
 from isaaclab.assets import Articulation
 from isaaclab.envs import DirectRLEnv
+from isaaclab.envs.utils.spaces import sample_space, spec_to_gym_space
 from isaaclab.sensors import ContactSensor, RayCaster
 from isaaclab.utils.math import matrix_from_quat, quat_from_matrix
 
@@ -91,13 +97,16 @@ class BaseArch(DirectRLEnv):
         
         # Buffer for residual learning
         self._joint_action_augmented = np.zeros((self.num_envs, 10), dtype=np.float32)
+        self._joint_position_residuals = np.zeros((self.num_envs, 10), dtype=np.float32)
         self._grfm_residuals = np.zeros((self.num_envs, 12), dtype=np.float32)
         self._accel_peturbation = np.zeros((self.num_envs, 3), dtype=np.float32)
         self._ang_accel_peturbation = np.zeros((self.num_envs, 3), dtype=np.float32)
         self._A_residual = np.zeros((self.num_envs, 13, 13), dtype=np.float32)
         self._B_residual = np.zeros((self.num_envs, 13, 12), dtype=np.float32)
         self._foot_placement_residuals = np.zeros((self.num_envs,4), dtype=np.float32)
+        self.residual_forward_vel = np.zeros(self.num_envs, dtype=np.float32)
         self._gait_stepping_frequency = self.cfg.nominal_gait_stepping_frequency * np.ones(self.num_envs, dtype=np.float32)
+        self.nominal_foot_height = self.cfg.nominal_foot_height * np.ones(self.num_envs, dtype=np.float32)
         self._foot_height = self.cfg.nominal_foot_height * np.ones(self.num_envs, dtype=np.float32)
         
         # desired commands
@@ -168,21 +177,6 @@ class BaseArch(DirectRLEnv):
         
         # light
         self._light = sim_utils.spawn_light(self.cfg.light.prim_path, self.cfg.light.spawn, orientation=(0.819152, 0.0, 0.5735764, 0.0))
-    
-    def _update_mpc_input(self)->None:
-        """
-        Set the input for MPC controller.
-        """
-        self._set_mpc_reference()
-        for i in range(len(self.mpc)):
-            lin_velocity = self._desired_root_lin_vel_b[i].cpu().numpy()
-            ang_velocity = self._desired_root_ang_vel_b[i].cpu().numpy()
-            desired_twist = np.array([lin_velocity[0], lin_velocity[1], ang_velocity[0]], dtype=np.float32)
-            self.mpc[i].set_command(gait_num=self._desired_gait[i], 
-                                roll_pitch=self._desired_roll_pitch[i], 
-                                twist=desired_twist, 
-                                height=self._desired_height[i])
-        self.mpc_ctrl_counter += 1
     
     def _pre_physics_step(self, actions: torch.Tensor) -> None:
         """
@@ -277,6 +271,7 @@ class BaseArch(DirectRLEnv):
         self._reibert_fps_b[:, 3] = -self._reibert_fps[:, 2]*torch.sin(self._root_yaw.squeeze()) + self._reibert_fps[:, 3]*torch.cos(self._root_yaw.squeeze()) - self._root_pos[:, 1]
 
         self._augmented_fps = torch.from_numpy(np.array(augmented_fps)).to(self.device).view(self.num_envs, 4).to(torch.float32)
+
         # transform augmented fps to body frame
         self._augmented_fps_b[:, 0] = self._augmented_fps[:, 0]*torch.cos(self._root_yaw.squeeze()) + self._augmented_fps[:, 1]*torch.sin(self._root_yaw.squeeze()) - self._root_pos[:, 0]
         self._augmented_fps_b[:, 1] = -self._augmented_fps[:, 0]*torch.sin(self._root_yaw.squeeze()) + self._augmented_fps[:, 1]*torch.cos(self._root_yaw.squeeze()) - self._root_pos[:, 1]
@@ -285,7 +280,22 @@ class BaseArch(DirectRLEnv):
 
         self._foot_pos_b = torch.from_numpy(np.array(foot_pos_b)).to(self.device).view(self.num_envs, 6).to(torch.float32)
         self._ref_foot_pos_b = torch.from_numpy(np.array(foot_ref_pos_b)).to(self.device).view(self.num_envs, 6).to(torch.float32)
-        
+    
+    def _update_mpc_input(self)->None:
+        """
+        Set the input for MPC controller.
+        """
+        self._set_mpc_reference()
+        for i in range(len(self.mpc)):
+            lin_velocity = self._desired_root_lin_vel_b[i].cpu().numpy()
+            ang_velocity = self._desired_root_ang_vel_b[i].cpu().numpy()
+            desired_twist = np.array([lin_velocity[0], lin_velocity[1], ang_velocity[0]], dtype=np.float32)
+            self.mpc[i].set_command(gait_num=self._desired_gait[i], 
+                                roll_pitch=self._desired_roll_pitch[i], 
+                                twist=desired_twist, 
+                                height=self._desired_height[i])
+        self.mpc_ctrl_counter += 1
+
     def _set_mpc_reference(self):
         """
         The gait, reference height, roll, pitch, and command velocity are set here.
@@ -293,9 +303,9 @@ class BaseArch(DirectRLEnv):
         Then, gradually increase the command velocity for the first 0.5s (ramp up phase).
         After this, the command should be set to gait=2 and desired velocity.
         """
-        # ramp_up_step = int(0.1/self.physics_dt)
-        # ramp_up_coef = torch.clip((self.mpc_ctrl_counter - self.cfg.gait_change_cutoff)/ramp_up_step, 0.0, 1.0)
-        ramp_up_coef = 1.0
+        ramp_up_step = int(0.1/self.physics_dt)
+        ramp_up_coef = torch.clip(self.mpc_ctrl_counter/ramp_up_step, 0.0, 1.0)
+        # ramp_up_coef = 1.0
         self._desired_root_lin_vel_b[:, 0] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 0]).to(self.device)
         self._desired_root_lin_vel_b[:, 1] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 1]).to(self.device)
         self._desired_root_ang_vel_b[:, 0] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 2]).to(self.device)
@@ -407,7 +417,6 @@ class BaseArch(DirectRLEnv):
     def log_episode_reward(self)->None:
         raise NotImplementedError
     
-    ### specific to the architecture ###
     def log_state(self)->None:
         log = {}
         if self.common_step_counter % self.cfg.num_steps_per_env:
@@ -421,3 +430,43 @@ class BaseArch(DirectRLEnv):
             # add action to log
             pass
         self.extras["log"].update(log)
+
+    
+    def _configure_gym_env_spaces(self):
+        """
+        Configure the action and observation spaces for the Gym environment.
+        Modified from the parent class to handle history and exteroceptive observations.
+        """
+        # show deprecation message and overwrite configuration
+        if self.cfg.num_actions is not None:
+            omni.log.warn("DirectRLEnvCfg.num_actions is deprecated. Use DirectRLEnvCfg.action_space instead.")
+            if isinstance(self.cfg.action_space, type(MISSING)):
+                self.cfg.action_space = self.cfg.num_actions
+        if self.cfg.num_observations is not None:
+            omni.log.warn(
+                "DirectRLEnvCfg.num_observations is deprecated. Use DirectRLEnvCfg.observation_space instead."
+            )
+            if isinstance(self.cfg.observation_space, type(MISSING)):
+                self.cfg.observation_space = self.cfg.num_observations
+        if self.cfg.num_states is not None:
+            omni.log.warn("DirectRLEnvCfg.num_states is deprecated. Use DirectRLEnvCfg.state_space instead.")
+            if isinstance(self.cfg.state_space, type(MISSING)):
+                self.cfg.state_space = self.cfg.num_states
+
+        # set up spaces
+        self.single_observation_space = gym.spaces.Dict()
+        self.single_observation_space["policy"] = spec_to_gym_space(self.cfg.observation_space*self.cfg.num_history + self.cfg.num_extero_observations)
+        self.single_action_space = spec_to_gym_space(self.cfg.action_space)
+
+        # batch the spaces for vectorized environments
+        self.observation_space = gym.vector.utils.batch_space(self.single_observation_space["policy"], self.num_envs)
+        self.action_space = gym.vector.utils.batch_space(self.single_action_space, self.num_envs)
+
+        # optional state space for asymmetric actor-critic architectures
+        self.state_space = None
+        if self.cfg.state_space:
+            self.single_observation_space["critic"] = spec_to_gym_space(self.cfg.state_space*self.cfg.num_history + self.cfg.num_extero_observations)
+            self.state_space = gym.vector.utils.batch_space(self.single_observation_space["critic"], self.num_envs)
+
+        # instantiate actions (needed for tasks for which the observations computation is dependent on the actions)
+        self.actions = sample_space(self.single_action_space, self.sim.device, batch_size=self.num_envs, fill_value=0)

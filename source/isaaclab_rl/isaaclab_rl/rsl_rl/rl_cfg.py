@@ -38,6 +38,14 @@ class RslRlPpoActorCriticCfg:
     
     rnn_type: str = "GRU" # [GRU, LSTM]
 
+    clip_actions: bool = False
+    """Whether to clip the actions. Default is False."""
+
+    initializer: str = "default"
+    """The initializer for the networks. Default is "default"."""
+
+    init_last_layer_zero: bool = False
+
 
 @configclass
 class RslRlPpoAlgorithmCfg:

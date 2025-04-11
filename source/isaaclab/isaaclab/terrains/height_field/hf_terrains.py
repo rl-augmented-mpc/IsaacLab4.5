@@ -434,3 +434,92 @@ def stepping_stones_terrain(difficulty: float, cfg: hf_terrains_cfg.HfSteppingSt
     hf_raw[x1:x2, y1:y2] = 0
     # round off the heights to the nearest vertical step
     return np.rint(hf_raw).astype(np.int16)
+
+
+def generate_fractal_noise_2d(shape, exponent=2.0):
+    """
+    Generate a 2D fractal noise using spectral synthesis.
+    
+    Args:
+        shape (tuple of int): The (width, height) of the output noise.
+        exponent (float): Controls the roughness (higher values lead to smoother noise).
+        
+    Returns:
+        A 2D numpy array of noise values normalized to the range [-1, 1].
+    """
+    # Generate random complex numbers in Fourier space
+    noise_fft = np.fft.fftn(np.random.randn(*shape))
+    # Create frequency grids for each dimension
+    freq_x = np.fft.fftfreq(shape[0])[:, None]
+    freq_y = np.fft.fftfreq(shape[1])[None, :]
+    # Compute the radius in frequency space
+    freq = np.sqrt(freq_x**2 + freq_y**2)
+    # Avoid division by zero at the zero frequency
+    freq[0, 0] = 1.0
+    # Apply a power-law decay to get a fractal (1/f^(exponent/2)) spectrum
+    noise_fft /= (freq ** (exponent / 2.0))
+    # Transform back to spatial domain
+    noise = np.fft.ifftn(noise_fft).real
+    # Normalize to the range [-1, 1]
+    noise -= noise.min()
+    noise /= noise.max()
+    noise = 2 * noise - 1
+    return noise
+
+@height_field_to_mesh
+def fractale_terrain(difficulty: float, cfg: hf_terrains_cfg.HfFractalTerrainCfg) -> np.ndarray:
+    r"""Generate a terrain combining a sinusoidal base pattern with added fractal noise.
+
+    The base terrain is generated using a sinusoidal wave pattern:
+    
+    .. math::
+    
+        h_{sin}(x, y) =  A \left(\sin\left(\frac{2 \pi x}{\lambda}\right) + \cos\left(\frac{2 \pi y}{\lambda}\right) \right)
+
+    Fractal noise is then computed and blended into the sinusoidal base. The final height at a point becomes:
+    
+    .. math::
+    
+        h(x, y) = h_{sin}(x, y) + \alpha \, h_{fractal}(x, y)
+
+    where :math:`\alpha` is proportional to the difficulty (0 means no fractal detail, 1 means full fractal noise contribution).
+
+    Args:
+        difficulty: The difficulty of the terrain, between 0 and 1.
+        cfg: The configuration for the terrain.
+    
+    Returns:
+        The height field of the terrain as a 2D numpy array with discretized heights.
+        The shape of the array is (width, length), corresponding to the number of points along the x and y axes.
+    
+    Raises:
+        ValueError: When the number of waves is non-positive.
+    """
+
+    # Resolve terrain configuration.
+    amplitude = cfg.amplitude_range[0] + difficulty * (cfg.amplitude_range[1] - cfg.amplitude_range[0])
+    # Switch parameters to discrete units.
+    width_pixels = int(cfg.size[0] / cfg.horizontal_scale)
+    length_pixels = int(cfg.size[1] / cfg.horizontal_scale)
+    amplitude_pixels = int(0.5 * amplitude / cfg.vertical_scale)
+
+    # Create meshgrid for the terrain.
+    x = np.arange(0, width_pixels)
+    y = np.arange(0, length_pixels)
+    xx, yy = np.meshgrid(x, y, sparse=True)
+    xx = xx.reshape(width_pixels, 1)
+    yy = yy.reshape(1, length_pixels)
+    
+    # Generate the fractal noise component.
+    fractal_noise = amplitude_pixels * generate_fractal_noise_2d((width_pixels, length_pixels), exponent=2.0)
+    
+    # Blend the sinusoidal terrain with the fractal noise.
+    # Here, 'difficulty' acts as a blending factor for the fractal details.
+    hf_raw = difficulty * fractal_noise
+    
+    # set center of the terrain to 0
+    flat_x, flat_y = cfg.flat_terrain_size
+    hf_raw[width_pixels//2-flat_x//2:width_pixels//2+flat_x//2, length_pixels//2-flat_y//2:length_pixels//2+flat_y//2] = 0
+    
+    # Round off the heights to the nearest vertical step.
+    return np.rint(hf_raw).astype(np.int16)
