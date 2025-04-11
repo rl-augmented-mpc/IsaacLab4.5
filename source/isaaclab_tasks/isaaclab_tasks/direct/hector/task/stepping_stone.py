@@ -59,8 +59,8 @@ class SteppingStone(HierarchicalArch):
         """
         Split policy action into useful form
         """
-        stepping_frequency_traj = policy_action[:, :10]
-        foot_height_traj = policy_action[:, 10:20]
+        stepping_frequency_traj = policy_action[:, :self.cfg.traj_sample]
+        foot_height_traj = policy_action[:, self.cfg.traj_sample:self.cfg.traj_sample*2]
         return stepping_frequency_traj, foot_height_traj
     
     def _apply_action(self)->None:
@@ -82,9 +82,9 @@ class SteppingStone(HierarchicalArch):
         stepping_frequency = stepping_frequency_traj[env_idx, time_idx]
         foot_clearance = foot_height_traj[env_idx, time_idx]
         
-        # self._gait_stepping_frequency = self.cfg.nominal_gait_stepping_frequency + stepping_frequency.cpu().numpy()
-        # self._foot_height = self.nominal_foot_height + foot_clearance.cpu().numpy()
-        # self._desired_height = self.cfg.reference_height + (self.cfg.reference_height + self.height_map[:, self.height_map.shape[1]//2]).cpu().numpy() # type: ignore
+        self._gait_stepping_frequency = self.cfg.nominal_gait_stepping_frequency + stepping_frequency.cpu().numpy()
+        self._foot_height = self.nominal_foot_height + foot_clearance.cpu().numpy()
+        self._desired_height = self.cfg.reference_height + (self.cfg.reference_height + self.height_map[:, self.height_map.shape[1]//2]).cpu().numpy() # type: ignore
         
         # get proprioceptive
         self._get_state()
@@ -154,8 +154,8 @@ class SteppingStone(HierarchicalArch):
     def log_action(self)->None:
         log = {}
         if self.common_step_counter % self.cfg.num_steps_per_env:
-            stepping_frequency = self._actions_op[:, 0:10].mean(dim=0).cpu().numpy()
-            foot_height = self._actions_op[:, 10:20].mean(dim=0).cpu().numpy()
+            stepping_frequency = self._actions_op[:, 0:self.cfg.traj_sample].mean(dim=0).cpu().numpy()
+            foot_height = self._actions_op[:, self.cfg.traj_sample:self.cfg.traj_sample*2].mean(dim=0).cpu().numpy()
 
             log["action/stepping_frequency_t1"] = stepping_frequency[0:1]
             log["action/stepping_frequency_t2"] = stepping_frequency[1:2]
