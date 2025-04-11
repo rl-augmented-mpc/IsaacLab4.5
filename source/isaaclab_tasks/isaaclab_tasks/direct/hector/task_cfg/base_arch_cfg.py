@@ -50,7 +50,7 @@ class BaseArchCfg(DirectRLEnvCfg):
     curriculum_inference = False
     episode_length_s = 10.0
     num_steps_per_env = 24 # RL horizon length
-    dt=1/400
+    dt=1/500
 
     # ============================
     # MPC configurations
@@ -129,7 +129,7 @@ class BaseArchCfg(DirectRLEnvCfg):
     # force sensor
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
         prim_path=f"{ENV_REGEX_NS}/Robot/[L|R]_toe", 
-        # filter_prim_paths_expr = ["/World/ground"],
+        filter_prim_paths_expr = ["/World/ground"],
         history_length=3, 
         update_period=dt*decimation, 
         track_air_time=False

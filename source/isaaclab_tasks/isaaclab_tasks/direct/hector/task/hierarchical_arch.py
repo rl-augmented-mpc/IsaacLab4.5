@@ -56,17 +56,18 @@ class HierarchicalArch(BaseArch):
         }
         
         self.episode_penalty_sums = {
+            "roll_penalty": torch.zeros(self.num_envs, device=self.device), # roll penalty for the root orientation
+            "pitch_penalty": torch.zeros(self.num_envs, device=self.device), # pitch penalty for the root orientation
             "velocity_penalty": torch.zeros(self.num_envs, device=self.device), # this is a velocity penalty for the root linear velocity
             "ang_velocity_penalty": torch.zeros(self.num_envs, device=self.device), # angular velocity penalty for the root angular velocity
             "feet_slide_penalty": torch.zeros(self.num_envs, device=self.device),
-            "hip_pitch_deviation_penalty": torch.zeros(self.num_envs, device=self.device),
             "foot_distance_penalty": torch.zeros(self.num_envs, device=self.device),
+            "toe_left_joint_penalty": torch.zeros(self.num_envs, device=self.device),
+            "toe_right_joint_penalty": torch.zeros(self.num_envs, device=self.device),
             "action_saturation_penalty": torch.zeros(self.num_envs, device=self.device),
             "action_penalty": torch.zeros(self.num_envs, device=self.device),
             "energy_penalty": torch.zeros(self.num_envs, device=self.device),
             "torque_penalty": torch.zeros(self.num_envs, device=self.device),
-            "toe_left_joint_penalty": torch.zeros(self.num_envs, device=self.device),
-            "toe_right_joint_penalty": torch.zeros(self.num_envs, device=self.device),
         }
     
     def _setup_scene(self)->None:
@@ -469,7 +470,10 @@ class HierarchicalArch(BaseArch):
         self.episode_reward_sums["alive_reward"] += self.alive_reward
         self.episode_reward_sums["position_reward"] += self.position_reward
         self.episode_reward_sums["yaw_reward"] += self.yaw_reward
-
+        self.episode_reward_sums["swing_foot_tracking_reward"] += self.swing_foot_tracking_reward
+        
+        self.episode_penalty_sums["roll_penalty"] += self.roll_penalty
+        self.episode_penalty_sums["pitch_penalty"] += self.pitch_penalty
         self.episode_penalty_sums["velocity_penalty"] += self.velocity_penalty
         self.episode_penalty_sums["ang_velocity_penalty"] += self.ang_velocity_penalty
         self.episode_penalty_sums["feet_slide_penalty"] += self.foot_slide_penalty

@@ -84,7 +84,7 @@ class SteppingStone(HierarchicalArch):
         
         self._gait_stepping_frequency = self.cfg.nominal_gait_stepping_frequency + stepping_frequency.cpu().numpy()
         self._foot_height = self.nominal_foot_height + foot_clearance.cpu().numpy()
-        self._desired_height = self.cfg.reference_height + (self.cfg.reference_height + self.height_map[:, self.height_map.shape[1]//2]).cpu().numpy() # type: ignore
+        self._desired_height = self.cfg.reference_height + (self._raycaster.data.pos_w[:, 2].unsqueeze(1) + self.height_map[:, self.height_map.shape[1]//2]).cpu().numpy() # type: ignore
         
         # get proprioceptive
         self._get_state()

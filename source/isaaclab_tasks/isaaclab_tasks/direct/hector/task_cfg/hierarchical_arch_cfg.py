@@ -42,7 +42,7 @@ class HierarchicalArchCfg(BaseArchCfg):
     seed = 42
     inference = False
     curriculum_inference = False
-    dt=1/400 # 400Hz
+    dt=1/500
     
     # ===============================
     # observation/action space
