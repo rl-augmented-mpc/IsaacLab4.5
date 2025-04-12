@@ -83,14 +83,14 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     )
 
     # robot spawner
-    robot_position_sampler = CircularSamplerWithLimit(radius=1.0, z_range=(0.56, 0.56))
+    robot_position_sampler = CircularSamplerWithLimit(radius=1.5, z_range=(0.56, 0.56))
     robot_quat_sampler = BinaryOrientationSampler()
     terrain_curriculum_sampler = CurriculumLineSampler(
         x_start=0, x_end=terrain.num_curriculums-1,
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1)
     )
     robot_target_velocity_sampler = CurriculumUniformCubicSampler(
-        x_range_start=(0.3, 0.5), x_range_end=(0.3, 0.5),
+        x_range_start=(0.3, 0.6), x_range_end=(0.3, 0.6),
         y_range_start=(0.0, 0.0), y_range_end=(0.0, 0.0),
         z_range_start=(-0.0, 0.0), z_range_end=(-0.0, 0.0),
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1)
