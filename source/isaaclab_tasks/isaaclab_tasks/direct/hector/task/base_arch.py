@@ -277,7 +277,6 @@ class BaseArch(DirectRLEnv):
         Set the input for MPC controller.
         """
         self._set_mpc_reference()
-        print(self._desired_height)
         for i in range(len(self.mpc)):
             lin_velocity = self._desired_root_lin_vel_b[i].cpu().numpy()
             ang_velocity = self._desired_root_ang_vel_b[i].cpu().numpy()
