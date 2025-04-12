@@ -9,15 +9,14 @@ params:
     clip_actions: 1.0
 
   algo:
-    name: a2c_continuous
+    name: sac
 
   model:
-    # name: continuous_a2c_logstd
-    name: continuous_a2c_tanh # tanh squashed gaussian
+    name: soft_actor_critic
 
   # doesn't have this fine grained control but made it close
   network:
-    name: actor_critic
+    name: soft_actor_critic
     separate: False
     space:
       continuous:
@@ -43,13 +42,14 @@ params:
         # name: orthogonal
       regularizer:
         name: None
+      
+    log_std_bounds: [-5, 2]
 
   load_checkpoint: False # flag which sets whether to load the checkpoint
   load_path: '' # path to the checkpoint to load
 
   config:
-    # name: ppo_rl_games_friction_mlp
-    name: ppo_rl_games_stepping_stone_mlp
+    name: sac_rl_games_stepping_stone_mlp
     env_name: rlgpu
     device: 'cuda:0'
     device_name: 'cuda:0'
@@ -85,9 +85,22 @@ params:
     bound_loss_type: bound
     bounds_loss_coef: 0.001
     # use_smooth_clamp: True
+
+    # SAC specific parameters
+    num_steps_per_episode: 32
+    init_alpha: 1
+    alpha_lr: 0.0002
+    actor_lr: 0.0003
+    critic_lr: 0.0003
+    critic_tau: 0.005
+    batch_size: 1024
+    learnable_temperature: True
+    num_warmup_steps: 5 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
+    replay_buffer_size: 1000000
+    num_actors: -1
   
   log:
     logger: wandb
     wandb_project_name: rl_mpc
     wandb_entity: jnskkmr
-    name: ppo_rl_games_stepping_stone_mlp
+    name: sac_rl_games_stepping_stone_mlp

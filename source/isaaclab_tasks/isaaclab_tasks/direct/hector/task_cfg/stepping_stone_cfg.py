@@ -39,6 +39,7 @@ ENV_REGEX_NS = "/World/envs/env_.*"
 class SteppingStoneCfg(HierarchicalArchCfg):
     episode_length_s =20
     seed = 42
+    num_steps_per_env = 32
     inference = False
     curriculum_inference = False
 
@@ -90,7 +91,7 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1)
     )
     robot_target_velocity_sampler = CurriculumUniformCubicSampler(
-        x_range_start=(0.3, 0.6), x_range_end=(0.3, 0.6),
+        x_range_start=(0.3, 0.5), x_range_end=(0.3, 0.5),
         y_range_start=(0.0, 0.0), y_range_end=(0.0, 0.0),
         z_range_start=(-0.0, 0.0), z_range_end=(-0.0, 0.0),
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1)
@@ -103,8 +104,8 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     
     # reward
     reward_parameter: VelocityTrackingReward = VelocityTrackingReward(height_similarity_weight=0.66, 
-                                                            lin_vel_similarity_weight=0.33,
-                                                            ang_vel_similarity_weight=0.33,
+                                                            lin_vel_similarity_weight=0.66,
+                                                            ang_vel_similarity_weight=0.66,
                                                             height_similarity_coeff=4.0, 
                                                             lin_vel_similarity_coeff=4.0,
                                                             ang_vel_similarity_coeff=4.0,
@@ -120,10 +121,10 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         position_reward_mode="gaussian", 
         yaw_reward_mode="gaussian"
         )
-    alive_reward_parameter: AliveReward = AliveReward(alive_weight=0.66)
+    alive_reward_parameter: AliveReward = AliveReward(alive_weight=2.0)
     swing_foot_tracking_reward_parameter: SwingFootTrackingReward = SwingFootTrackingReward(
-        swing_foot_weight=0.5, 
-        swing_foot_coeff=2.0,
+        swing_foot_weight=0.33, 
+        swing_foot_coeff=4.0,
         swing_foot_reward_mode="gaussian"
     )
     
@@ -138,18 +139,18 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         velocity_penalty_weight=1.0, 
     )
     angular_velocity_penalty_parameter: AngularVelocityPenalty = AngularVelocityPenalty(
-        ang_velocity_penalty_weight=0.1,
+        ang_velocity_penalty_weight=0.01,
     )
     
     foot_distance_penalty_parameter: FootDistanceRegularizationPenalty = FootDistanceRegularizationPenalty(foot_distance_penalty_weight=0.5, foot_distance_bound=(0.3, 0.5))
-    foot_slide_penalty_parameter: FeetSlidePenalty = FeetSlidePenalty(feet_slide_weight=0.5)
+    foot_slide_penalty_parameter: FeetSlidePenalty = FeetSlidePenalty(feet_slide_weight=0.01)
 
     toe_left_joint_penalty_parameter: JointPenalty = JointPenalty(
-        joint_penalty_weight=0.33, 
+        joint_penalty_weight=1.0, 
         joint_pos_bound=(torch.pi/18, torch.pi/6),
     )
     toe_right_joint_penalty_parameter: JointPenalty = JointPenalty(
-        joint_penalty_weight=0.33, 
+        joint_penalty_weight=1.0, 
         joint_pos_bound=(torch.pi/18, torch.pi/6),
     )
     
@@ -165,4 +166,4 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         torque_penalty_weight_end=1e-4, 
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1),
     )
-    action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.0, action_bound=(0.9, 1.0))
+    action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.66, action_bound=(0.9, 1.0))
