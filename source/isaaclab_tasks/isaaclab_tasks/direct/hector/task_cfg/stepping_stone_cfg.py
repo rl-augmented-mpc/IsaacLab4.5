@@ -43,6 +43,9 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     inference = False
     curriculum_inference = False
 
+    clip_action = True
+    scale_action = True
+
     # ========================
     # Observation/Action space
     # ========================

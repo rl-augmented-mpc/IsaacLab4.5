@@ -98,8 +98,8 @@ class BaseArchCfg(DirectRLEnvCfg):
     action_ub:list[float] = [1]
     observation_lb:float = -1
     observation_ub:float = 1
-    clip_action:bool = True # clip to -1 to 1 with tanh
-    scale_action:bool = True # scale max value to action_ub
+    clip_action:bool = False # clip to -1 to 1 with tanh
+    scale_action:bool = False # scale max value to action_ub
     
     # ================================
     # Environment configurations
