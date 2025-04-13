@@ -12,8 +12,8 @@ params:
     name: a2c_continuous
 
   model:
-    name: continuous_a2c_logstd
-    # name: continuous_a2c_tanh # tanh squashed gaussian
+    # name: continuous_a2c_logstd
+    name: continuous_a2c_tanh # tanh squashed gaussian
 
   # doesn't have this fine grained control but made it close
   network:
