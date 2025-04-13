@@ -17,7 +17,7 @@ params:
   # doesn't have this fine grained control but made it close
   network:
     name: soft_actor_critic
-    separate: False
+    separate: True
     space:
       continuous:
         mu_activation: None

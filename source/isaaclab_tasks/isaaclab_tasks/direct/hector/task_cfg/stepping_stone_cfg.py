@@ -103,9 +103,9 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     # =====================
     
     # reward
-    reward_parameter: VelocityTrackingReward = VelocityTrackingReward(height_similarity_weight=0.66, 
-                                                            lin_vel_similarity_weight=0.66,
-                                                            ang_vel_similarity_weight=0.66,
+    reward_parameter: VelocityTrackingReward = VelocityTrackingReward(height_similarity_weight=0.33, 
+                                                            lin_vel_similarity_weight=0.33,
+                                                            ang_vel_similarity_weight=0.33,
                                                             height_similarity_coeff=4.0, 
                                                             lin_vel_similarity_coeff=4.0,
                                                             ang_vel_similarity_coeff=4.0,
@@ -121,7 +121,7 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         position_reward_mode="gaussian", 
         yaw_reward_mode="gaussian"
         )
-    alive_reward_parameter: AliveReward = AliveReward(alive_weight=2.0)
+    alive_reward_parameter: AliveReward = AliveReward(alive_weight=0.66)
     swing_foot_tracking_reward_parameter: SwingFootTrackingReward = SwingFootTrackingReward(
         swing_foot_weight=0.33, 
         swing_foot_coeff=4.0,
@@ -136,14 +136,16 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         pitch_range=(torch.pi/6, torch.pi/3))
     
     velocity_penalty_parameter: VelocityPenalty = VelocityPenalty(
-        velocity_penalty_weight=1.0, 
+        velocity_penalty_weight=2.0, 
     )
     angular_velocity_penalty_parameter: AngularVelocityPenalty = AngularVelocityPenalty(
         ang_velocity_penalty_weight=0.01,
     )
     
     foot_distance_penalty_parameter: FootDistanceRegularizationPenalty = FootDistanceRegularizationPenalty(foot_distance_penalty_weight=0.5, foot_distance_bound=(0.3, 0.5))
-    foot_slide_penalty_parameter: FeetSlidePenalty = FeetSlidePenalty(feet_slide_weight=0.01)
+    foot_slide_penalty_parameter: FeetSlidePenalty = FeetSlidePenalty(
+        feet_slide_weight=0.1
+        )
 
     toe_left_joint_penalty_parameter: JointPenalty = JointPenalty(
         joint_penalty_weight=1.0, 
@@ -157,8 +159,8 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     action_penalty_parameter: CurriculumActionRegularizationPenalty = CurriculumActionRegularizationPenalty(
         action_penalty_weight_start=5e-4, 
         action_penalty_weight_end=5e-4,
-        energy_penalty_weight_start=5e-3,
-        energy_penalty_weight_end=5e-3, 
+        energy_penalty_weight_start=5e-4,
+        energy_penalty_weight_end=5e-4, 
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1),
         )
     torque_penalty_parameter: CurriculumTorqueRegularizationPenalty = CurriculumTorqueRegularizationPenalty(
@@ -166,4 +168,4 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         torque_penalty_weight_end=1e-4, 
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1),
     )
-    action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.66, action_bound=(0.9, 1.0))
+    action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.0, action_bound=(0.9, 1.0))
