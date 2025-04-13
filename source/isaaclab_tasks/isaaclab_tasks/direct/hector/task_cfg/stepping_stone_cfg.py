@@ -43,7 +43,7 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     inference = False
     curriculum_inference = False
 
-    clip_action = True
+    clip_action = False
     scale_action = True
 
     # ========================
