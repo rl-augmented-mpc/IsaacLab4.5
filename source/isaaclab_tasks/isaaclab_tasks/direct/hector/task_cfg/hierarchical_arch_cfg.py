@@ -59,7 +59,7 @@ class HierarchicalArchCfg(BaseArchCfg):
     action_ub = [1.0,  1.0, 6.0]
     observation_lb = -50.0
     observation_ub = 50.0
-    clip_action = True # clip to -1 to 1
+    clip_action = False # clip to -1 to 1
     scale_action = True # scale max value to action_ub
 
 
