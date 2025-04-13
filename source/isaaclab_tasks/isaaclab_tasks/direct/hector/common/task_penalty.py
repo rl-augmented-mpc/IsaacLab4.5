@@ -198,6 +198,7 @@ class FeetSlidePenalty:
     def compute_penalty(self, foot_velocity: torch.Tensor, contact: torch.Tensor)->torch.Tensor:
         feet_slide_penalty = torch.sum(torch.square(torch.norm(foot_velocity, 2) * contact), dim=1) # get tangential norm
         # feet_slide_penalty = compute_gaussian_penalty(feet_slide_penalty.view(-1, 1), scale=1.0, min_value=2.0, max_value=4.0, temperature=4.0)
+        # feet_slide_penalty = compute_linear_penalty(feet_slide_penalty.view(-1, 1), scale=1.0, min_value=2.0, max_value=4.0)
         feet_slide_penalty = self.feet_slide_weight*feet_slide_penalty
         return feet_slide_penalty
 

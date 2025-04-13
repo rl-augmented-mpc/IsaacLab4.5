@@ -503,7 +503,9 @@ class HierarchicalArch(BaseArch):
             log["reward/position_reward"] = self.position_reward.mean().item()
             log["reward/yaw_reward"] = self.yaw_reward.mean().item()
             log["reward/swing_foot_tracking_reward"] = self.swing_foot_tracking_reward.mean().item()
-
+            
+            log["penalty/roll_penalty"] = self.roll_penalty.mean().item()
+            log["penalty/pitch_penalty"] = self.pitch_penalty.mean().item()
             log["penalty/velocity_penalty"] = self.velocity_penalty.mean().item()
             log["penalty/ang_velocity_penalty"] = self.ang_velocity_penalty.mean().item()
             log["penalty/feet_slide_penalty"] = self.foot_slide_penalty.mean().item()
