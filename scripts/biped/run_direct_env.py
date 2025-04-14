@@ -22,7 +22,7 @@ parser.add_argument("--log", action="store_true", default=False, help="Log the e
 parser.add_argument("--log_extra", action="store_true", default=False, help="Log extra information.")
 parser.add_argument("--tag", type=str, default=None, help="Tag for logging.")
 parser.add_argument("--max_trials", type=int, default=1, help="Number of trials to run.")
-parser.add_argument("--episode_length", type=float, default=20.0, help="Length of the episode in second.")
+parser.add_argument("--episode_length", type=float, default=None, help="Length of the episode in second.")
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
 
 
@@ -55,7 +55,8 @@ def main():
     env_cfg = parse_env_cfg(
         args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
     )
-    env_cfg.episode_length_s = args_cli.episode_length
+    if args_cli.episode_length is not None:
+        env_cfg.episode_length_s = args_cli.episode_length
     # setup gym style environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
     env.metadata["render_fps"] = int(100/2)
