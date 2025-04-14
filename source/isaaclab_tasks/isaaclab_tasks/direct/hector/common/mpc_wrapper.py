@@ -43,7 +43,7 @@ class MPCWrapper:
             mpc_conf.horizon_length,
             mpc_conf.mpc_decimation
         )
-        self.hc.setFrictionCoefficient(0.3)
+        self.hc.setFrictionCoefficient(0.5)
     
     def set_planner(self, planner_name: str) -> None:
         self.hc.setFootPlacementPlanner(planner_name)
