@@ -78,6 +78,8 @@ class BaseArchCfg(DirectRLEnvCfg):
     iteration_between_mpc = int(each_phase_time/(10*dt)) # mpc time step discritization (dt_mpc = dt*iteration_between_mpc)
     horizon_length = 10
     terrain_slope = 0.0
+    cp1_default = 0.33
+    cp2_default = 0.66
 
     # ===============================
     # observation/action space
@@ -129,7 +131,7 @@ class BaseArchCfg(DirectRLEnvCfg):
     # force sensor
     contact_sensor: ContactSensorCfg = ContactSensorCfg(
         prim_path=f"{ENV_REGEX_NS}/Robot/[L|R]_toe", 
-        filter_prim_paths_expr = ["/World/ground"],
+        # filter_prim_paths_expr = ["/World/ground"],
         history_length=3, 
         update_period=dt*decimation, 
         track_air_time=False

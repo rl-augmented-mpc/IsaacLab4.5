@@ -79,6 +79,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # override configurations with non-hydra CLI arguments
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
+    env_cfg.num_steps_per_env = agent_cfg["params"]["config"]["horizon_length"]
 
     # randomly sample a seed if seed = -1
     if args_cli.seed == -1:

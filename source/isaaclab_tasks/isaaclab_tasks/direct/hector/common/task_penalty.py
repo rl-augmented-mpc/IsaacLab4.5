@@ -24,11 +24,11 @@ def compute_gaussian_penalty(
     scale: float = 1.0,
     min_value: float = -1.0,
     max_value: float = 1.0,
-    temperature: float = 0.5,
+    std: float = 0.5,
     ):
     value = torch.abs(value) - min_value
     value[value < 0] = 0
-    value[value > 0] = (1 - torch.exp(-torch.square(value[value > 0])*temperature)) * (max_value - min_value)
+    value[value > 0] = (1 - torch.exp(-torch.square(value[value > 0])/(std**2))) * (max_value - min_value)
     value = torch.sum(value, -1)
     return scale*value
 
@@ -45,37 +45,17 @@ class OrientationRegularizationPenalty:
         
         pitch = torch.asin(2*(root_quat[:, 0]*root_quat[:, 2] - root_quat[:, 3]*root_quat[:, 1]))
         pitch = torch.atan2(torch.sin(pitch), torch.cos(pitch)) # standardize to -pi to pi
+
+        roll_penalty = self.roll_penalty_weight * roll.view(-1)
+        pitch_penalty = self.pitch_penalty_weight * pitch.view(-1)
         
-        roll_penalty = self.roll_penalty_weight * compute_linear_penalty(roll.view(-1, 1), scale=1.0, min_value=self.roll_range[0], max_value=self.roll_range[1])
-        pitch_penalty = self.pitch_penalty_weight * compute_linear_penalty(pitch.view(-1, 1), scale=1.0, min_value=self.pitch_range[0], max_value=self.pitch_range[1])
+        # roll_penalty = self.roll_penalty_weight * compute_linear_penalty(roll.view(-1, 1), scale=1.0, min_value=self.roll_range[0], max_value=self.roll_range[1])
+        # pitch_penalty = self.pitch_penalty_weight * compute_linear_penalty(pitch.view(-1, 1), scale=1.0, min_value=self.pitch_range[0], max_value=self.pitch_range[1])
         
         # roll_penalty = self.roll_penalty_weight * compute_gaussian_penalty(roll.view(-1, 1), scale=1.0, min_value=self.roll_range[0], max_value=self.roll_range[1], temperature=4.0)
         # pitch_penalty = self.pitch_penalty_weight * compute_gaussian_penalty(pitch.view(-1, 1), scale=1.0, min_value=self.pitch_range[0], max_value=self.pitch_range[1], temperature=4.0)
         
         return roll_penalty, pitch_penalty
-
-@dataclass
-class TwistPenalty:
-    vx_bound: tuple = (0.0, 1.0)
-    vy_bound: tuple = (0.0, 1.0)
-    wz_bound: tuple = (0.0, 1.0)
-    vx_penalty_weight: float = 1.0
-    vy_penalty_weight: float = 1.0
-    wz_penalty_weight: float = 1.0
-    
-    def compute_penalty(self, root_lin_vel_b: torch.Tensor, root_ang_vel_b: torch.Tensor)->tuple:
-        # vx_penalty = compute_linear_penalty(root_lin_vel_b[:, :1].view(-1, 1), scale=1.0, min_value=self.vx_bound[0], max_value=self.vx_bound[1])
-        # vy_penalty = compute_linear_penalty(root_lin_vel_b[:, 1:2].view(-1, 1), scale=1.0, min_value=self.vy_bound[0], max_value=self.vy_bound[1])
-        # wz_penalty = compute_linear_penalty(root_ang_vel_b[:, -1:].view(-1, 1), scale=1.0, min_value=self.wz_bound[0], max_value=self.wz_bound[1])
-        vx_penalty = compute_gaussian_penalty(torch.abs(root_lin_vel_b[:, :1]), scale=1.0, min_value=self.vx_bound[0], max_value=self.vx_bound[1], temperature=4.0)
-        vy_penalty = compute_gaussian_penalty(torch.abs(root_lin_vel_b[:, 1:2]), scale=1.0, min_value=self.vy_bound[0], max_value=self.vy_bound[1], temperature=4.0)
-        wz_penalty = compute_gaussian_penalty(torch.abs(root_ang_vel_b[:, -1:]), scale=1.0, min_value=self.wz_bound[0], max_value=self.wz_bound[1], temperature=4.0)
-        
-        vx_penalty = self.vx_penalty_weight*vx_penalty
-        vy_penalty = self.vy_penalty_weight*vy_penalty
-        wz_penalty = self.wz_penalty_weight*wz_penalty
-        
-        return vx_penalty, vy_penalty, wz_penalty
 
 @dataclass
 class VelocityPenalty:
@@ -151,7 +131,7 @@ class CurriculumTorqueRegularizationPenalty:
         rate = self.rate_sampler.sample(step)
         energy_penalty_weight = self.torque_penalty_weight_start + rate * (self.torque_penalty_weight_end - self.torque_penalty_weight_start)
 
-        energy_penalty = torch.sum(torch.norm(action, dim=1, keepdim=True), -1) # L2 norm of the action itself
+        energy_penalty = torch.sum(torch.norm(action, dim=1, keepdim=True), -1) # L2 norm
         energy_penalty = energy_penalty_weight * energy_penalty
         return energy_penalty
 
@@ -179,10 +159,13 @@ class JointPenalty:
     joint_pos_bound: tuple = (torch.pi/3, torch.pi/2)
     
     def compute_penalty(self, joint_pos: torch.Tensor)->torch.Tensor:
-        joint_pos = torch.abs(joint_pos).view(-1, 1)
-        joint_penalty = compute_linear_penalty(joint_pos.view(-1, 1), scale=1.0, min_value=self.joint_pos_bound[0], max_value=self.joint_pos_bound[1])
+        joint_pos = torch.abs(joint_pos).view(-1)
+        joint_penalty = self.joint_penalty_weight * joint_pos #L1
+
+        # joint_penalty = compute_linear_penalty(joint_pos.view(-1, 1), scale=1.0, min_value=self.joint_pos_bound[0], max_value=self.joint_pos_bound[1])
         # joint_penalty = compute_gaussian_penalty(joint_pos, scale=1.0, min_value=self.joint_pos_bound[0], max_value=self.joint_pos_bound[1], temperature=2.0)
-        joint_penalty = self.joint_penalty_weight*joint_penalty
+        # joint_penalty = self.joint_penalty_weight*joint_penalty
+
         return joint_penalty
 
 @dataclass
@@ -196,7 +179,8 @@ class FeetSlidePenalty:
     feet_slide_weight: float = 1.0
     
     def compute_penalty(self, foot_velocity: torch.Tensor, contact: torch.Tensor)->torch.Tensor:
-        feet_slide_penalty = torch.sum(torch.square(torch.norm(foot_velocity, 2) * contact), dim=1) # get tangential norm
+        feet_slide_penalty = torch.sum(torch.norm(foot_velocity, 2) * contact, dim=1) # L1
+        # feet_slide_penalty = torch.sum(torch.square(torch.norm(foot_velocity, 2) * contact), dim=1) # L2
         # feet_slide_penalty = compute_gaussian_penalty(feet_slide_penalty.view(-1, 1), scale=1.0, min_value=2.0, max_value=4.0, temperature=4.0)
         # feet_slide_penalty = compute_linear_penalty(feet_slide_penalty.view(-1, 1), scale=1.0, min_value=2.0, max_value=4.0)
         feet_slide_penalty = self.feet_slide_weight*feet_slide_penalty
@@ -215,6 +199,29 @@ class ActionSaturationPenalty:
 
 
 ### NOT USED ####
+
+@dataclass
+class TwistPenalty:
+    vx_bound: tuple = (0.0, 1.0)
+    vy_bound: tuple = (0.0, 1.0)
+    wz_bound: tuple = (0.0, 1.0)
+    vx_penalty_weight: float = 1.0
+    vy_penalty_weight: float = 1.0
+    wz_penalty_weight: float = 1.0
+    
+    def compute_penalty(self, root_lin_vel_b: torch.Tensor, root_ang_vel_b: torch.Tensor)->tuple:
+        # vx_penalty = compute_linear_penalty(root_lin_vel_b[:, :1].view(-1, 1), scale=1.0, min_value=self.vx_bound[0], max_value=self.vx_bound[1])
+        # vy_penalty = compute_linear_penalty(root_lin_vel_b[:, 1:2].view(-1, 1), scale=1.0, min_value=self.vy_bound[0], max_value=self.vy_bound[1])
+        # wz_penalty = compute_linear_penalty(root_ang_vel_b[:, -1:].view(-1, 1), scale=1.0, min_value=self.wz_bound[0], max_value=self.wz_bound[1])
+        vx_penalty = compute_gaussian_penalty(torch.abs(root_lin_vel_b[:, :1]), scale=1.0, min_value=self.vx_bound[0], max_value=self.vx_bound[1], temperature=4.0)
+        vy_penalty = compute_gaussian_penalty(torch.abs(root_lin_vel_b[:, 1:2]), scale=1.0, min_value=self.vy_bound[0], max_value=self.vy_bound[1], temperature=4.0)
+        wz_penalty = compute_gaussian_penalty(torch.abs(root_ang_vel_b[:, -1:]), scale=1.0, min_value=self.wz_bound[0], max_value=self.wz_bound[1], temperature=4.0)
+        
+        vx_penalty = self.vx_penalty_weight*vx_penalty
+        vy_penalty = self.vy_penalty_weight*vy_penalty
+        wz_penalty = self.wz_penalty_weight*wz_penalty
+        
+        return vx_penalty, vy_penalty, wz_penalty
 
 @dataclass
 class VelocityTrackingPenalty:
