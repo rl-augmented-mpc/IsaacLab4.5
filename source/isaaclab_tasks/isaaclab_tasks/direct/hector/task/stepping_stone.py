@@ -59,9 +59,10 @@ class SteppingStone(HierarchicalArch):
         """
         Split policy action into useful form
         """
-        stepping_frequency_traj = policy_action[:, :self.cfg.traj_sample]
+        stepping_frequency_traj = policy_action[:, :self.cfg.traj_sample] -0.1
         foot_height_traj = policy_action[:, self.cfg.traj_sample:self.cfg.traj_sample*2]
-        return stepping_frequency_traj, foot_height_traj
+        cp_traj = policy_action[:, self.cfg.traj_sample*2:self.cfg.traj_sample*3]
+        return stepping_frequency_traj, foot_height_traj, cp_traj
     
     def _apply_action(self)->None:
         """
@@ -74,7 +75,7 @@ class SteppingStone(HierarchicalArch):
         Finally, env.step method calls write_data_to_sim() to write torque to articulation.
         """
         # process rl actions
-        stepping_frequency_traj, foot_height_traj = self._split_action(self._actions_op)
+        stepping_frequency_traj, foot_height_traj, cp_traj = self._split_action(self._actions_op)
         
         # pick element from trajectory
         time_idx = (self.cfg.traj_sample*((self.mpc_ctrl_counter * self.cfg.dt)/self.cfg.policy_dt - ((self.mpc_ctrl_counter * self.cfg.dt)/self.cfg.policy_dt).int())).long()
@@ -82,8 +83,12 @@ class SteppingStone(HierarchicalArch):
         stepping_frequency = stepping_frequency_traj[env_idx, time_idx]
         foot_clearance = foot_height_traj[env_idx, time_idx]
         
-        self._gait_stepping_frequency = self.cfg.nominal_gait_stepping_frequency + stepping_frequency.cpu().numpy()
+        self._gait_stepping_frequency = self.cfg.nominal_gait_stepping_frequency - stepping_frequency.cpu().numpy()
         self._foot_height = self.nominal_foot_height + foot_clearance.cpu().numpy()
+
+        self._cp1 = self.cfg.cp1_default + cp_traj[env_idx, time_idx].cpu().numpy()
+        self._cp2 = self.cfg.cp2_default + cp_traj[env_idx, time_idx].cpu().numpy()
+
         self._desired_height = self.cfg.reference_height + (self._raycaster.data.pos_w[:, 2] + self.height_map[:, self.height_map.shape[1]//2]).cpu().numpy() # type: ignore
         
         # get proprioceptive
@@ -153,20 +158,17 @@ class SteppingStone(HierarchicalArch):
     
     def log_action(self)->None:
         log = {}
-        if self.common_step_counter % self.cfg.num_steps_per_env:
-            stepping_frequency = self._actions_op[:, 0:self.cfg.traj_sample].mean(dim=0).cpu().numpy()
-            foot_height = self._actions_op[:, self.cfg.traj_sample:self.cfg.traj_sample*2].mean(dim=0).cpu().numpy()
+        if self.common_step_counter % self.cfg.num_steps_per_env == 0:
+            stepping_frequency = self._actions_op[:, 0:self.cfg.traj_sample].mean(dim=0).cpu().numpy() + self.cfg.nominal_gait_stepping_frequency
+            foot_height = self._actions_op[:, self.cfg.traj_sample:self.cfg.traj_sample*2].mean(dim=0).cpu().numpy() + self.nominal_foot_height.mean(0)
+            cp = self._actions_op[:, self.cfg.traj_sample*2:self.cfg.traj_sample*3].mean(dim=0).cpu().numpy()
+            cp1 = self.cfg.cp1_default + cp
+            cp2 = self.cfg.cp2_default + cp
 
-            log["action/stepping_frequency_t1"] = stepping_frequency[0:1]
-            log["action/stepping_frequency_t2"] = stepping_frequency[1:2]
-            log["action/stepping_frequency_t3"] = stepping_frequency[2:3]
-            log["action/stepping_frequency_t4"] = stepping_frequency[3:4]
-            log["action/stepping_frequency_t5"] = stepping_frequency[4:5]
-            
-            log["action/foot_height_t1"] = foot_height[0:1]
-            log["action/foot_height_t2"] = foot_height[1:2]
-            log["action/foot_height_t3"] = foot_height[2:3]
-            log["action/foot_height_t4"] = foot_height[3:4]
-            log["action/foot_height_t5"] = foot_height[4:5]
+            for i in range(self.cfg.traj_sample):
+                log[f"action/stepping_frequency_t{i+1}"] = stepping_frequency[i:i+1]
+                log[f"action/foot_height_t{i+1}"] = foot_height[i:i+1]
+                log[f"action/cp1_t{i+1}"] = cp1[i:i+1]
+                log[f"action/cp2_t{i+1}"] = cp2[i:i+1]
             
         self.extras["log"].update(log)

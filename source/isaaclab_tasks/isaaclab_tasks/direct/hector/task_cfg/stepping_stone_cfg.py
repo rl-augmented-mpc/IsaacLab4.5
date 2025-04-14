@@ -37,7 +37,7 @@ ENV_REGEX_NS = "/World/envs/env_.*"
 
 @configclass
 class SteppingStoneCfg(HierarchicalArchCfg):
-    episode_length_s =20
+    episode_length_s =10
     seed = 42
     num_steps_per_env = 32
     inference = False
@@ -54,14 +54,14 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     traj_sample = int(policy_dt/dt)
     decimation = int(policy_dt/dt)
 
-    action_space = traj_sample*2
+    action_space = traj_sample*3
     observation_space = 70+action_space
     state_space = 70+action_space
-    num_history = 3
+    num_history = 1
     num_extero_observations = int((1.0/0.05 + 1)*(1.0/0.05 + 1))
 
-    action_lb = [-0.5]*traj_sample + [-0.01]*traj_sample
-    action_ub = [0.5]*traj_sample + [0.15]*traj_sample
+    action_lb = [-0.2]*traj_sample + [-0.01]*traj_sample + [-0.5]*traj_sample
+    action_ub = [0.2]*traj_sample + [0.15]*traj_sample + [0.5]*traj_sample
 
 
     # ================================
@@ -81,20 +81,20 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     
     # gait parameters
     robot_nominal_foot_height_sampler = CurriculumUniformLineSampler(
-        x_range_start=(0.12, 0.12),
-        x_range_end=(0.12, 0.12),
+        x_range_start=(0.15, 0.15),
+        x_range_end=(0.15, 0.15),
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1)
     )
 
     # robot spawner
-    robot_position_sampler = CircularSamplerWithLimit(radius=1.5, z_range=(0.56, 0.56))
+    robot_position_sampler = CircularSamplerWithLimit(radius=2.0, z_range=(0.56, 0.56))
     robot_quat_sampler = BinaryOrientationSampler()
     terrain_curriculum_sampler = CurriculumLineSampler(
         x_start=0, x_end=terrain.num_curriculums-1,
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1)
     )
     robot_target_velocity_sampler = CurriculumUniformCubicSampler(
-        x_range_start=(0.3, 0.5), x_range_end=(0.3, 0.5),
+        x_range_start=(0.5, 0.7), x_range_end=(0.5, 0.7),
         y_range_start=(0.0, 0.0), y_range_end=(0.0, 0.0),
         z_range_start=(-0.0, 0.0), z_range_end=(-0.0, 0.0),
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1)
@@ -109,53 +109,60 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     reward_parameter: VelocityTrackingReward = VelocityTrackingReward(height_similarity_weight=0.33, 
                                                             lin_vel_similarity_weight=0.33,
                                                             ang_vel_similarity_weight=0.33,
-                                                            height_similarity_coeff=4.0, 
-                                                            lin_vel_similarity_coeff=4.0,
-                                                            ang_vel_similarity_coeff=4.0,
+                                                            height_similarity_coeff=0.5, 
+                                                            lin_vel_similarity_coeff=0.5,
+                                                            ang_vel_similarity_coeff=0.5,
                                                             height_reward_mode="gaussian",
                                                             lin_vel_reward_mode="gaussian",
                                                             ang_vel_reward_mode="gaussian"
                                                             )
+    
     pose_tracking_reward_parameter: PoseTrackingReward = PoseTrackingReward(
         position_weight=0.0, # disable 
         yaw_weight=0.0, # disable
-        position_coeff=1.0, 
-        yaw_coeff=1.0,
+        position_coeff=0.5, 
+        yaw_coeff=0.5,
         position_reward_mode="gaussian", 
         yaw_reward_mode="gaussian"
         )
-    alive_reward_parameter: AliveReward = AliveReward(alive_weight=0.66)
+    
+    alive_reward_parameter: AliveReward = AliveReward(alive_weight=0.01)
+
     swing_foot_tracking_reward_parameter: SwingFootTrackingReward = SwingFootTrackingReward(
-        swing_foot_weight=0.33, 
-        swing_foot_coeff=4.0,
+        swing_foot_weight=0.2, 
+        swing_foot_coeff=0.5,
         swing_foot_reward_mode="gaussian"
     )
     
     # penalty
     orientation_penalty_parameter: OrientationRegularizationPenalty = OrientationRegularizationPenalty(
-        roll_penalty_weight=0.33, 
-        pitch_penalty_weight=0.33, 
+        roll_penalty_weight=0.2, 
+        pitch_penalty_weight=0.2, 
         roll_range=(torch.pi/6, torch.pi/3), 
         pitch_range=(torch.pi/6, torch.pi/3))
     
     velocity_penalty_parameter: VelocityPenalty = VelocityPenalty(
-        velocity_penalty_weight=2.0, 
+        velocity_penalty_weight=1.0, 
     )
+
     angular_velocity_penalty_parameter: AngularVelocityPenalty = AngularVelocityPenalty(
         ang_velocity_penalty_weight=0.01,
     )
     
-    foot_distance_penalty_parameter: FootDistanceRegularizationPenalty = FootDistanceRegularizationPenalty(foot_distance_penalty_weight=0.5, foot_distance_bound=(0.3, 0.5))
+    foot_distance_penalty_parameter: FootDistanceRegularizationPenalty = FootDistanceRegularizationPenalty(
+        foot_distance_penalty_weight=0.5, 
+        foot_distance_bound=(0.3, 0.5))
+    
     foot_slide_penalty_parameter: FeetSlidePenalty = FeetSlidePenalty(
-        feet_slide_weight=0.1
+        feet_slide_weight=0.2
         )
 
     toe_left_joint_penalty_parameter: JointPenalty = JointPenalty(
-        joint_penalty_weight=1.0, 
+        joint_penalty_weight=0.5, 
         joint_pos_bound=(torch.pi/18, torch.pi/6),
     )
     toe_right_joint_penalty_parameter: JointPenalty = JointPenalty(
-        joint_penalty_weight=1.0, 
+        joint_penalty_weight=0.5, 
         joint_pos_bound=(torch.pi/18, torch.pi/6),
     )
     

@@ -100,7 +100,7 @@ class HierarchicalArch(BaseArch):
         
         # clone, filter, and replicate
         self.scene.clone_environments(copy_from_source=False)
-        self.scene.filter_collisions(global_prim_paths=[self.cfg.terrain.prim_path])
+        # self.scene.filter_collisions(global_prim_paths=[self.cfg.terrain.prim_path])
         
         # light
         self._light = sim_utils.spawn_light(self.cfg.light.prim_path, self.cfg.light.spawn, orientation=(0.0, 0.0, 0.0, 1.0))
@@ -332,6 +332,9 @@ class HierarchicalArch(BaseArch):
         if not self.cfg.curriculum_inference:
             twist_cmd = np.array(self.cfg.robot_target_velocity_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore
             self._desired_twist_np[env_ids.cpu().numpy()] = twist_cmd # type: ignore
+        
+        # reset foot clearance
+        self.nominal_foot_height[env_ids.cpu().numpy()] = self.cfg.robot_nominal_foot_height_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)) # type: ignore
         
         # reset gait
         self._dsp_duration[env_ids.cpu().numpy()] = np.array(self.cfg.robot_double_support_length_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore

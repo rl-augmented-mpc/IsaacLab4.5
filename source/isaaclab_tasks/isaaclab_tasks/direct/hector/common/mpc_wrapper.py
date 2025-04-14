@@ -83,7 +83,7 @@ class MPCWrapper:
         """
         self.hc.updateGaitParameter(dsp_durations, ssp_durations)
 
-    def set_swing_parameters(self, stepping_frequency: float, foot_height: float) -> None:
+    def set_swing_parameters(self, stepping_frequency: float, foot_height: float, cp1: float, cp2: float) -> None:
         """
         Set swing parameters.
 
@@ -93,6 +93,7 @@ class MPCWrapper:
         """
         self.hc.setGaitSteppingFrequency(stepping_frequency)
         self.hc.setFootHeight(foot_height)
+        self.hc.setSwingFootControlPoint(cp1, cp2)
     
     def set_terrain_slope(self, slope: float) -> None:
         """

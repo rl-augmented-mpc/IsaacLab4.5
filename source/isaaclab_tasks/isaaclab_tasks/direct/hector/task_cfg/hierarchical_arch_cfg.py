@@ -101,6 +101,13 @@ class HierarchicalArchCfg(BaseArchCfg):
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=curriculum_max_steps)
     )
 
+    # gait parameters
+    robot_nominal_foot_height_sampler = CurriculumUniformLineSampler(
+        x_range_start=(0.12, 0.12),
+        x_range_end=(0.12, 0.12),
+        rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1)
+    )
+
     # robot gait
     each_phase_time = 0.2
     ssp_duration = int(each_phase_time/dt) # single support 0.2s

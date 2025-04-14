@@ -107,6 +107,8 @@ class BaseArch(DirectRLEnv):
         self._gait_stepping_frequency = self.cfg.nominal_gait_stepping_frequency * np.ones(self.num_envs, dtype=np.float32)
         self.nominal_foot_height = self.cfg.nominal_foot_height * np.ones(self.num_envs, dtype=np.float32)
         self._foot_height = self.cfg.nominal_foot_height * np.ones(self.num_envs, dtype=np.float32)
+        self._cp1 = self.cfg.cp1_default * np.ones(self.num_envs, dtype=np.float32)
+        self._cp2 = self.cfg.cp2_default * np.ones(self.num_envs, dtype=np.float32)
         
         # desired commands
         self._desired_root_lin_vel_b = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
@@ -234,7 +236,7 @@ class BaseArch(DirectRLEnv):
         foot_ref_pos_b = []
         
         for i in range(len(self.mpc)):
-            self.mpc[i].set_swing_parameters(stepping_frequency=self._gait_stepping_frequency[i], foot_height=self._foot_height[i])
+            self.mpc[i].set_swing_parameters(stepping_frequency=self._gait_stepping_frequency[i], foot_height=self._foot_height[i], cp1=self._cp1[i], cp2=self._cp2[i])
             self.mpc[i].set_terrain_slope(self.cfg.terrain_slope)
             self.mpc[i].add_foot_placement_residual(self._foot_placement_residuals[i])
             self.mpc[i].set_srbd_residual(A_residual=self._A_residual[i], B_residual=self._B_residual[i])
@@ -296,8 +298,8 @@ class BaseArch(DirectRLEnv):
         """
         ramp_up_duration = 0.1
         ramp_up_step = int(ramp_up_duration/self.physics_dt)
-        # ramp_up_coef = torch.clip(self.mpc_ctrl_counter/ramp_up_step, 0.0, 1.0)
-        ramp_up_coef = 1.0
+        ramp_up_coef = torch.clip(self.mpc_ctrl_counter/ramp_up_step, 0.0, 1.0)
+        # ramp_up_coef = 1.0
         self._desired_root_lin_vel_b[:, 0] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 0]).to(self.device)
         self._desired_root_lin_vel_b[:, 1] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 1]).to(self.device)
         self._desired_root_ang_vel_b[:, 0] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 2]).to(self.device)
