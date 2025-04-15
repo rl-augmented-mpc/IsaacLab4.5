@@ -21,7 +21,7 @@ from isaaclab_tasks.direct.hector.common.task_reward import VelocityTrackingRewa
 from isaaclab_tasks.direct.hector.common.task_penalty import OrientationRegularizationPenalty, ActionRegularizationPenalty, \
     TwistPenalty, FeetSlidePenalty, JointPenalty, ActionSaturationPenalty, TerminationPenalty, CurriculumActionRegularizationPenalty, \
         FootDistanceRegularizationPenalty, CurriculumTorqueRegularizationPenalty, VelocityPenalty, AngularVelocityPenalty
-from isaaclab_tasks.direct.hector.common.sampler import CircularSamplerWithLimit, BinaryOrientationSampler
+from isaaclab_tasks.direct.hector.common.sampler import CircularSamplerWithLimit, BinaryOrientationSampler, PlaneSampler
 from isaaclab_tasks.direct.hector.common.curriculum import  CurriculumRateSampler, CurriculumLineSampler, CurriculumUniformLineSampler, \
     CurriculumUniformCubicSampler, CurriculumQuaternionSampler, PerformanceCurriculumLineSampler
 from isaaclab_tasks.direct.hector.core_cfg import terrain_cfg
@@ -37,7 +37,7 @@ ENV_REGEX_NS = "/World/envs/env_.*"
 
 @configclass
 class SteppingStoneCfg(HierarchicalArchCfg):
-    episode_length_s = 10
+    episode_length_s = 20
     seed = 42
     num_steps_per_env = 32
     inference = False
@@ -69,6 +69,7 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     # ================================
     # terrain = terrain_cfg.SteppingStoneTerrain
     terrain = terrain_cfg.CurriculumSteppingStoneTerrain
+    terrain.terrain_generator.seed = seed
 
     # ================================
     # Task configurations
@@ -86,7 +87,8 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         num_curriculums=terrain.num_curriculums,
         update_frequency=10,
         maximum_episode_length=int(episode_length_s/(dt*decimation)),
-        ratio=0.95
+        ratio=0.9,
+        iteration_threshold=1000
     )
     
     # gait parameters
@@ -97,7 +99,8 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     )
 
     # robot spawner
-    robot_position_sampler = CircularSamplerWithLimit(radius=2.0, z_range=(0.56, 0.56))
+    # robot_position_sampler = CircularSamplerWithLimit(radius=1.0, z_range=(0.56, 0.56))
+    robot_position_sampler = PlaneSampler(x_range=(-1.0, 1.0), y_range=(-5.0, 5.0), z_range=(0.56, 0.56))
     robot_quat_sampler = BinaryOrientationSampler()
     robot_target_velocity_sampler = CurriculumUniformCubicSampler(
         x_range_start=(0.5, 0.7), x_range_end=(0.5, 0.7),
@@ -142,8 +145,8 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     
     # penalty
     orientation_penalty_parameter: OrientationRegularizationPenalty = OrientationRegularizationPenalty(
-        roll_penalty_weight=0.2, 
-        pitch_penalty_weight=0.2, 
+        roll_penalty_weight=2.0, 
+        pitch_penalty_weight=2.0, 
         roll_range=(torch.pi/6, torch.pi/3), 
         pitch_range=(torch.pi/6, torch.pi/3))
     

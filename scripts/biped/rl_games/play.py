@@ -77,6 +77,7 @@ def main():
         args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
     )
     agent_cfg = load_cfg_from_registry(args_cli.task, "rl_games_cfg_entry_point")
+    env_cfg.seed = agent_cfg["params"]["seed"]
 
     # specify directory for logging experiments
     log_root_path = os.path.join("logs", "rl_games", agent_cfg["params"]["config"]["name"])
@@ -118,7 +119,7 @@ def main():
     # wrap for video recording
     if args_cli.video:
         video_kwargs = {
-            "video_folder": os.path.join(log_root_path, log_dir, "videos", "play"),
+            "video_folder": os.path.join(log_root_path, log_dir, "videos", "play"), # type: ignore
             "step_trigger": lambda step: step == 0,
             "video_length": args_cli.video_length,
             "disable_logger": True,
@@ -162,7 +163,7 @@ def main():
     # required: enables the flag for batched observations
     _ = agent.get_batch_size(obs, 1)
     # initialize RNN states if used
-    if agent.is_rnn:
+    if agent.is_rnn: # type: ignore
         agent.init_rnn()
     # simulate environment
     # note: We simplified the logic in rl-games player.py (:func:`BasePlayer.run()`) function in an
@@ -182,7 +183,7 @@ def main():
             # perform operations for terminated episodes
             if len(dones) > 0:
                 # reset rnn state for terminated episodes
-                if agent.is_rnn and agent.states is not None:
+                if agent.is_rnn and agent.states is not None: # type: ignore
                     for s in agent.states:
                         s[:, dones, :] = 0.0
         if args_cli.video:

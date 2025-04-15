@@ -204,19 +204,30 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
         use_cache=False,
         curriculum=True,
         sub_terrains={
-            "boxes1": terrain_gen.MeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.08, 0.08), platform_width=10.0, platform_length=0.5
+            # "boxes1": terrain_gen.MeshBoxTerrainCfg(
+            # proportion=0.2, box_height_range=(0.08, 0.08), platform_width=15.0, platform_length=0.5
+            # ),
+            # "boxes2": terrain_gen.MeshBoxTerrainCfg(
+            # proportion=0.2, box_height_range=(0.1, 0.1), platform_width=15.0, platform_length=0.5
+            # ),
+            # "boxes3": terrain_gen.MeshBoxTerrainCfg(
+            # proportion=0.2, box_height_range=(0.11, 0.11), platform_width=15.0, platform_length=0.5
+            # ),
+            # "boxes4": terrain_gen.MeshBoxTerrainCfg(
+            # proportion=0.2, box_height_range=(0.12, 0.12), platform_width=15.0, platform_length=0.5
+            # ),
+            "boxes1": terrain_gen.TiledMeshBoxTerrainCfg(
+            proportion=0.2, box_height_range=(0.08, 0.08), platform_width=15.0, platform_length=0.5, num_box=10, platform_gap_range=(-0.2, 0.2), border_size=1.5
             ),
-            "boxes2": terrain_gen.MeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.1, 0.1), platform_width=10.0, platform_length=0.5
+            "boxes2": terrain_gen.TiledMeshBoxTerrainCfg(
+            proportion=0.2, box_height_range=(0.1, 0.1), platform_width=15.0, platform_length=0.5, num_box=10, platform_gap_range=(-0.2, 0.2), border_size=1.5
             ),
-            "boxes3": terrain_gen.MeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.12, 0.12), platform_width=10.0, platform_length=0.5
+            "boxes3": terrain_gen.TiledMeshBoxTerrainCfg(
+            proportion=0.2, box_height_range=(0.11, 0.11), platform_width=15.0, platform_length=0.5, num_box=10, platform_gap_range=(-0.2, 0.2), border_size=1.5
             ),
-            "boxes4": terrain_gen.MeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.14, 0.14), platform_width=10.0, platform_length=0.5
+            "boxes4": terrain_gen.TiledMeshBoxTerrainCfg(
+            proportion=0.2, box_height_range=(0.12, 0.12), platform_width=15.0, platform_length=0.5, num_box=10, platform_gap_range=(-0.2, 0.2), border_size=1.5
             ),
-
         },
     ),
     collision_group=-1,
