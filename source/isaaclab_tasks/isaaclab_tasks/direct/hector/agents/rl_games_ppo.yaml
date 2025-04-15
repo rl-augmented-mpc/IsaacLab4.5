@@ -83,8 +83,7 @@ params:
     seq_length: 4
     # bound_loss_type: regularisation
     bound_loss_type: bound
-    bounds_loss_coef: 0.0
-    # use_smooth_clamp: True
+    bounds_loss_coef: 0.001
   
   log:
     logger: wandb

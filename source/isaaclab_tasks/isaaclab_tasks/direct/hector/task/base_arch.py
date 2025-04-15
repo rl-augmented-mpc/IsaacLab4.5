@@ -43,6 +43,9 @@ class BaseArch(DirectRLEnv):
     
     def __init__(self, cfg: BaseArchCfg, render_mode: str | None = None, **kwargs):
         super().__init__(cfg, render_mode, **kwargs)
+
+        # buffer
+        self.max_episode_length_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
         
         # get joint_ids that maps sim joint order to controller joint order
         self._joint_ids, self._joint_names = self._robot.find_joints(self.cfg.joint_names, preserve_order=True)

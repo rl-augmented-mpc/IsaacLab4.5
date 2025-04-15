@@ -245,8 +245,8 @@ class HierarchicalArch(BaseArch):
     def _reset_idx(self, env_ids: Sequence[int])->None:
         if env_ids is None:
             env_ids = self._robot._ALL_INDICES
-        # print(f"[INFO] Reset environment {env_ids} at step {self.episode_length_buf[env_ids]}")
-        # print("[INFO] Robot desired velocity: ", self._desired_twist_np.tolist())
+        # log reset episode length
+        self.max_episode_length_buf[env_ids] = self.episode_length_buf[env_ids]
         super()._reset_idx(env_ids)
         
         self._reset_robot(env_ids)

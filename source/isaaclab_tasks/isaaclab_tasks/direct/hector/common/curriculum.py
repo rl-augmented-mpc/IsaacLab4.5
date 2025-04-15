@@ -3,6 +3,7 @@ from inspect import isfunction
 from dataclasses import dataclass
 from typing import List, Tuple
 import numpy as np
+import torch
 
 def curriculum_linear_growth(
     step: int = 0, start: int = 0, end: int = 1000, **kwargs
@@ -256,3 +257,35 @@ class CurriculumUniformCubicSampler:
         
         points = np.stack((x_vals, y_vals, z_vals), axis=-1).tolist()
         return points
+
+
+## performance dependent curriculum ##
+## Changes difficulty level of task based on the current performance of the agent
+
+@dataclass
+class PerformanceCurriculumLineSampler:
+    x_start: float
+    x_end: float
+    num_curriculums: int
+    update_frequency: int
+    maximum_episode_length: int
+    ratio: float = 0.9
+
+    def __post_init__(self):
+        self.curriculum_idx = 0
+        self.counter = 0
+    
+    def sample(self, mean_episode_length: float, num_samples: int) -> list[float]:
+        if mean_episode_length >= self.maximum_episode_length * self.ratio:
+            if self.counter >= self.update_frequency:
+                self.curriculum_idx += 1
+                self.counter = 0
+            else:
+                self.counter += 1
+        else:
+            self.counter = 0
+        
+        self.curriculum_idx = min(self.curriculum_idx, self.num_curriculums - 1)
+        value = self.x_start + (self.x_end - self.x_start + 1) * (self.curriculum_idx / self.num_curriculums)
+
+        return (value * np.ones(num_samples)).tolist()

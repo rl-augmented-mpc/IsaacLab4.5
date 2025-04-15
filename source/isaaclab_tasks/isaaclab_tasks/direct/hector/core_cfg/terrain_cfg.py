@@ -157,7 +157,7 @@ ObstacleTerrain = TerrainImporterCfg(
     num_curriculums=4
 )
 
-SteppingTerrain = TerrainImporterCfg(
+SteppingStoneTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="generator",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
@@ -187,6 +187,49 @@ SteppingTerrain = TerrainImporterCfg(
     debug_vis=False,
     disable_colllider=False,
     num_curriculums=1
+)
+
+
+CurriculumSteppingStoneTerrain = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="generator",
+    terrain_generator= terrain_gen.TerrainGeneratorCfg(
+        size=(20.0, 20.0), # size of sub-terrain
+        border_width=0.0,
+        num_rows=2,
+        num_cols=2,
+        horizontal_scale=0.1,
+        vertical_scale=0.005,
+        slope_threshold=0.75,
+        use_cache=False,
+        curriculum=True,
+        sub_terrains={
+            "boxes1": terrain_gen.MeshBoxTerrainCfg(
+            proportion=0.2, box_height_range=(0.08, 0.08), platform_width=10.0, platform_length=0.5
+            ),
+            "boxes2": terrain_gen.MeshBoxTerrainCfg(
+            proportion=0.2, box_height_range=(0.1, 0.1), platform_width=10.0, platform_length=0.5
+            ),
+            "boxes3": terrain_gen.MeshBoxTerrainCfg(
+            proportion=0.2, box_height_range=(0.12, 0.12), platform_width=10.0, platform_length=0.5
+            ),
+            "boxes4": terrain_gen.MeshBoxTerrainCfg(
+            proportion=0.2, box_height_range=(0.14, 0.14), platform_width=10.0, platform_length=0.5
+            ),
+
+        },
+    ),
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=1.0,
+        dynamic_friction=1.0,
+    ),
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    debug_vis=False,
+    disable_colllider=False,
+    num_curriculums=4
 )
 
 BoxTerrain = TerrainImporterCfg(
