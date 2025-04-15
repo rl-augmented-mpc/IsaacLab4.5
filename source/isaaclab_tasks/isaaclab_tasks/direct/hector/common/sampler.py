@@ -108,6 +108,26 @@ class CircularSamplerWithLimit:
         return points
 
 @dataclass
+class PlaneSampler:
+    x_range: List[float] | Tuple[float, float]
+    y_range: List[float] | Tuple[float, float]
+    z_range: List[float] | Tuple[float, float]
+    
+    def __post_init__(self):
+        assert len(self.z_range) == 2
+    
+    def sample(self, center: np.ndarray, num_samples: int) -> list[tuple[float, float, float]]:
+        x_noise = np.random.uniform(self.x_range[0], self.x_range[1], num_samples)
+        y_noise = np.random.uniform(self.y_range[0], self.y_range[1], num_samples)
+        
+        x_vals = x_noise + center[..., 0]
+        y_vals = y_noise + center[..., 1]
+        z_vals = np.random.uniform(self.z_range[0], self.z_range[1], num_samples)
+
+        points = np.stack((x_vals, y_vals, z_vals), axis=-1).tolist()
+        return points
+
+@dataclass
 class SquareSampler:
     radius: float
     z_range: List[float] | Tuple[float, float]

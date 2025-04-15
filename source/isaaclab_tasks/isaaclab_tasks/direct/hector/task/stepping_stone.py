@@ -148,7 +148,7 @@ class SteppingStone(HierarchicalArch):
     
     def _reset_robot(self, env_ids: Sequence[int])->None:
         ### set position ###
-        curriculum_idx = np.floor(self.cfg.terrain_curriculum_sampler.sample(self.max_episode_length_buf.float().mean(dim=0).item(), len(env_ids)))
+        curriculum_idx = np.floor(self.cfg.terrain_curriculum_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, self.max_episode_length_buf.float().mean(dim=0).item(), len(env_ids)))
         self.curriculum_idx = curriculum_idx
         center_coord = self._get_sub_terrain_center(curriculum_idx)
         position = self.cfg.robot_position_sampler.sample(center_coord, len(env_ids))
@@ -195,7 +195,7 @@ class SteppingStone(HierarchicalArch):
         
         if not self.cfg.inference:
             # update view port to look at the current active terrain
-            camera_delta = [-1.0, -4.0, 1.0]
+            camera_delta = [0.0, -9.0, 1.0]
             self.viewport_camera_controller.update_view_location(
                 eye=(center_coord[0, 0]+camera_delta[0], center_coord[0, 1]+camera_delta[1], camera_delta[2]), 
                 lookat=(center_coord[0, 0], center_coord[0, 1], 0.0)) # type: ignore

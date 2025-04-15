@@ -27,4 +27,5 @@ from .mesh_terrains_cfg import (
     MeshRepeatedPyramidsTerrainCfg,
     MeshStarTerrainCfg,
     MeshThickTerrainCfg,
+    TiledMeshBoxTerrainCfg,
 )

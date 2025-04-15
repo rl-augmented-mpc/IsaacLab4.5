@@ -270,22 +270,20 @@ class PerformanceCurriculumLineSampler:
     update_frequency: int
     maximum_episode_length: int
     ratio: float = 0.9
-
+    iteration_threshold: int = 1000
     def __post_init__(self):
         self.curriculum_idx = 0
         self.counter = 0
-    
-    def sample(self, mean_episode_length: float, num_samples: int) -> list[float]:
-        if mean_episode_length >= self.maximum_episode_length * self.ratio:
-            if self.counter >= self.update_frequency:
-                self.curriculum_idx += 1
-                self.counter = 0
+    def sample(self, step:int, mean_episode_length: float, num_samples: int) -> list[float]:
+        if step > (self.curriculum_idx+1) * self.iteration_threshold:
+            if mean_episode_length >= self.maximum_episode_length * self.ratio:
+                if self.counter >= self.update_frequency:
+                    self.curriculum_idx += 1
+                    self.counter = 0
+                else:
+                    self.counter += 1
             else:
-                self.counter += 1
-        else:
-            self.counter = 0
-        
+                self.counter = 0
         self.curriculum_idx = min(self.curriculum_idx, self.num_curriculums - 1)
         value = self.x_start + (self.x_end - self.x_start + 1) * (self.curriculum_idx / self.num_curriculums)
-
         return (value * np.ones(num_samples)).tolist()
