@@ -23,7 +23,7 @@ from isaaclab_tasks.direct.hector.common.task_penalty import OrientationRegulari
         FootDistanceRegularizationPenalty, CurriculumTorqueRegularizationPenalty, VelocityPenalty, AngularVelocityPenalty
 from isaaclab_tasks.direct.hector.common.sampler import CircularSamplerWithLimit, BinaryOrientationSampler
 from isaaclab_tasks.direct.hector.common.curriculum import  CurriculumRateSampler, CurriculumLineSampler, CurriculumUniformLineSampler, \
-    CurriculumUniformCubicSampler, CurriculumQuaternionSampler
+    CurriculumUniformCubicSampler, CurriculumQuaternionSampler, PerformanceCurriculumLineSampler
 from isaaclab_tasks.direct.hector.core_cfg import terrain_cfg
 
 # Task cfg
@@ -37,7 +37,7 @@ ENV_REGEX_NS = "/World/envs/env_.*"
 
 @configclass
 class SteppingStoneCfg(HierarchicalArchCfg):
-    episode_length_s =10
+    episode_length_s = 10
     seed = 42
     num_steps_per_env = 32
     inference = False
@@ -60,24 +60,34 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     num_history = 1
     num_extero_observations = int((1.0/0.05 + 1)*(1.0/0.05 + 1))
 
-    action_lb = [-0.2]*traj_sample + [-0.01]*traj_sample + [-0.5]*traj_sample
-    action_ub = [0.2]*traj_sample + [0.15]*traj_sample + [0.5]*traj_sample
+    action_lb = [-0.5]*traj_sample + [-0.03]*traj_sample + [-0.5]*traj_sample
+    action_ub = [0.5]*traj_sample + [0.15]*traj_sample + [0.5]*traj_sample
 
 
     # ================================
     # Environment configurations
     # ================================
-    terrain = terrain_cfg.SteppingTerrain
+    # terrain = terrain_cfg.SteppingStoneTerrain
+    terrain = terrain_cfg.CurriculumSteppingStoneTerrain
 
     # ================================
     # Task configurations
     # ================================
 
     # termination conditions
-    roll_limit = (60/180)*math.pi
-    pitch_limit = (60/180)*math.pi
-    min_height = 0.55-0.4
-    max_height = 0.55+0.4
+    roll_limit = (30/180)*math.pi
+    pitch_limit = (30/180)*math.pi
+    min_height = 0.55-0.3
+    max_height = 0.55+0.3
+
+    # terrain curriculum
+    terrain_curriculum_sampler = PerformanceCurriculumLineSampler(
+        x_start=0, x_end=terrain.num_curriculums-1,
+        num_curriculums=terrain.num_curriculums,
+        update_frequency=5,
+        maximum_episode_length=int(episode_length_s/(dt*decimation)),
+        ratio=0.9
+    )
     
     # gait parameters
     robot_nominal_foot_height_sampler = CurriculumUniformLineSampler(
@@ -89,10 +99,6 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     # robot spawner
     robot_position_sampler = CircularSamplerWithLimit(radius=2.0, z_range=(0.56, 0.56))
     robot_quat_sampler = BinaryOrientationSampler()
-    terrain_curriculum_sampler = CurriculumLineSampler(
-        x_start=0, x_end=terrain.num_curriculums-1,
-        rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1)
-    )
     robot_target_velocity_sampler = CurriculumUniformCubicSampler(
         x_range_start=(0.5, 0.7), x_range_end=(0.5, 0.7),
         y_range_start=(0.0, 0.0), y_range_end=(0.0, 0.0),
@@ -106,9 +112,9 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     # =====================
     
     # reward
-    reward_parameter: VelocityTrackingReward = VelocityTrackingReward(height_similarity_weight=0.33, 
-                                                            lin_vel_similarity_weight=0.33,
-                                                            ang_vel_similarity_weight=0.33,
+    reward_parameter: VelocityTrackingReward = VelocityTrackingReward(height_similarity_weight=0.3, 
+                                                            lin_vel_similarity_weight=0.3,
+                                                            ang_vel_similarity_weight=0.3,
                                                             height_similarity_coeff=0.5, 
                                                             lin_vel_similarity_coeff=0.5,
                                                             ang_vel_similarity_coeff=0.5,
@@ -158,11 +164,11 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         )
 
     toe_left_joint_penalty_parameter: JointPenalty = JointPenalty(
-        joint_penalty_weight=0.5, 
+        joint_penalty_weight=2.0, 
         joint_pos_bound=(torch.pi/18, torch.pi/6),
     )
     toe_right_joint_penalty_parameter: JointPenalty = JointPenalty(
-        joint_penalty_weight=0.5, 
+        joint_penalty_weight=2.0, 
         joint_pos_bound=(torch.pi/18, torch.pi/6),
     )
     

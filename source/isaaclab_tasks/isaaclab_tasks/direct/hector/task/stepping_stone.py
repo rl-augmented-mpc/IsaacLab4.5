@@ -146,12 +146,56 @@ class SteppingStone(HierarchicalArch):
         observation = {"policy": obs, "critic": obs}
         return observation
     
-    def _reset_robot(self, env_ids):
-        super()._reset_robot(env_ids)
-        center_coord = self._get_sub_terrain_center(self.curriculum_idx)
+    def _reset_robot(self, env_ids: Sequence[int])->None:
+        ### set position ###
+        curriculum_idx = np.floor(self.cfg.terrain_curriculum_sampler.sample(self.max_episode_length_buf.float().mean(dim=0).item(), len(env_ids)))
+        self.curriculum_idx = curriculum_idx
+        center_coord = self._get_sub_terrain_center(curriculum_idx)
+        position = self.cfg.robot_position_sampler.sample(center_coord, len(env_ids))
+        quat = self.cfg.robot_quat_sampler.sample(np.array(position)[:, :2] - center_coord, len(position))
+        
+        position = torch.tensor(position, device=self.device).view(-1, 3)
+        quat = torch.tensor(quat, device=self.device).view(-1, 4)
+        default_root_pose = torch.cat((position, quat), dim=-1)
+        
+        # override the default state
+        self._robot_api.reset_default_pose(default_root_pose, env_ids) # type: ignore
+        
+        ### set joint state ###
+        joint_pos = self._robot_api.default_joint_pos[:, self._joint_ids][env_ids]
+        joint_vel = self._robot_api.default_joint_vel[:, self._joint_ids][env_ids]
+        self._joint_pos[env_ids] = joint_pos
+        self._joint_vel[env_ids] = joint_vel
+        self._add_joint_offset(env_ids)
+        
+        ### write reset to sim ###
+        self._robot_api.write_root_pose_to_sim(default_root_pose, env_ids) # type: ignore
+        self._robot_api.write_root_velocity_to_sim(self._robot_api.default_root_state[env_ids, 7:], env_ids) # type: ignore
+        self._robot_api.write_joint_state_to_sim(joint_pos, joint_vel, self._joint_ids, env_ids) # type: ignore
+        
+        ### reset mpc reference and gait ###
+        if not self.cfg.curriculum_inference:
+            twist_cmd = np.array(self.cfg.robot_target_velocity_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore
+            self._desired_twist_np[env_ids.cpu().numpy()] = twist_cmd # type: ignore
+        
+        # reset foot clearance
+        self.nominal_foot_height[env_ids.cpu().numpy()] = self.cfg.robot_nominal_foot_height_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)) # type: ignore
+        
+        # reset gait
+        self._dsp_duration[env_ids.cpu().numpy()] = np.array(self.cfg.robot_double_support_length_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore
+        self._ssp_duration[env_ids.cpu().numpy()] = np.array(self.cfg.robot_single_support_length_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, len(env_ids)), dtype=np.float32) # type: ignore
+        self.mpc_ctrl_counter[env_ids] = 0
+        for i in env_ids.cpu().numpy(): # type: ignore
+            self.mpc[i].reset()
+            self.mpc[i].update_gait_parameter(np.array([self._dsp_duration[i], self._dsp_duration[i]]), np.array([self._ssp_duration[i], self._ssp_duration[i]]))
+        
+        # reset reference trajectory
+        self._ref_pos = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
+        self._ref_yaw = torch.zeros(self.num_envs, 1, device=self.device, dtype=torch.float32)
+        
         if not self.cfg.inference:
             # update view port to look at the current active terrain
-            camera_delta = [-2.0, -4.0, 1.0]
+            camera_delta = [-1.0, -4.0, 1.0]
             self.viewport_camera_controller.update_view_location(
                 eye=(center_coord[0, 0]+camera_delta[0], center_coord[0, 1]+camera_delta[1], camera_delta[2]), 
                 lookat=(center_coord[0, 0], center_coord[0, 1], 0.0)) # type: ignore
