@@ -60,8 +60,8 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     num_history = 1
     num_extero_observations = int((1.0/0.05 + 1)*(1.0/0.05 + 1))
 
-    action_lb = [-0.5]*traj_sample + [-0.03]*traj_sample + [-0.5]*traj_sample
-    action_ub = [0.5]*traj_sample + [0.15]*traj_sample + [0.5]*traj_sample
+    action_lb = [-0.25]*traj_sample + [-0.03]*traj_sample + [-0.5]*traj_sample
+    action_ub = [0.25]*traj_sample + [0.15]*traj_sample + [0.5]*traj_sample
 
 
     # ================================
@@ -84,9 +84,9 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     terrain_curriculum_sampler = PerformanceCurriculumLineSampler(
         x_start=0, x_end=terrain.num_curriculums-1,
         num_curriculums=terrain.num_curriculums,
-        update_frequency=5,
+        update_frequency=10,
         maximum_episode_length=int(episode_length_s/(dt*decimation)),
-        ratio=0.9
+        ratio=0.95
     )
     
     # gait parameters
@@ -160,7 +160,7 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         foot_distance_bound=(0.3, 0.5))
     
     foot_slide_penalty_parameter: FeetSlidePenalty = FeetSlidePenalty(
-        feet_slide_weight=0.2
+        feet_slide_weight=0.05
         )
 
     toe_left_joint_penalty_parameter: JointPenalty = JointPenalty(
