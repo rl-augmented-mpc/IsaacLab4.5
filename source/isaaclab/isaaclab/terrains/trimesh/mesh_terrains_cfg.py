@@ -153,6 +153,8 @@ class TiledMeshBoxTerrainCfg(SubTerrainBaseCfg):
     """The number of boxes to add to the terrain."""
     platform_gap_range: tuple[float, float] = MISSING
     """The minimum and maximum gap between the boxes (in m)."""
+    height_noise_range: tuple[float, float] = MISSING
+    """The minimum and maximum noise to add to the height of the boxes (in m)."""
     double_box: bool = False
     """If True, the pit contains two levels of stairs/boxes. Defaults to False."""
 

@@ -1,5 +1,5 @@
 params:
-  seed: 42
+  seed: 77
 
   # environment wrapper clipping
   env:

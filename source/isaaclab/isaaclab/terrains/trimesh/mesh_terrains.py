@@ -624,11 +624,12 @@ def tiled_box_terrain(
     box_origins_x = np.concatenate((box_origin1, box_origin2))
     noise_x = np.random.uniform(cfg.platform_gap_range[0], cfg.platform_gap_range[1], size=cfg.num_box)
     box_origins_x = (box_origins_x + noise_x).tolist()
+    height_noise = np.random.uniform(cfg.height_noise_range[0], cfg.height_noise_range[1], size=cfg.num_box)
     
-    for origin_x in box_origins_x:
+    for i in range(cfg.num_box):
         # Generate the top box
-        dim = (cfg.platform_length, cfg.platform_width, terrain_height + total_height)
-        pos = (origin_x, 0.5 * cfg.size[1], (total_height - terrain_height) / 2)
+        dim = (cfg.platform_length, cfg.platform_width, terrain_height + height_noise[i] + total_height)
+        pos = (box_origins_x[i], 0.5 * cfg.size[1], (total_height+height_noise[i] - terrain_height) / 2)
         box_mesh = trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
         meshes_list.append(box_mesh)
     

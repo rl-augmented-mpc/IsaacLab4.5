@@ -217,16 +217,20 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
             # proportion=0.2, box_height_range=(0.12, 0.12), platform_width=15.0, platform_length=0.5
             # ),
             "boxes1": terrain_gen.TiledMeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.08, 0.08), platform_width=15.0, platform_length=0.5, num_box=10, platform_gap_range=(-0.2, 0.2), border_size=1.5
+            proportion=0.2, box_height_range=(0.08, 0.08), platform_width=15.0, platform_length=0.5, num_box=10, 
+            platform_gap_range=(-0.2, 0.2), border_size=1.5, height_noise_range=(-0.02, 0.01)
             ),
             "boxes2": terrain_gen.TiledMeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.1, 0.1), platform_width=15.0, platform_length=0.5, num_box=10, platform_gap_range=(-0.2, 0.2), border_size=1.5
+            proportion=0.2, box_height_range=(0.09, 0.09), platform_width=15.0, platform_length=0.5, num_box=10, 
+            platform_gap_range=(-0.2, 0.2), border_size=1.5, height_noise_range=(-0.02, 0.01)
             ),
             "boxes3": terrain_gen.TiledMeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.11, 0.11), platform_width=15.0, platform_length=0.5, num_box=10, platform_gap_range=(-0.2, 0.2), border_size=1.5
+            proportion=0.2, box_height_range=(0.1, 0.1), platform_width=15.0, platform_length=0.5, num_box=10, 
+            platform_gap_range=(-0.2, 0.2), border_size=1.5, height_noise_range=(-0.02, 0.01)
             ),
             "boxes4": terrain_gen.TiledMeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.12, 0.12), platform_width=15.0, platform_length=0.5, num_box=10, platform_gap_range=(-0.2, 0.2), border_size=1.5
+            proportion=0.2, box_height_range=(0.11, 0.11), platform_width=15.0, platform_length=0.5, num_box=10, 
+            platform_gap_range=(-0.2, 0.2), border_size=1.5, height_noise_range=(-0.02, 0.01)
             ),
         },
     ),

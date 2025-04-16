@@ -60,8 +60,8 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     num_history = 1
     num_extero_observations = int((1.0/0.05 + 1)*(1.0/0.05 + 1))
 
-    action_lb = [-0.25]*traj_sample + [-0.03]*traj_sample + [-0.5]*traj_sample
-    action_ub = [0.25]*traj_sample + [0.15]*traj_sample + [0.5]*traj_sample
+    action_lb = [-0.3]*traj_sample + [-0.03]*traj_sample + [-0.5]*traj_sample
+    action_ub = [0.3]*traj_sample + [0.15]*traj_sample + [0.5]*traj_sample
 
 
     # ================================
@@ -145,8 +145,8 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     
     # penalty
     orientation_penalty_parameter: OrientationRegularizationPenalty = OrientationRegularizationPenalty(
-        roll_penalty_weight=2.0, 
-        pitch_penalty_weight=2.0, 
+        roll_penalty_weight=0.2, 
+        pitch_penalty_weight=0.2, 
         roll_range=(torch.pi/6, torch.pi/3), 
         pitch_range=(torch.pi/6, torch.pi/3))
     
