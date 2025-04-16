@@ -51,8 +51,8 @@ class BaseArchCfg(DirectRLEnvCfg):
     
     dt=0.002 #500Hz 
     rendering_interval = 10 # 50Hz
-    mpc_decimation = 5 # 100Hz
-    decimation = 5 # 100Hz (RL)
+    mpc_decimation = 10 # 100Hz
+    decimation = 10 # 100Hz (RL)
     
     # TODO: override this in the derived class
     observation_space = 44 # actor observation space
@@ -94,7 +94,6 @@ class BaseArchCfg(DirectRLEnvCfg):
         #     static_friction=static_friction,
         #     dynamic_friction=dynamic_friction,
         # ),
-        disable_contact_processing=True, 
         )
     
     # terrain

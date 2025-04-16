@@ -22,7 +22,7 @@ from isaaclab.utils.math import matrix_from_quat, quat_from_matrix
 
 # Task core
 from isaaclab_tasks.direct.hector.common.robot_core import RobotCore
-from isaaclab_tasks.direct.hector_cuda.hector_pytorch.simulation.mpc_wrapper import MPCWrapper
+from hector_pytorch import MPCController, MPCConf
 
 # macros 
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR, NVIDIA_NUCLEUS_DIR
@@ -103,8 +103,12 @@ class BaseArch(DirectRLEnv):
         self._dsp_duration = np.zeros(self.num_envs, dtype=np.float32)
         self._ssp_duration = np.zeros(self.num_envs, dtype=np.float32)
         
-        # setup MPC wrapper
-        self.mpc = MPCWrapper(self.num_envs, self.device)
+        # setup MPC controller
+        mpc_conf = MPCConf(dt=self.cfg.dt, 
+                      iteration_between_mpc=10, 
+                      decimation=self.cfg.mpc_decimation, 
+                      horizon_length=10)
+        self.mpc = MPCController(mpc_conf, self.num_envs, self.device)
         self.mpc_ctrl_counter = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
         
         # for logging
