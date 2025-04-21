@@ -142,9 +142,9 @@ class FootDistanceRegularizationPenalty:
     
     def compute_penalty(self, left_foot_pos_b:torch.Tensor, right_foot_pos_b:torch.Tensor)->torch.Tensor:
         foot_distance = left_foot_pos_b[:, 1:2] - right_foot_pos_b[:, 1:2]
-        foot_distance_penalty = compute_linear_penalty(foot_distance.view(-1, 1), scale=1.0, min_value=self.foot_distance_bound[0], max_value=self.foot_distance_bound[1])
+        # foot_distance_penalty = compute_linear_penalty(foot_distance.view(-1, 1), scale=1.0, min_value=self.foot_distance_bound[0], max_value=self.foot_distance_bound[1])
         # foot_distance_penalty = compute_gaussian_penalty(foot_distance.view(-1, 1), scale=1.0, min_value=self.foot_distance_bound[0], max_value=self.foot_distance_bound[1], temperature=4.0)
-        foot_distance_penalty = self.foot_distance_penalty_weight*foot_distance_penalty
+        foot_distance_penalty = self.foot_distance_penalty_weight*foot_distance.view(-1)
         return foot_distance_penalty
 
 @dataclass
@@ -185,6 +185,14 @@ class FeetSlidePenalty:
         # feet_slide_penalty = compute_linear_penalty(feet_slide_penalty.view(-1, 1), scale=1.0, min_value=2.0, max_value=4.0)
         feet_slide_penalty = self.feet_slide_weight*feet_slide_penalty
         return feet_slide_penalty
+
+@dataclass
+class ContactLocationPenalty:
+    contact_location__penalty_weight: float = 1.0
+    
+    def compute_penalty(self, ground_gradient: torch.Tensor)->torch.Tensor:
+        penalty = self.contact_location__penalty_weight * torch.abs(ground_gradient.view(-1))
+        return penalty
 
 @dataclass
 class ActionSaturationPenalty:

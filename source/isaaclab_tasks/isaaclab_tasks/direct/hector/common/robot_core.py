@@ -4,10 +4,11 @@ from isaaclab.utils.math import matrix_from_quat, quat_from_matrix
 
 
 class RobotCore:
-    def __init__(self, articulation:Articulation, num_envs:int=1, total_contact_points:int=8)->None:
+    def __init__(self, articulation:Articulation, num_envs:int, foot_body_id:torch.Tensor)->None:
         self.articulation = articulation
         self.num_envs = num_envs
-        self.total_contact_point = total_contact_points
+        self.foot_body_id = foot_body_id
+        self.total_contact_point = len(foot_body_id)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._init_pos = torch.zeros((num_envs, 3), device=device)
         self._init_rot = torch.eye(3, device=device).unsqueeze(0).repeat(num_envs, 1, 1)
@@ -155,7 +156,7 @@ class RobotCore:
         assume body velocity occupies first 6 columns of jacobian,
         """
         jac = self.articulation.root_physx_view.get_jacobians()
-        return jac[:, -self.total_contact_point:, :, 6:]
+        return jac[:, self.foot_body_id, :, 6:]
     
     @property
     def mass_matrix(self)->torch.Tensor:
@@ -169,7 +170,7 @@ class RobotCore:
         Returns:
             foot_depth (torch.Tensor): Foot penetration depth (N, 2, 3, 3)
         """
-        foot_quat = self.body_quat_w[:, -self.total_contact_point-2:-self.total_contact_point, :]
+        foot_quat = self.body_quat_w[:, self.foot_body_id, :]
         foot_mat = matrix_from_quat(foot_quat.reshape(-1, 4))
         return foot_mat.reshape(-1, 2, 3, 3)
     
@@ -179,7 +180,7 @@ class RobotCore:
         Returns:
             foot_depth (torch.Tensor): Foot penetration depth (N, 2, 3)
         """
-        foot_rel_vel = self.body_lin_vel_w[:, -self.total_contact_point-2:-self.total_contact_point, :] - self.root_lin_vel_w[:, None, :]
+        foot_rel_vel = self.body_lin_vel_w[:, self.foot_body_id, :] - self.root_lin_vel_w[:, None, :]
         return foot_rel_vel
     
     # TODO: rename this to foot_com_rel_vel
@@ -189,7 +190,7 @@ class RobotCore:
         Returns:
             foot_depth (torch.Tensor): Foot penetration depth (N, 2, 3)
         """
-        foot_vel = self.body_lin_vel_w[:, -self.total_contact_point-2:-self.total_contact_point, :]
+        foot_vel = self.body_lin_vel_w[:, self.foot_body_id, :]
         return foot_vel
     
     @property
@@ -198,7 +199,7 @@ class RobotCore:
         Returns:
             foot_depth (torch.Tensor): Foot penetration depth (N, 2, 3)
         """
-        foot_ang_vel = self.body_ang_vel_w[:, -self.total_contact_point-2:-self.total_contact_point, :]
+        foot_ang_vel = self.body_ang_vel_w[:, self.foot_body_id, :]
         return foot_ang_vel
     
     @property
@@ -228,7 +229,8 @@ class RobotCore:
         Returns:
             foot_depth (torch.Tensor): Foot penetration depth (num_envs, num_contact_points, 3)
         """
-        foot_pos = self.body_pos_w[:, -self.total_contact_point:, :]
+        foot_pos = self.body_pos_w[:, self.foot_body_id, :]
+        foot_pos[:, :, 2] =- 0.04
         return foot_pos
     
     @property
@@ -261,7 +263,7 @@ class RobotCore:
         Returns:
             foot_depth (torch.Tensor): Foot penetration depth (N, num_contact_points, 4)
         """
-        foot_quat = self.body_quat_w[:, -self.total_contact_point:, :]
+        foot_quat = self.body_quat_w[:, self.foot_body_id, :]
         return foot_quat
     
     @property
@@ -270,7 +272,7 @@ class RobotCore:
         Returns:
             foot_depth (torch.Tensor): Foot penetration depth (N, num_contact_points, 3, 3)
         """
-        foot_quat = self.body_quat_w[:, -self.total_contact_point:, :]
+        foot_quat = self.body_quat_w[:, self.foot_body_id, :]
         foot_mat = matrix_from_quat(foot_quat.reshape(-1, 4))
         return foot_mat.reshape(-1, self.total_contact_point, 3, 3)
     
@@ -280,7 +282,7 @@ class RobotCore:
         Returns:
             foot_depth (torch.Tensor): Foot penetration depth (N, num_contact_points, 3)
         """
-        foot_vel = self.body_lin_vel_w[:, -self.total_contact_point:, :]
+        foot_vel = self.body_lin_vel_w[:, self.foot_body_id, :]
         return foot_vel
     
     # @property
@@ -326,7 +328,7 @@ class RobotCore:
         Returns:
             foot_depth (torch.Tensor): Foot penetration depth (num_env, num_contact_points, 3)
         """
-        foot_ang_vel = self.body_ang_vel_w[:, -self.total_contact_point:, :]
+        foot_ang_vel = self.body_ang_vel_w[:, self.foot_body_id, :]
         foot_ang_vel = torch.bmm(self.foot_rot_mat.reshape(-1, 3, 3).transpose(1,2), foot_ang_vel.reshape(-1, 3, 1)).squeeze(-1).reshape(-1, self.total_contact_point, 3)
         return foot_ang_vel
     
@@ -336,7 +338,7 @@ class RobotCore:
         Returns:
             foot_depth (torch.Tensor): Foot penetration depth (N, num_contact_points, 3)
         """
-        foot_vel = self.body_lin_acc_w[:, -self.total_contact_point:, :]
+        foot_vel = self.body_lin_acc_w[:, self.foot_body_id, :]
         return foot_vel
     
     @property
@@ -345,7 +347,7 @@ class RobotCore:
         Returns:
             foot_depth (torch.Tensor): Foot penetration depth (N, num_contact_points)
         """
-        foot_pos = self.body_pos_w[:, -self.total_contact_point:, :]
+        foot_pos = self.body_pos_w[:, self.foot_body_id, :]
         return foot_pos[:, :, -1]
     
     ## == Euler angles in ZYX order == ##
@@ -443,7 +445,7 @@ class RobotCore:
         Returns:
             gamma (torch.Tensor): Foot intrusion angle in radian (N, num_contact_points)
         """
-        foot_vel = self.body_lin_vel_w[:, -self.total_contact_point:, :].reshape(-1, 3)
+        foot_vel = self.body_lin_vel_w[:, self.foot_body_id, :].reshape(-1, 3)
         foot_vel = torch.bmm(self.foot_roll_yaw_matrix.reshape(-1, 3, 3).transpose(1,2), foot_vel[:, :, None]).squeeze(-1) # get velocity wrt local coordinate (pitch is 0)
         gamma = torch.atan2(-foot_vel[:, 2], foot_vel[:, 0])
         gamma = torch.atan2(torch.sin(gamma), torch.cos(gamma)) #standardize to -pi to pi

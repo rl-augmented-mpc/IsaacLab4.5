@@ -9,6 +9,7 @@ import math
 import gymnasium as gym
 import numpy as np
 import torch
+# torch.set_printoptions(threshold=10, edgeitems=2, precision=3, linewidth=80, profile="full")
 from collections.abc import Sequence
 from dataclasses import MISSING
 import carb
@@ -80,15 +81,18 @@ class BaseArch(DirectRLEnv):
         
         # height scan 
         self.height_map = None
+        self.height_map_2d_grad = None
         
         # contact state
         self._gt_grf = torch.zeros(self.num_envs, 6, device=self.device)
         self._gt_contact = torch.zeros(self.num_envs, 2, device=self.device)
+        self.roughness_at_fps = torch.zeros(self.num_envs, device=self.device, dtype=torch.float32)
         
         # MPC output
         self._grfm_mpc = torch.zeros(self.num_envs, 12, device=self.device, dtype=torch.float32)
         self._accel_gyro_mpc = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32)
         self._gait_contact = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
+        self._gait_contact[:, 0] = 1.0 # left foot contact
         self._swing_phase = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
         self._reibert_fps = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32)
         self._reibert_fps_b = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32) # in body frame
@@ -123,6 +127,10 @@ class BaseArch(DirectRLEnv):
         self._desired_twist_np = np.zeros((self.num_envs, 3), dtype=np.float32)
         self._dsp_duration = np.zeros(self.num_envs, dtype=np.float32)
         self._ssp_duration = np.zeros(self.num_envs, dtype=np.float32)
+        
+        # set up robot core 
+        self.foot_body_id = torch.tensor(self.cfg.foot_body_id, device=self.device, dtype=torch.long)
+        self._robot_api = RobotCore(self._robot, self.num_envs, self.foot_body_id)
         
         # setup MPC wrapper
         mpc_conf = MPC_Conf(
@@ -166,7 +174,6 @@ class BaseArch(DirectRLEnv):
         """
         # robot
         self._robot = Articulation(self.cfg.robot)
-        self._robot_api = RobotCore(self._robot, self.cfg.foot_patch_num)
         self.scene.articulations["robot"] = self._robot
         
         # sensors
@@ -394,8 +401,11 @@ class BaseArch(DirectRLEnv):
             self._gt_contact = (torch.norm(self._contact_sensor.data.net_forces_w, dim=-1) > 1.0).to(torch.float32).view(-1, 2)
     
     def _get_exteroceptive_observation(self)->None:
-        # self.height_map = torch.clamp(self._raycaster.data.ray_hits_w[..., 2], min=-1, max=1) # global height
         self.height_map = (self._raycaster.data.ray_hits_w[..., 2] - self._raycaster.data.pos_w[:, 2].unsqueeze(1)).clip(-2.0, 2.0) # local height wrt to base
+        height_map_2d = self.height_map.view(self.num_envs, int(1.0/0.05+1), int(1.0/0.05+1))
+        grad_x = torch.gradient(height_map_2d, dim=1)[0] # gradient returns tuple
+        grad_y = torch.gradient(height_map_2d, dim=2)[0] # gradient returns tuple
+        self.height_map_2d_grad = torch.abs(grad_x) + torch.abs(grad_y)
     
     
     def _reset_idx(self, env_ids: Sequence[int])->None:

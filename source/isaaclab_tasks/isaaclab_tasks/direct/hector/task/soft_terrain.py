@@ -70,7 +70,7 @@ class SoftTerrainEnv(BaseArch):
         stage = stage_utils.get_current_stage()
         create_foot_contact_links(stage, "/World/envs/env_0/Robot", nx, ny, "L")
         create_foot_contact_links(stage, "/World/envs/env_0/Robot", nx, ny, "R")
-        self._robot_api = RobotCore(self._robot, self.num_envs, self.num_leg*self.cfg.foot_patch_num)
+        self._robot_api = RobotCore(self._robot, self.num_envs, self.foot_body_id)
         self.scene.articulations["robot"] = self._robot
         
         # sensors

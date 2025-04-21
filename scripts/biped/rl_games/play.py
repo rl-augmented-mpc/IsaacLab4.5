@@ -32,6 +32,12 @@ parser.add_argument(
     help="When no checkpoint provided, use the last saved model. Otherwise use the best saved model.",
 )
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
+
+parser.add_argument("--log", action="store_true", default=False, help="Log the environment.")
+parser.add_argument("--episode_length", type=float, default=None, help="Length of the episode in second.")
+parser.add_argument("--use_rl", action="store_true", default=False, help="Use RL agent to play. Otherwise, MPC is used.")
+parser.add_argument("--max_trials", type=int, default=1, help="Number of trials to run.")
+
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -67,6 +73,8 @@ from isaaclab_rl.rl_games import RlGamesGpuEnv, RlGamesVecEnvWrapper
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import get_checkpoint_path, load_cfg_from_registry, parse_env_cfg
 
+from logger import BenchmarkLogger
+
 # PLACEHOLDER: Extension template (do not remove this comment)
 
 
@@ -78,6 +86,9 @@ def main():
     )
     agent_cfg = load_cfg_from_registry(args_cli.task, "rl_games_cfg_entry_point")
     env_cfg.seed = agent_cfg["params"]["seed"]
+    if args_cli.episode_length is not None:
+        env_cfg.episode_length_s = args_cli.episode_length
+    env_cfg.inference = True
 
     # specify directory for logging experiments
     log_root_path = os.path.join("logs", "rl_games", agent_cfg["params"]["config"]["name"])
@@ -127,7 +138,14 @@ def main():
         print("[INFO] Recording videos during training.")
         print_dict(video_kwargs, nesting=4)
         env = gym.wrappers.RecordVideo(env, **video_kwargs)
-
+    
+    if args_cli.log:
+        max_episode_length = int(env_cfg.episode_length_s/(env_cfg.decimation*env_cfg.sim.dt))
+        if args_cli.use_rl:
+            logger = BenchmarkLogger(log_dir, "rl", num_envs=args_cli.num_envs, max_trials=args_cli.max_trials, max_episode_length=max_episode_length)
+        else:
+            logger = BenchmarkLogger(log_dir, "mpc", num_envs=args_cli.num_envs, max_trials=args_cli.max_trials, max_episode_length=max_episode_length)
+        
     # wrap around environment for rl-games
     env = RlGamesVecEnvWrapper(env, rl_device, clip_obs, clip_actions)
 
@@ -152,50 +170,76 @@ def main():
     agent: BasePlayer = runner.create_player()
     agent.restore(resume_path)
     agent.reset()
-
-    dt = env.unwrapped.step_dt
+    
+    
+    max_trials = args_cli.max_trials
+    episode_length_log = [0]*args_cli.num_envs
+    episode_counter = [0]*args_cli.num_envs
 
     # reset environment
     obs = env.reset()
     if isinstance(obs, dict):
         obs = obs["obs"]
-    timestep = 0
+    
     # required: enables the flag for batched observations
     _ = agent.get_batch_size(obs, 1)
     # initialize RNN states if used
     if agent.is_rnn: # type: ignore
         agent.init_rnn()
+    
     # simulate environment
-    # note: We simplified the logic in rl-games player.py (:func:`BasePlayer.run()`) function in an
-    #   attempt to have complete control over environment stepping. However, this removes other
-    #   operations such as masking that is used for multi-agent learning by RL-Games.
     while simulation_app.is_running():
-        start_time = time.time()
-        # run everything in inference mode
         with torch.inference_mode():
             # convert obs to agent format
             obs = agent.obs_to_torch(obs)
-            # agent stepping
-            actions = agent.get_action(obs, is_deterministic=agent.is_deterministic)
-            # env stepping
+            if args_cli.use_rl:
+                actions = agent.get_action(obs, is_deterministic=agent.is_deterministic)
+            else:
+                actions = torch.zeros((args_cli.num_envs, env_cfg.action_space),dtype=torch.float32, device=args_cli.device) # type: ignore
             obs, _, dones, _ = env.step(actions)
-
+            obs = agent.obs_to_torch(obs)
+            
             # perform operations for terminated episodes
             if len(dones) > 0:
                 # reset rnn state for terminated episodes
                 if agent.is_rnn and agent.states is not None: # type: ignore
                     for s in agent.states:
                         s[:, dones, :] = 0.0
-        if args_cli.video:
-            timestep += 1
-            # Exit the play loop after recording one video
-            if timestep == args_cli.video_length:
-                break
+        
+        if args_cli.log:
+            logger.log(state=env.unwrapped._state.cpu().numpy(), # type: ignore
+                    obs=obs.cpu().numpy(),
+                    raw_action=actions.cpu().numpy(),
+                    action=env.unwrapped._actions_op.cpu().numpy(), # type: ignore
+                    done=dones.cpu().numpy(), 
+                    )
+        # Incremenet episode length 
+        for i  in range(args_cli.num_envs):
+            episode_length_log[i] += 1
+        
+        # Convert done flag to numpy
+        dones_np = dones.cpu().numpy()
 
-        # time delay for real-time evaluation
-        sleep_time = dt - (time.time() - start_time)
-        if args_cli.real_time and sleep_time > 0:
-            time.sleep(sleep_time)
+        # Check each agent's done flag
+        for i, done_flag in enumerate(dones_np):
+            if episode_counter[i] < max_trials: # only allow logging when episode counter is less than max trials to avoid memory overflow
+                if done_flag == 1:
+                    print(f"[INFO] Env {i}: Episode {episode_counter[i]} completed with episode length {episode_length_log[i]}.")
+                    if args_cli.log:
+                        logger.save_to_buffer(trial_id=episode_counter[i], env_idx=i)
+                        logger.save_episode_length_to_buffer(trial_id=episode_counter[i], env_idx=i, episode_length=episode_length_log[i])
+                    episode_length_log[i] = 0
+                    episode_counter[i] += 1
+        
+        # Check if max trials reached
+        if all(tc >=max_trials for tc in episode_counter):
+            print("[INFO] Max trials reached for all environments.")
+            break
+
+    # save all the log
+    if args_cli.log:
+        logger.save()
+        print(f"Saved logs in {logger.log_dir}")
 
     # close the simulator
     env.close()

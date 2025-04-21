@@ -64,6 +64,7 @@ class HierarchicalArch(BaseArch):
             "foot_distance_penalty": torch.zeros(self.num_envs, device=self.device),
             "toe_left_joint_penalty": torch.zeros(self.num_envs, device=self.device),
             "toe_right_joint_penalty": torch.zeros(self.num_envs, device=self.device),
+            "contact_location_penalty": torch.zeros(self.num_envs, device=self.device),
             "action_saturation_penalty": torch.zeros(self.num_envs, device=self.device),
             "action_penalty": torch.zeros(self.num_envs, device=self.device),
             "energy_penalty": torch.zeros(self.num_envs, device=self.device),
@@ -77,7 +78,6 @@ class HierarchicalArch(BaseArch):
         """
         # robot
         self._robot = Articulation(self.cfg.robot)
-        self._robot_api = RobotCore(self._robot, self.num_envs, self.cfg.foot_patch_num)
         self.scene.articulations["robot"] = self._robot
         
         # sensors
@@ -183,23 +183,29 @@ class HierarchicalArch(BaseArch):
         augmented_fps = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
         default_position = self._robot_api.default_root_state[:, :3]
         default_position[:, 2] = self._robot_api.root_pos_w[:, 2] - self._root_pos[:, 2]
+        
         reibert_fps[:, 0, :2] = self._reibert_fps[:, :2]
         reibert_fps[:, 1, :2] = self._reibert_fps[:, 2:]
         augmented_fps[:, 0, :2] = self._augmented_fps[:, :2]
         augmented_fps[:, 1, :2] = self._augmented_fps[:, 2:]
         
-        # convert local foot placement to simulation global frame
+        terrain_height = torch.from_numpy(self._desired_height).to(self.device) - self.cfg.reference_height
+        reibert_fps[:, 0, 2] = terrain_height
+        reibert_fps[:, 1, 2] = terrain_height
+        augmented_fps[:, 0, 2] = terrain_height
+        augmented_fps[:, 1, 2] = terrain_height
+        
+        # convert from robot odometry frame to simulation global frame
         reibert_fps[:, 0, :] = torch.bmm(self._init_rot_mat, reibert_fps[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position
         reibert_fps[:, 1, :] = torch.bmm(self._init_rot_mat, reibert_fps[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position 
         augmented_fps[:, 0, :] = torch.bmm(self._init_rot_mat, augmented_fps[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position
         augmented_fps[:, 1, :] = torch.bmm(self._init_rot_mat, augmented_fps[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position
         
         # hide foot placement marker when foot is in contact
-        reibert_fps[:, 0, 2] -= self._gait_contact[:, 0] * 5.0
-        reibert_fps[:, 1, 2] -= self._gait_contact[:, 1] * 5.0
-        augmented_fps[:, 0, 2] -= self._gait_contact[:, 0] * 5.0
-        augmented_fps[:, 1, 2] -= self._gait_contact[:, 1] * 5.0
-        
+        reibert_fps[:, 0, 2] -= self._gait_contact[:, 0] * 100.0
+        reibert_fps[:, 1, 2] -= self._gait_contact[:, 1] * 100.0
+        augmented_fps[:, 0, 2] -= self._gait_contact[:, 0] * 100.0
+        augmented_fps[:, 1, 2] -= self._gait_contact[:, 1] * 100.0
         
         # swing foot
         left_swing = (self._root_rot_mat @ self._ref_foot_pos_b[:, :3].unsqueeze(2)).squeeze(2) + self._root_pos
@@ -210,8 +216,7 @@ class HierarchicalArch(BaseArch):
         swing_reference = torch.stack((left_swing, right_swing), dim=1)
         
         orientation = self._robot_api.root_quat_w.repeat(4, 1)
-        
-        self.foot_placement_visualizer.visualize(reibert_fps, augmented_fps, orientation)
+        self.foot_placement_visualizer.visualize(augmented_fps, orientation)
         self._velocity_visualizer.visualize(self._robot_api.root_pos_w, self._robot_api.root_quat_w, self._robot_api.root_lin_vel_b)
         self.swing_foot_visualizer.visualize(swing_reference)
     
@@ -393,6 +398,8 @@ class HierarchicalArch(BaseArch):
         self.toe_left_joint_penalty = self.cfg.toe_left_joint_penalty_parameter.compute_penalty(self._robot_api.joint_pos[:, -2])
         self.toe_right_joint_penalty = self.cfg.toe_right_joint_penalty_parameter.compute_penalty(self._robot_api.joint_pos[:, -1])
         
+        self.contact_location_penalty = self.cfg.contact_location_penalty.compute_penalty(self.roughness_at_fps)
+        
         self.action_penalty, self.energy_penalty = self.cfg.action_penalty_parameter.compute_penalty(
             self._actions, 
             self._previous_actions, 
@@ -421,21 +428,23 @@ class HierarchicalArch(BaseArch):
 
         self.toe_left_joint_penalty = self.toe_left_joint_penalty * self.step_dt
         self.toe_right_joint_penalty = self.toe_right_joint_penalty * self.step_dt
+        
+        self.contact_location_penalty = self.contact_location_penalty * self.step_dt
 
         self.action_penalty = self.action_penalty * self.step_dt
         self.energy_penalty = self.energy_penalty * self.step_dt
         self.action_saturation_penalty = self.action_saturation_penalty * self.step_dt
         self.torque_penalty = self.torque_penalty * self.step_dt
          
-        reward = self.height_reward + self.lin_vel_reward + self.ang_vel_reward + self.position_reward + self.yaw_reward + \
+        self.reward = self.height_reward + self.lin_vel_reward + self.ang_vel_reward + self.position_reward + self.yaw_reward + \
             self.swing_foot_tracking_reward + self.alive_reward
         
-        penalty = self.roll_penalty + self.pitch_penalty + self.action_penalty + self.energy_penalty + \
+        self.penalty = self.roll_penalty + self.pitch_penalty + self.action_penalty + self.energy_penalty + \
             self.foot_slide_penalty + self.action_saturation_penalty + self.foot_distance_penalty + \
-            self.toe_left_joint_penalty + self.toe_right_joint_penalty + \
+            self.toe_left_joint_penalty + self.toe_right_joint_penalty + self.contact_location_penalty + \
                 self.torque_penalty + self.velocity_penalty + self.ang_velocity_penalty
         
-        total_reward = reward - penalty
+        total_reward = self.reward - self.penalty
         
         # push logs to extras
         if "log" not in self.extras:
@@ -506,6 +515,7 @@ class HierarchicalArch(BaseArch):
             log["reward/position_reward"] = self.position_reward.mean().item()
             log["reward/yaw_reward"] = self.yaw_reward.mean().item()
             log["reward/swing_foot_tracking_reward"] = self.swing_foot_tracking_reward.mean().item()
+            log["reward/total_reward"] = self.reward.mean().item()
             
             log["penalty/roll_penalty"] = self.roll_penalty.mean().item()
             log["penalty/pitch_penalty"] = self.pitch_penalty.mean().item()
@@ -519,6 +529,9 @@ class HierarchicalArch(BaseArch):
             log["penalty/torque_penalty"] = self.torque_penalty.mean().item()
             log["penalty/toe_left_joint_penalty"] = self.toe_left_joint_penalty.mean().item()
             log["penalty/toe_right_joint_penalty"] = self.toe_right_joint_penalty.mean().item()
+            log["penalty/total_penalty"] = self.penalty.mean().item()
+            log["penalty/contact_location_penalty"] = self.contact_location_penalty.mean().item()
+            
 
         self.extras["log"].update(log)
     
