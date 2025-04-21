@@ -20,7 +20,7 @@ from isaaclab_tasks.direct.hector.common.task_reward import VelocityTrackingRewa
     SagittalFPSimilarityReward, SwingFootTrackingReward
 from isaaclab_tasks.direct.hector.common.task_penalty import OrientationRegularizationPenalty, ActionRegularizationPenalty, \
     TwistPenalty, FeetSlidePenalty, JointPenalty, ActionSaturationPenalty, TerminationPenalty, CurriculumActionRegularizationPenalty, \
-        FootDistanceRegularizationPenalty, CurriculumTorqueRegularizationPenalty, VelocityPenalty, AngularVelocityPenalty
+        FootDistanceRegularizationPenalty, CurriculumTorqueRegularizationPenalty, VelocityPenalty, AngularVelocityPenalty, ContactLocationPenalty
 from isaaclab_tasks.direct.hector.common.sampler import CircularSamplerWithLimit, BinaryOrientationSampler, PlaneSampler
 from isaaclab_tasks.direct.hector.common.curriculum import  CurriculumRateSampler, CurriculumLineSampler, CurriculumUniformLineSampler, \
     CurriculumUniformCubicSampler, CurriculumQuaternionSampler, PerformanceCurriculumLineSampler
@@ -49,7 +49,7 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     # ========================
     # Observation/Action space
     # ========================
-    dt=1/500 # physics dt
+    dt=1/400 # physics dt
     policy_dt = 0.01 # RL policy dt
     traj_sample = int(policy_dt/dt)
     decimation = int(policy_dt/dt)
@@ -60,15 +60,15 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     num_history = 1
     num_extero_observations = int((1.0/0.05 + 1)*(1.0/0.05 + 1))
 
-    action_lb = [-0.3]*traj_sample + [-0.03]*traj_sample + [-0.5]*traj_sample
-    action_ub = [0.3]*traj_sample + [0.15]*traj_sample + [0.5]*traj_sample
+    action_lb = [-0.3]*traj_sample + [-0.001]*traj_sample + [-0.2]*traj_sample
+    action_ub = [0.3]*traj_sample + [0.2]*traj_sample + [0.2]*traj_sample
 
 
     # ================================
     # Environment configurations
     # ================================
-    # terrain = terrain_cfg.SteppingStoneTerrain
-    terrain = terrain_cfg.CurriculumSteppingStoneTerrain
+    terrain = terrain_cfg.SteppingStoneTerrain
+    # terrain = terrain_cfg.CurriculumSteppingStoneTerrain
     terrain.terrain_generator.seed = seed
 
     # ================================
@@ -93,14 +93,14 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     
     # gait parameters
     robot_nominal_foot_height_sampler = CurriculumUniformLineSampler(
-        x_range_start=(0.15, 0.15),
-        x_range_end=(0.15, 0.15),
+        x_range_start=(0.13, 0.13),
+        x_range_end=(0.13, 0.13),
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1)
     )
 
     # robot spawner
     # robot_position_sampler = CircularSamplerWithLimit(radius=1.0, z_range=(0.56, 0.56))
-    robot_position_sampler = PlaneSampler(x_range=(-1.0, 1.0), y_range=(-5.0, 5.0), z_range=(0.56, 0.56))
+    robot_position_sampler = PlaneSampler(x_range=(-0.5, 0.5), y_range=(-5.0, 5.0), z_range=(0.56, 0.56))
     robot_quat_sampler = BinaryOrientationSampler()
     robot_target_velocity_sampler = CurriculumUniformCubicSampler(
         x_range_start=(0.5, 0.7), x_range_end=(0.5, 0.7),
@@ -145,17 +145,17 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     
     # penalty
     orientation_penalty_parameter: OrientationRegularizationPenalty = OrientationRegularizationPenalty(
-        roll_penalty_weight=0.2, 
-        pitch_penalty_weight=0.2, 
+        roll_penalty_weight=2.0, 
+        pitch_penalty_weight=2.0, 
         roll_range=(torch.pi/6, torch.pi/3), 
         pitch_range=(torch.pi/6, torch.pi/3))
     
     velocity_penalty_parameter: VelocityPenalty = VelocityPenalty(
-        velocity_penalty_weight=1.0, 
+        velocity_penalty_weight=2.0, 
     )
 
     angular_velocity_penalty_parameter: AngularVelocityPenalty = AngularVelocityPenalty(
-        ang_velocity_penalty_weight=0.01,
+        ang_velocity_penalty_weight=0.1,
     )
     
     foot_distance_penalty_parameter: FootDistanceRegularizationPenalty = FootDistanceRegularizationPenalty(
@@ -163,16 +163,20 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         foot_distance_bound=(0.3, 0.5))
     
     foot_slide_penalty_parameter: FeetSlidePenalty = FeetSlidePenalty(
-        feet_slide_weight=0.05
+        feet_slide_weight=0.02
         )
 
     toe_left_joint_penalty_parameter: JointPenalty = JointPenalty(
-        joint_penalty_weight=2.0, 
+        joint_penalty_weight=0.2, 
         joint_pos_bound=(torch.pi/18, torch.pi/6),
     )
     toe_right_joint_penalty_parameter: JointPenalty = JointPenalty(
-        joint_penalty_weight=2.0, 
+        joint_penalty_weight=0.2, 
         joint_pos_bound=(torch.pi/18, torch.pi/6),
+    )
+    
+    contact_location_penalty: ContactLocationPenalty = ContactLocationPenalty(
+        contact_location__penalty_weight=10.0,
     )
     
     action_penalty_parameter: CurriculumActionRegularizationPenalty = CurriculumActionRegularizationPenalty(

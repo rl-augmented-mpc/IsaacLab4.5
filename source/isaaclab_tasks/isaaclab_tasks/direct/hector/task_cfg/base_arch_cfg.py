@@ -50,7 +50,7 @@ class BaseArchCfg(DirectRLEnvCfg):
     curriculum_inference = False
     episode_length_s = 10.0
     num_steps_per_env = 24 # RL horizon length
-    dt=1/500
+    dt=1/400
 
     # ============================
     # MPC configurations
@@ -254,10 +254,9 @@ class BaseArchCfg(DirectRLEnvCfg):
                   'L_hip2_trans', 'L_thigh', 'R_hip2_trans', 'R_thigh', 
                   'L_calf', 'L_thigh1_trans', 'L_thigh2_trans', 
                   'R_calf', 'R_thigh1_trans', 'R_thigh2_trans', 
-                  'L_toe', 'R_toe', 
-                  'L_foot_elem_00', 'L_foot_elem_01', 'L_foot_elem_02', 'L_foot_elem_03', 'L_foot_elem_04', 'L_foot_elem_05', 
-                  'R_foot_elem_00', 'R_foot_elem_01', 'R_foot_elem_02', 'R_foot_elem_03', 'R_foot_elem_04', 'R_foot_elem_05']
-    foot_patch_num = 2
+                  'L_toe', 'R_toe']
+    foot_body_id = [19, 20]
+    # foot_patch_num = 2
     
     # simulation viewer
     viewer: ViewerCfg = ViewerCfg(

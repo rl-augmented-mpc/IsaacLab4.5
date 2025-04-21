@@ -40,6 +40,7 @@ class SteppingStone(HierarchicalArch):
         super().__init__(cfg, render_mode, **kwargs)
         self.num_history = self.cfg.num_history
         self.history_buffer = HistoryBuffer(self.num_envs, self.num_history, self.cfg.observation_space, torch.float32, self.device)
+        self.roughness_at_fps = torch.zeros(self.num_envs, device=self.device, dtype=torch.float32)
         
     def _setup_scene(self)->None:
         """
@@ -59,7 +60,7 @@ class SteppingStone(HierarchicalArch):
         """
         Split policy action into useful form
         """
-        stepping_frequency_traj = policy_action[:, :self.cfg.traj_sample] -0.1
+        stepping_frequency_traj = policy_action[:, :self.cfg.traj_sample]
         foot_height_traj = policy_action[:, self.cfg.traj_sample:self.cfg.traj_sample*2]
         cp_traj = policy_action[:, self.cfg.traj_sample*2:self.cfg.traj_sample*3]
         return stepping_frequency_traj, foot_height_traj, cp_traj
@@ -88,8 +89,14 @@ class SteppingStone(HierarchicalArch):
 
         self._cp1 = self.cfg.cp1_default + cp_traj[env_idx, time_idx].cpu().numpy()
         self._cp2 = self.cfg.cp2_default + cp_traj[env_idx, time_idx].cpu().numpy()
-
-        self._desired_height = self.cfg.reference_height + (self._raycaster.data.pos_w[:, 2] + self.height_map[:, self.height_map.shape[1]//2]).cpu().numpy() # type: ignore
+        
+        swing_foot_pos = self._foot_pos_b.reshape(self.num_envs, 2, 3)[self._gait_contact==0]
+        swing_foot_pos[:, 0] += 0.05 # track toe pos
+        px = (swing_foot_pos[:, 0]//0.05).long() + int(1.0//0.05+1)/2
+        py = -(swing_foot_pos[:, 1]//0.05).long() + int(1.0//0.05+1)/2
+        indices = (int(1.0/0.05 + 1)*px + py).long()
+        self._desired_height = self.cfg.reference_height + (self._raycaster.data.pos_w[:, 2] + self.height_map[torch.arange(self.num_envs), indices]).cpu().numpy() # type: ignore
+        # self._desired_height = self.cfg.reference_height + (self._raycaster.data.pos_w[:, 2] + self.height_map[:, self.height_map.shape[1]//2]).cpu().numpy() # type: ignore
         
         # get proprioceptive
         self._get_state()
@@ -106,6 +113,31 @@ class SteppingStone(HierarchicalArch):
         
         self.visualize_marker()
     
+    def _get_ground_gradient_at_fps(self):
+        """
+        get neighboring 3x3 pixel of ground gradient at foot placement
+        """
+        foot_placement = self._augmented_fps_b.reshape(self.num_envs, 2, 2)[self._gait_contact==0]
+        height, width = self.height_map_2d_grad.shape[1:3]
+        
+        row_index = (-(foot_placement[:, 1]//0.05).long() + int((height-1)/2)).long()
+        row_index = torch.clamp(row_index, 0, height-1).unsqueeze(1).unsqueeze(2).repeat(1, 3, 3)
+        col_index = ((foot_placement[:, 0]//0.05).long() + int((width-1)/2)).long()
+        col_index = torch.clamp(col_index, 0, width-1).unsqueeze(1).unsqueeze(2).repeat(1, 3, 3)
+        
+        row_index[:, :, 0] = row_index[:, :, 1] - 1
+        row_index[:, :, 2] = row_index[:, :, 1] + 1
+        col_index[:, 0, :] = col_index[:, 1, :] - 1
+        col_index[:, 2, :] = col_index[:, 1, :] + 1
+        
+        indices = (width*col_index.view(self.num_envs, -1) + row_index.view(self.num_envs, -1)).long() # (num_envs, 9)
+        indices = torch.clamp(indices, 0, height*width-1).view(-1)
+        
+        env_ids = torch.arange(self.num_envs).view(-1, 1).repeat(1,9).view(-1)
+        ground_gradient = self.height_map_2d_grad.reshape(self.num_envs, -1).repeat(9, 1)[env_ids, indices] # type: ignore
+        self.roughness_at_fps = ground_gradient.view(self.num_envs, 9).mean(dim=1)
+        
+        
     def _get_observations(self) -> dict:
         """
         Get actor and critic observations.
@@ -113,6 +145,7 @@ class SteppingStone(HierarchicalArch):
         self._previous_actions = self._actions.clone()
         self._get_contact_observation()
         self._get_exteroceptive_observation()
+        self._get_ground_gradient_at_fps()
         
         self._obs = torch.cat(
             (
@@ -148,7 +181,12 @@ class SteppingStone(HierarchicalArch):
     
     def _reset_robot(self, env_ids: Sequence[int])->None:
         ### set position ###
-        curriculum_idx = np.floor(self.cfg.terrain_curriculum_sampler.sample(self.common_step_counter//self.cfg.num_steps_per_env, self.max_episode_length_buf.float().mean(dim=0).item(), len(env_ids)))
+        curriculum_idx = np.floor(
+            self.cfg.terrain_curriculum_sampler.sample(
+                self.common_step_counter//self.cfg.num_steps_per_env, 
+                self.max_episode_length_buf.float().mean(dim=0).item(), len(env_ids)
+                )
+            )
         self.curriculum_idx = curriculum_idx
         center_coord = self._get_sub_terrain_center(curriculum_idx)
         position = self.cfg.robot_position_sampler.sample(center_coord, len(env_ids))
@@ -195,7 +233,7 @@ class SteppingStone(HierarchicalArch):
         
         if not self.cfg.inference:
             # update view port to look at the current active terrain
-            camera_delta = [0.0, -9.0, 1.0]
+            camera_delta = [0.0, -7.0, 1.0]
             self.viewport_camera_controller.update_view_location(
                 eye=(center_coord[0, 0]+camera_delta[0], center_coord[0, 1]+camera_delta[1], camera_delta[2]), 
                 lookat=(center_coord[0, 0], center_coord[0, 1], 0.0)) # type: ignore
@@ -203,16 +241,25 @@ class SteppingStone(HierarchicalArch):
     def log_action(self)->None:
         log = {}
         if self.common_step_counter % self.cfg.num_steps_per_env == 0:
-            stepping_frequency = self._actions_op[:, 0:self.cfg.traj_sample].mean(dim=0).cpu().numpy() + self.cfg.nominal_gait_stepping_frequency
-            foot_height = self._actions_op[:, self.cfg.traj_sample:self.cfg.traj_sample*2].mean(dim=0).cpu().numpy() + self.nominal_foot_height.mean(0)
+            # stepping_frequency = self._actions_op[:, 0:self.cfg.traj_sample].mean(dim=0).cpu().numpy() + self.cfg.nominal_gait_stepping_frequency
+            # foot_height = self._actions_op[:, self.cfg.traj_sample:self.cfg.traj_sample*2].mean(dim=0).cpu().numpy() + self.nominal_foot_height.mean(0)
+            # cp = self._actions_op[:, self.cfg.traj_sample*2:self.cfg.traj_sample*3].mean(dim=0).cpu().numpy()
+            # cp1 = self.cfg.cp1_default + cp
+            # cp2 = self.cfg.cp2_default + cp
+            
+            # for i in range(self.cfg.traj_sample):
+            #     log[f"action/stepping_frequency_t{i+1}"] = stepping_frequency[i:i+1]
+            #     log[f"action/foot_height_t{i+1}"] = foot_height[i:i+1]
+                # log[f"action/cp1_t{i+1}"] = cp1[i:i+1]
+                # log[f"action/cp2_t{i+1}"] = cp2[i:i+1]
+            
+            stepping_frequency = self._actions_op[:, 0:self.cfg.traj_sample].mean(dim=0).cpu().numpy()
+            foot_height = self._actions_op[:, self.cfg.traj_sample:self.cfg.traj_sample*2].mean(dim=0).cpu().numpy()
             cp = self._actions_op[:, self.cfg.traj_sample*2:self.cfg.traj_sample*3].mean(dim=0).cpu().numpy()
-            cp1 = self.cfg.cp1_default + cp
-            cp2 = self.cfg.cp2_default + cp
 
             for i in range(self.cfg.traj_sample):
                 log[f"action/stepping_frequency_t{i+1}"] = stepping_frequency[i:i+1]
                 log[f"action/foot_height_t{i+1}"] = foot_height[i:i+1]
-                log[f"action/cp1_t{i+1}"] = cp1[i:i+1]
-                log[f"action/cp2_t{i+1}"] = cp2[i:i+1]
+                log[f"action/cp_t{i+1}"] = cp[i:i+1]
             
         self.extras["log"].update(log)

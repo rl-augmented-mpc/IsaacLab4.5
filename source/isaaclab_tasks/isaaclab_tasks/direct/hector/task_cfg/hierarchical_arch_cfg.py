@@ -20,7 +20,7 @@ from isaaclab_tasks.direct.hector.common.task_reward import VelocityTrackingRewa
     SagittalFPSimilarityReward, SwingFootTrackingReward
 from isaaclab_tasks.direct.hector.common.task_penalty import OrientationRegularizationPenalty, ActionRegularizationPenalty, \
     TwistPenalty, FeetSlidePenalty, JointPenalty, ActionSaturationPenalty, TerminationPenalty, CurriculumActionRegularizationPenalty, \
-        FootDistanceRegularizationPenalty, CurriculumTorqueRegularizationPenalty, VelocityPenalty, AngularVelocityPenalty
+        FootDistanceRegularizationPenalty, CurriculumTorqueRegularizationPenalty, VelocityPenalty, AngularVelocityPenalty, ContactLocationPenalty
 
 # Task cfg
 from isaaclab_tasks.direct.hector.common.sampler import UniformLineSampler, UniformCubicSampler, GridCubicSampler, QuaternionSampler, CircularSampler, CircularOrientationSampler
@@ -42,7 +42,7 @@ class HierarchicalArchCfg(BaseArchCfg):
     seed = 42
     inference = False
     curriculum_inference = False
-    dt=1/500
+    dt=1/400
     
     # ===============================
     # observation/action space
@@ -176,6 +176,9 @@ class HierarchicalArchCfg(BaseArchCfg):
     toe_right_joint_penalty_parameter: JointPenalty = JointPenalty(
         joint_penalty_weight=0.1, 
         joint_pos_bound=(torch.pi/18, torch.pi/6),
+    )
+    contact_location_penalty: ContactLocationPenalty = ContactLocationPenalty(
+        contact_location__penalty_weight=1.0,
     )
 
     action_penalty_parameter: CurriculumActionRegularizationPenalty = CurriculumActionRegularizationPenalty(
