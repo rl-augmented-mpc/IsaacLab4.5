@@ -11,6 +11,7 @@ from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
 from isaaclab.utils import configclass
 
@@ -128,6 +129,26 @@ class HECTORActionsCfg:
             (0.4, 0.15, 0.5)
         )
     )
+    
+@configclass
+class HECTORTerminationsCfg:
+    """Termination terms for the MDP."""
+
+    time_out = DoneTerm(func=mdp.time_out, time_out=True) # type: ignore
+    body_contact = DoneTerm(
+        func=mdp.illegal_contact, # type: ignore
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["base"]), "threshold": 1.0},
+    )
+    bad_orientation = DoneTerm(
+        func=mdp.bad_orientation,  # type: ignore
+        params={"asset_cfg": SceneEntityCfg("robot"), "limit_angle": math.pi/3},
+        time_out=True,
+    )
+    # terrain_out_of_bounds = DoneTerm(
+    #     func=mdp.terrain_out_of_bounds,
+    #     params={"asset_cfg": SceneEntityCfg("robot"), "distance_buffer": 3.0},
+    #     time_out=True,
+    # )
 
 
 @configclass
@@ -135,6 +156,7 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     rewards: HECTORRewards = HECTORRewards()
     actions: HECTORActionsCfg = HECTORActionsCfg()
     observations: HECTORObservationsCfg = HECTORObservationsCfg()
+    terminations: HECTORTerminationsCfg = HECTORTerminationsCfg()
     seed = 42
 
     def __post_init__(self):
@@ -181,7 +203,7 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         }
 
         # Rewards
-        self.rewards.lin_vel_z_l2.weight = 0.0
+        self.rewards.lin_vel_z_l2.weight = -0.1
         self.rewards.undesired_contacts = None
         self.rewards.flat_orientation_l2.weight = -1.0
         self.rewards.action_rate_l2.weight = -0.01
@@ -198,9 +220,6 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.commands.base_velocity.ranges.lin_vel_x = (0.3, 0.5)
         self.commands.base_velocity.ranges.lin_vel_y = (-0.0, 0.0)
         self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
-
-        # terminations
-        self.terminations.base_contact.params["sensor_cfg"].body_names = "base"
 
 
 @configclass
