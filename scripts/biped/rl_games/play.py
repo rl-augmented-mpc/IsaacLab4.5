@@ -108,7 +108,8 @@ def main():
             checkpoint_file = ".*"
         else:
             # this loads the best checkpoint
-            checkpoint_file = f"{agent_cfg['params']['config']['name']}.pth"
+            # checkpoint_file = f"{agent_cfg['params']['config']['name']}.pth"
+            checkpoint_file = 'last_ppo_rl_games_stepping_stone_mlp_ep_1000_rew_15.762949.pth'
         # get path to previous checkpoint
         resume_path = get_checkpoint_path(log_root_path, run_dir, checkpoint_file, other_dirs=["nn"])
     else:

@@ -75,6 +75,7 @@ class BaseArch(DirectRLEnv):
         self._joint_effort_target = torch.zeros(self.num_envs, self.cfg.num_joint_actions, device=self.device, dtype=torch.float32)
         self._joint_accel = torch.zeros(self.num_envs, self.cfg.num_joint_actions, device=self.device, dtype=torch.float32)
         self._state = torch.zeros(self.num_envs, self.cfg.num_states, device=self.device, dtype=torch.float32)
+        self.leg_angle = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32)
         
         # RL observation
         self._obs = torch.zeros(self.num_envs, self.cfg.observation_space, device=self.device)
@@ -306,10 +307,10 @@ class BaseArch(DirectRLEnv):
         Then, gradually increase the command velocity for the first 0.5s (ramp up phase).
         After this, the command should be set to gait=2 and desired velocity.
         """
-        ramp_up_duration = 0.1
-        ramp_up_step = int(ramp_up_duration/self.physics_dt)
-        ramp_up_coef = torch.clip(self.mpc_ctrl_counter/ramp_up_step, 0.0, 1.0)
-        # ramp_up_coef = 1.0
+        # ramp_up_duration = 0.1
+        # ramp_up_step = int(ramp_up_duration/self.physics_dt)
+        # ramp_up_coef = torch.clip(self.mpc_ctrl_counter/ramp_up_step, 0.0, 1.0)
+        ramp_up_coef = 1.0
         self._desired_root_lin_vel_b[:, 0] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 0]).to(self.device)
         self._desired_root_lin_vel_b[:, 1] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 1]).to(self.device)
         self._desired_root_ang_vel_b[:, 0] = ramp_up_coef * torch.from_numpy(self._desired_twist_np[:, 2]).to(self.device)
@@ -345,7 +346,19 @@ class BaseArch(DirectRLEnv):
         self._add_joint_offset()
         self._joint_vel = self._robot_api.joint_vel[:, self._joint_ids]
         self._joint_effort = self._robot_api.joint_effort[:, self._joint_ids]
-        # self._joint_effort_target = self._robot_api.joint_effort_target[:, self._joint_ids]
+        
+        # foot body angle
+        stance_leg_r_left = torch.abs(self._foot_pos_b[:, :3])
+        stance_leg_r_right = torch.abs(self._foot_pos_b[:, 3:])
+        left_leg_angle_x = torch.abs(torch.atan2(stance_leg_r_left[:, 0], self._root_pos[:, 2]))
+        left_leg_angle_y = torch.abs(torch.atan2(stance_leg_r_left[:, 1], self._root_pos[:, 2]))
+        right_leg_angle_x = torch.abs(torch.atan2(stance_leg_r_right[:, 0], self._root_pos[:, 2]))
+        right_leg_angle_y = torch.abs(torch.atan2(stance_leg_r_right[:, 1], self._root_pos[:, 2]))
+        self.leg_angle[:, 0] = left_leg_angle_x
+        self.leg_angle[:, 1] = left_leg_angle_y
+        self.leg_angle[:, 2] = right_leg_angle_x
+        self.leg_angle[:, 3] = right_leg_angle_y
+        # print(self.leg_angle*180/3.14)
         
         # reference calculation 
         self._ref_yaw = self._ref_yaw + self._desired_root_ang_vel_b[:, 0:1] * self.cfg.dt

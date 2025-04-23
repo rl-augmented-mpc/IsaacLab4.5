@@ -148,6 +148,14 @@ class FootDistanceRegularizationPenalty:
         return foot_distance_penalty
 
 @dataclass
+class FootAnglePenalty:
+    foot_angle_penalty_weight: float = 1.0
+    def compute_penalty(self, foot_angle:torch.Tensor)->torch.Tensor:
+        foot_angle_penalty = self.foot_angle_penalty_weight * foot_angle.sum(dim=1)
+        return foot_angle_penalty
+    
+
+@dataclass
 class TerminationPenalty:
     termination_weight: float = 1.0
     def compute_penalty(self, reset_terminated:torch.Tensor)->torch.Tensor:
