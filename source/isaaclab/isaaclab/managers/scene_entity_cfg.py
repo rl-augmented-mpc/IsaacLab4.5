@@ -230,12 +230,13 @@ class SceneEntityCfg:
                 body_ids, _ = entity.find_bodies(self.body_names, preserve_order=self.preserve_order)
                 body_names = [entity.body_names[i] for i in self.body_ids]
                 if body_ids != self.body_ids or body_names != self.body_names:
-                    raise ValueError(
-                        "Both 'body_names' and 'body_ids' are specified, and are not consistent."
-                        f"\n\tfrom body names: {self.body_names} [{body_ids}]"
-                        f"\n\tfrom body ids: {body_names} [{self.body_ids}]"
-                        "\nHint: Use either 'body_names' or 'body_ids' to avoid confusion."
-                    )
+                    if self.body_names != [".*"]: #BUG: naive string check does not work .* != [all body names]
+                        raise ValueError(
+                            "Both 'body_names' and 'body_ids' are specified, and are not consistent."
+                            f"\n\tfrom body names: {self.body_names} [{body_ids}]"
+                            f"\n\tfrom body ids: {body_names} [{self.body_ids}]"
+                            "\nHint: Use either 'body_names' or 'body_ids' to avoid confusion."
+                        )
             # -- from body names to body indices
             elif self.body_names is not None:
                 if isinstance(self.body_names, str):

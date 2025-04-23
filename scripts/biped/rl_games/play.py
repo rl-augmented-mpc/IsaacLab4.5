@@ -108,8 +108,7 @@ def main():
             checkpoint_file = ".*"
         else:
             # this loads the best checkpoint
-            # checkpoint_file = f"{agent_cfg['params']['config']['name']}.pth"
-            checkpoint_file = 'last_ppo_rl_games_stepping_stone_mlp_ep_1000_rew_15.762949.pth'
+            checkpoint_file = f"{agent_cfg['params']['config']['name']}.pth"
         # get path to previous checkpoint
         resume_path = get_checkpoint_path(log_root_path, run_dir, checkpoint_file, other_dirs=["nn"])
     else:
@@ -196,7 +195,7 @@ def main():
             if args_cli.use_rl:
                 actions = agent.get_action(obs, is_deterministic=agent.is_deterministic)
             else:
-                actions = torch.zeros((args_cli.num_envs, env_cfg.action_space),dtype=torch.float32, device=args_cli.device) # type: ignore
+                actions = torch.zeros(env.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
             obs, _, dones, _ = env.step(actions)
             obs = agent.obs_to_torch(obs)
             

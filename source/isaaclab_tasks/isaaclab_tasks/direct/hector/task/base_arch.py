@@ -294,6 +294,7 @@ class BaseArch(DirectRLEnv):
             lin_velocity = self._desired_root_lin_vel_b[i].cpu().numpy()
             ang_velocity = self._desired_root_ang_vel_b[i].cpu().numpy()
             desired_twist = np.array([lin_velocity[0], lin_velocity[1], ang_velocity[0]], dtype=np.float32)
+            print(desired_twist)
             self.mpc[i].set_command(gait_num=self._desired_gait[i], 
                                 roll_pitch=self._desired_roll_pitch[i], 
                                 twist=desired_twist, 
