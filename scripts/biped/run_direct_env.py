@@ -96,7 +96,7 @@ def main():
     # simulate environment
     while simulation_app.is_running():
         with torch.inference_mode():
-            action = torch.zeros((args_cli.num_envs, env_cfg.action_space),dtype=torch.float32, device=args_cli.device) # type: ignore
+            action = torch.zeros(env.action_space.shape,dtype=torch.float32, device=args_cli.device) # type: ignore
             obs, _, terminated, time_out, _ = env.step(action)
             dones = terminated | time_out
             obs = obs["policy"]

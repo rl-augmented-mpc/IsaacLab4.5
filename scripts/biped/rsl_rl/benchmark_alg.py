@@ -150,7 +150,7 @@ def main():
             if args_cli.use_rl:
                 actions = policy(obs)
             else:
-                actions = torch.zeros((args_cli.num_envs, env_cfg.action_space),dtype=torch.float32, device=args_cli.device) # type: ignore
+                actions = torch.zeros(env.action_space.shape,dtype=torch.float32, device=args_cli.device) # type: ignore
             obs, _, dones, _ = env.step(actions)
             runner.agent.actor.reset_hidden_state(dones.nonzero().reshape(-1)) # reset actor hidden state of batch dim with done=1
         
