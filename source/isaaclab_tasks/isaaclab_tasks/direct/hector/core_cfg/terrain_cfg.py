@@ -173,7 +173,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
         sub_terrains={
             "boxes1": terrain_gen.TiledMeshBoxTerrainCfg(
             proportion=0.2, box_height_range=(0.06, 0.06), platform_width=25.0, platform_length=0.5, num_box=10, 
-            platform_gap_range=(-0.2, 0.2), border_size=1.5, height_noise_range=(-0.0, 0.0)
+            platform_gap_range=(0.0, 0.0), border_size=1.5, height_noise_range=(-0.0, 0.0)
             ),
         },
     ),

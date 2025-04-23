@@ -90,10 +90,10 @@ from isaaclab_rl.rsl_rl import RslRlPPOAgentCfg, RslRlSACAgentCfg, RslRlPolicyRu
 @configclass
 class HectorPPOMLPRunnerCfg(RslRlOnPolicyRunnerCfg):
     seed = 0
-    num_steps_per_env = 24 # horizon for rollout
+    num_steps_per_env = 32 # horizon for rollout
     max_iterations = 20000
     save_interval = 500
-    empirical_normalization = False
+    empirical_normalization = True
     policy = RslRlPpoActorCriticCfg(
         class_name="ActorCritic", 
         init_noise_std=1.0,
@@ -107,7 +107,7 @@ class HectorPPOMLPRunnerCfg(RslRlOnPolicyRunnerCfg):
         value_loss_coef=1.0,
         use_clipped_value_loss=True,
         clip_param=0.2,
-        entropy_coef=1e-3,
+        entropy_coef=0.0,
         num_learning_epochs=5,
         num_mini_batches=4,
         learning_rate=1.0e-4,
@@ -119,7 +119,7 @@ class HectorPPOMLPRunnerCfg(RslRlOnPolicyRunnerCfg):
     )
     logger = "wandb"
     wandb_project = "rl_mpc"
-    experiment_name = "ppo_rsl_rl_friction"
+    experiment_name = "ppo_rsl_rl_stepping_stone"
     
 @configclass
 class HectorPPOGRURunnerCfg(RslRlOnPolicyRunnerCfg):
