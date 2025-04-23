@@ -13,12 +13,14 @@ from typing import TYPE_CHECKING
 import omni.log
 from pxr import UsdPhysics
 
+import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 import isaaclab.utils.math as math_utils
 import isaaclab.utils.string as string_utils
 from isaaclab.assets.articulation import Articulation
 from isaaclab.managers.action_manager import ActionTerm
 from isaaclab.sensors import ContactSensor, ContactSensorCfg, FrameTransformer, FrameTransformerCfg
 from isaaclab.sim.utils import find_matching_prims
+from isaaclab.managers import SceneEntityCfg
 
 from isaaclab.envs import ManagerBasedEnv
 from . import actions_cfg
@@ -54,7 +56,7 @@ class MPCAction(ActionTerm):
         self._processed_actions = torch.zeros_like(self.raw_actions)
         self._joint_actions = np.zeros((self.num_envs, self._num_joints), dtype=np.float32)
         self._action_lb = torch.zeros(self.num_envs, self.action_dim, device=self.device)
-        self._action_ub = torch.zeros_like(self._action_lb)
+        self._action_ub = torch.zeros(self.num_envs, self.action_dim, device=self.device)
         self._action_lb[:] = torch.tensor(self.cfg.action_range[0], device=self.device)
         self._action_ub[:] = torch.tensor(self.cfg.action_range[1], device=self.device)
         
@@ -72,12 +74,31 @@ class MPCAction(ActionTerm):
             self.mpc_controller[i].set_planner(self.cfg.foot_placement_planner)
             self.mpc_controller[i].set_terrain_friction(self.cfg.friction_cone_coef)
         
-        # create tensors for mpc control counter
-        self.mpc_counter = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
-        
-        # create mpc state
+        # create tensors to store mpc state
         self.state = torch.zeros(self.num_envs, 33, device=self.device)
-    
+        self.root_pos = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
+        self.root_quat = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32)
+        self.root_yaw = torch.zeros(self.num_envs, device=self.device, dtype=torch.float32)
+        self.root_rot_mat = torch.zeros(self.num_envs, 3, 3, device=self.device, dtype=torch.float32)
+        self.root_lin_vel_b = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
+        self.root_ang_vel_b = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
+        self.joint_pos = torch.zeros(self.num_envs, self._num_joints, device=self.device, dtype=torch.float32)
+        self.joint_vel = torch.zeros(self.num_envs, self._num_joints, device=self.device, dtype=torch.float32)
+        
+        self.grw = torch.zeros(self.num_envs, 12, device=self.device, dtype=torch.float32) # ground reaction wrench wrt body frame
+        self.grw_accel = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # ground reaction acceleration
+        self.gait_contact = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
+        self.gait_contact[:, 0] = 1.0 # left foot contact at the beginning
+        self.swing_phase = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
+        self.foot_placement_w = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32)
+        self.foot_placement_b = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32) # in body frame
+        self.foot_pos_w = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # foot position in world frame
+        self.foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # foot position in body frame
+        self.ref_foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # reference foot position in body frame
+        
+        # reference
+        self.command = np.zeros((self.num_envs, 3), dtype=np.float32)
+        self.reference_height = self.cfg.reference_height * np.ones(self.num_envs, dtype=np.float32)
     
     """
     Properties.
@@ -110,10 +131,11 @@ class MPCAction(ActionTerm):
         # store the raw actions
         self._raw_actions[:] = actions
         
+        # process raw actions
         positive_action_mask = (actions > 0).to(torch.float32)
         self._processed_actions[:] = positive_action_mask * self._action_ub * self._raw_actions + (1 - positive_action_mask) * self._action_lb * (-self._raw_actions)
         
-        # split residual actions
+        # split processed actions into individual control parameters
         stepping_frequency = self._processed_actions[:, 0].cpu().numpy()
         swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
         trajectory_control_points = self._processed_actions[:, 2].cpu().numpy()
@@ -124,15 +146,36 @@ class MPCAction(ActionTerm):
         cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
         cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
         
-        command = self._env.command_manager.get_command(self.cfg.command_name).cpu().numpy()
+        # update mpc state
+        self.command[:] = self._env.command_manager.get_command(self.cfg.command_name).cpu().numpy()
+        
         for i in range(self.num_envs):
             self.mpc_controller[i].set_swing_parameters(stepping_frequency=stepping_frequency[i], foot_height=swing_foot_height[i], cp1=cp1[i], cp2=cp2[i])
             self.mpc_controller[i].set_command(
                 gait_num=2, 
                 roll_pitch=np.zeros(2, dtype=np.float32),
-                twist=command[i],
-                height=self.cfg.reference_height,
+                twist=self.command[i],
+                height=self.reference_height[i],
             )
+        
+        self._get_mpc_state()
+        self._get_height_at_swing_foot()
+    
+    def _get_height_at_swing_foot(self):
+        scan_width = 1.0
+        scan_resolution = 0.1
+        
+        sensor= self._env.scene.sensors["height_scanner"]
+        height_map = sensor.data.ray_hits_w[..., 2]
+        
+        swing_foot_pos = self.foot_pos_b.reshape(self.num_envs, 2, 3)[self.gait_contact==0]
+        swing_foot_pos[:, 0] += 0.05 # track toe pos
+        
+        px = (swing_foot_pos[:, 0]//scan_resolution).long() + int(scan_width//scan_resolution+1)/2
+        py = -(swing_foot_pos[:, 1]//scan_resolution).long() + int(scan_width//scan_resolution+1)/2
+        indices = (int(scan_width/scan_resolution + 1)*px + py).long()
+        # print(indices.shape)
+        self.reference_height = self.cfg.reference_height + height_map[torch.arange(self.num_envs), indices].cpu().numpy() # type: ignore
 
     def apply_actions(self):
         # obtain state
@@ -171,7 +214,6 @@ class MPCAction(ActionTerm):
         self.joint_pos = self.robot_api.joint_pos[:, self._joint_ids]
         self.joint_pos = self._add_joint_offset(self.joint_pos) # map hardware joint zeros and simulation joint zeros
         self.joint_vel = self.robot_api.joint_vel[:, self._joint_ids]
-        self.joint_effort = self.robot_api.joint_effort[:, self._joint_ids]
         
         # # foot body angle
         # self.leg_angle = torch.zeros(self.num_envs, 4, device=self.device)
@@ -193,6 +235,39 @@ class MPCAction(ActionTerm):
             ),
             dim=-1,
         )
+        
+    def _get_mpc_state(self)->None:
+        grw_accel = []
+        grw = []
+        gait_contact = []
+        swing_phase = []
+        foot_placement_w = []
+        foot_pos_b = []
+        foot_ref_pos_b = []
+        
+        for i in range(len(self.mpc_controller)):
+            grw_accel.append(self.mpc_controller[i].accel_gyro(self.root_rot_mat[i].cpu().numpy()))
+            grw.append(self.mpc_controller[i].grfm)
+            gait_contact.append(self.mpc_controller[i].contact_state)
+            swing_phase.append(self.mpc_controller[i].swing_phase)
+            foot_placement_w.append(self.mpc_controller[i].foot_placement)
+            foot_pos_b.append(self.mpc_controller[i].foot_pos_b)
+            foot_ref_pos_b.append(self.mpc_controller[i].ref_foot_pos_b)
+        
+        self.grw_accel = torch.from_numpy(np.array(grw_accel)).to(self.device).view(self.num_envs, 6).to(torch.float32)
+        self.grw = torch.from_numpy(np.array(grw)).to(self.device).view(self.num_envs, 12).to(torch.float32)
+        self.gait_contact = torch.from_numpy(np.array(gait_contact)).to(self.device).view(self.num_envs, 2).to(torch.float32)
+        self.swing_phase = torch.from_numpy(np.array(swing_phase)).to(self.device).view(self.num_envs, 2).to(torch.float32)
+        self.foot_placement_w = torch.from_numpy(np.array(foot_placement_w)).to(self.device).view(self.num_envs, 4).to(torch.float32)
+        self.foot_pos_b = torch.from_numpy(np.array(foot_pos_b)).to(self.device).view(self.num_envs, 6).to(torch.float32)
+        self.ref_foot_pos_b = torch.from_numpy(np.array(foot_ref_pos_b)).to(self.device).view(self.num_envs, 6).to(torch.float32)
+
+        # transform foot placement to body frame
+        self.foot_placement_b = torch.zeros((self.num_envs, 4), device=self.device)
+        self.foot_placement_b[:, 0] = self.foot_placement_w[:, 0]*torch.cos(self.root_yaw) + self.foot_placement_w[:, 1]*torch.sin(self.root_yaw) - self.root_pos[:, 0]
+        self.foot_placement_b[:, 1] = -self.foot_placement_w[:, 0]*torch.sin(self.root_yaw) + self.foot_placement_w[:, 1]*torch.cos(self.root_yaw) - self.root_pos[:, 1]
+        self.foot_placement_b[:, 2] = self.foot_placement_w[:, 2]*torch.cos(self.root_yaw) + self.foot_placement_w[:, 3]*torch.sin(self.root_yaw) - self.root_pos[:, 0]
+        self.foot_placement_b[:, 3] = -self.foot_placement_w[:, 2]*torch.sin(self.root_yaw) + self.foot_placement_w[:, 3]*torch.cos(self.root_yaw) - self.root_pos[:, 1]
     
     def _add_joint_offset(self, joint_pos:torch.Tensor) -> torch.Tensor:
         joint_pos[:, 2] += torch.pi/4

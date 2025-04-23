@@ -3,11 +3,15 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import math
+
+from isaaclab.envs.common import ViewerCfg
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
+from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
 from isaaclab.utils import configclass
 
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
@@ -99,7 +103,7 @@ class HECTORObservationsCfg:
             )
         actions = ObsTerm(func=mdp.last_action) # type: ignore
         height_scan = ObsTerm(
-            func=mdp.height_scan, # type: ignore
+            func=hector_mdp.height_scan, # type: ignore
             params={"sensor_cfg": SceneEntityCfg("height_scanner")},
             noise=Unoise(n_min=-0.1, n_max=0.1),
             clip=(-1.0, 1.0),
@@ -131,19 +135,29 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     rewards: HECTORRewards = HECTORRewards()
     actions: HECTORActionsCfg = HECTORActionsCfg()
     observations: HECTORObservationsCfg = HECTORObservationsCfg()
+    seed = 42
 
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
         
+        # sim time
         self.sim.dt = 1/400
         self.decimation = 4
         self.sim.render_interval = 10
+        
+        # viewer 
+        self.viewer = ViewerCfg(
+            eye=(10.0, -10.0, 2.0), 
+            lookat=(5.0, -5.0, 0.0),
+            resolution=(1920, 1080)
+        )
         
         # Scene
         self.scene.robot = HECTOR_CFG.replace(prim_path=f"{ENV_REGEX_NS}/Robot")
         # self.scene.contact_forces.prim_path = f"{ENV_REGEX_NS}/Robot/[L|R]_toe"
         self.scene.height_scanner.prim_path = f"{ENV_REGEX_NS}/Robot/base"
+        self.scene.height_scanner.pattern_cfg = patterns.GridPatternCfg(resolution=0.1, size=[1.0, 1.0])
         self.scene.terrain = hector_mdp.SteppingStoneTerrain
 
         # Randomization
@@ -152,8 +166,10 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.events.reset_robot_joints.params["position_range"] = (1.0, 1.0)
         self.events.base_external_force_torque = None
         # self.events.base_external_force_torque.params["asset_cfg"].body_names = ["trunk"]
+        
+        # Reset
         self.events.reset_base.params = {
-            "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
+            "pose_range": {"x": (-0.5, 0.5), "y": (-5.0, 5.0), "yaw": (-0, 0)},
             "velocity_range": {
                 "x": (0.0, 0.0),
                 "y": (0.0, 0.0),
@@ -179,7 +195,7 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         )
 
         # Commands
-        self.commands.base_velocity.ranges.lin_vel_x = (0.3, 0.6)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.3, 0.5)
         self.commands.base_velocity.ranges.lin_vel_y = (-0.0, 0.0)
         self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
 
