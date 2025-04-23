@@ -29,6 +29,12 @@ class RobotCore:
         self.articulation.set_external_force_and_torque(forces, torques, body_id, env_id) # type: ignore
     
     # motor control
+    def set_joint_position_target(self, joint_action:torch.Tensor, joint_ids:torch.Tensor)->None:
+        self.articulation.set_joint_position_target(joint_action, joint_ids)
+    
+    def set_joint_velocity_target(self, joint_action:torch.Tensor, joint_ids:torch.Tensor)->None:
+        self.articulation.set_joint_velocity_target(joint_action, joint_ids)
+    
     def set_joint_effort_target(self, joint_action:torch.Tensor, joint_ids:torch.Tensor)->None:
         self.articulation.set_joint_effort_target(joint_action, joint_ids) # type: ignore
     
@@ -127,6 +133,18 @@ class RobotCore:
     def joint_effort(self)->torch.Tensor:
         return self.articulation.data.applied_torque
         # return self.articulation.data.joint_torque
+    
+    @property
+    def joint_pos_limit(self)->torch.Tensor:
+        return self.articulation.data.joint_pos_limits
+
+    @property   
+    def joint_vel_limit(self)->torch.Tensor:
+        return self.articulation.data.joint_vel_limits
+
+    @property
+    def joint_effort_limit(self)->torch.Tensor:
+        return self.articulation.data.joint_effort_limits
     
     @property
     def body_pos_w(self)->torch.Tensor:

@@ -158,8 +158,8 @@ class SteppingStone(HierarchicalArch):
                 self._joint_pos, #14:24
                 self._joint_vel, #24:34
                 self._joint_effort, #34:44
-                self._accel_gyro_mpc, #44:50
-                self._gait_contact, #50:52
+                # self._accel_gyro_mpc, #44:50
+                # self._gait_contact, #50:52
                 self._swing_phase, #52:54
                 self._reibert_fps_b, # 54:58
                 self._foot_pos_b, # 58:64

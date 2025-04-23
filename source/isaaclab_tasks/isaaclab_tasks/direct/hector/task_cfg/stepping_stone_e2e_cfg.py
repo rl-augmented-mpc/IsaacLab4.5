@@ -27,7 +27,7 @@ from isaaclab_tasks.direct.hector.common.curriculum import  CurriculumRateSample
 from isaaclab_tasks.direct.hector.core_cfg import terrain_cfg
 
 # Task cfg
-from isaaclab_tasks.direct.hector.task_cfg.hierarchical_arch_cfg import HierarchicalArchCfg
+from isaaclab_tasks.direct.hector.task_cfg.base_arch_e2e_cfg import BaseArchE2ECfg
 
 # macros 
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
@@ -36,10 +36,9 @@ ENV_REGEX_NS = "/World/envs/env_.*"
 
 
 @configclass
-class SteppingStoneCfg(HierarchicalArchCfg):
+class SteppingStoneE2ECfg(BaseArchE2ECfg):
     episode_length_s = 20
     seed = 42
-    num_steps_per_env = 32
     inference = False
     curriculum_inference = False
 
@@ -51,18 +50,13 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     # ========================
     dt=1/400 # physics dt
     policy_dt = 0.01 # RL policy dt
-    traj_sample = int(policy_dt/dt)
     decimation = int(policy_dt/dt)
 
-    action_space = traj_sample*3
-    observation_space = 62+action_space
-    state_space = 62+action_space
+    action_space = 10
+    observation_space = 44+action_space
+    state_space = 44+action_space
     num_history = 1
     num_extero_observations = int((1.0/0.05 + 1)*(1.0/0.05 + 1))
-
-    action_lb = [-0.4]*traj_sample + [-0.001]*traj_sample + [-0.5]*traj_sample
-    action_ub = [0.4]*traj_sample + [0.15]*traj_sample + [0.5]*traj_sample
-
 
     # ================================
     # Environment configurations
@@ -76,8 +70,8 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     # ================================
 
     # termination conditions
-    roll_limit = (60/180)*math.pi
-    pitch_limit = (60/180)*math.pi
+    roll_limit = (30/180)*math.pi
+    pitch_limit = (30/180)*math.pi
     min_height = 0.55-0.3
     max_height = 0.55+0.3
 
@@ -100,7 +94,7 @@ class SteppingStoneCfg(HierarchicalArchCfg):
 
     # robot spawner
     # robot_position_sampler = CircularSamplerWithLimit(radius=1.0, z_range=(0.56, 0.56))
-    robot_position_sampler = PlaneSampler(x_range=(-0.5, 0.5), y_range=(-5.0, 5.0), z_range=(0.56, 0.56))
+    robot_position_sampler = PlaneSampler(x_range=(-1.0, 0.5), y_range=(-10.0, 10.0), z_range=(0.56, 0.56))
     robot_quat_sampler = BinaryOrientationSampler()
     robot_target_velocity_sampler = CurriculumUniformCubicSampler(
         x_range_start=(0.5, 0.7), x_range_end=(0.5, 0.7),
@@ -138,15 +132,15 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     alive_reward_parameter: AliveReward = AliveReward(alive_weight=0.01)
 
     swing_foot_tracking_reward_parameter: SwingFootTrackingReward = SwingFootTrackingReward(
-        swing_foot_weight=0.0, 
+        swing_foot_weight=0.2, 
         swing_foot_coeff=0.5,
         swing_foot_reward_mode="gaussian"
     )
     
     # penalty
     orientation_penalty_parameter: OrientationRegularizationPenalty = OrientationRegularizationPenalty(
-        roll_penalty_weight=0.0, 
-        pitch_penalty_weight=0.0, 
+        roll_penalty_weight=2.0, 
+        pitch_penalty_weight=2.0, 
         roll_range=(torch.pi/6, torch.pi/3), 
         pitch_range=(torch.pi/6, torch.pi/3))
     
@@ -159,24 +153,24 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     )
     
     foot_distance_penalty_parameter: FootDistanceRegularizationPenalty = FootDistanceRegularizationPenalty(
-        foot_distance_penalty_weight=0.0, 
+        foot_distance_penalty_weight=0.5, 
         foot_distance_bound=(0.3, 0.5))
     
     foot_slide_penalty_parameter: FeetSlidePenalty = FeetSlidePenalty(
-        feet_slide_weight=0.0
+        feet_slide_weight=0.02
         )
 
     toe_left_joint_penalty_parameter: JointPenalty = JointPenalty(
-        joint_penalty_weight=0.0, 
+        joint_penalty_weight=0.2, 
         joint_pos_bound=(torch.pi/18, torch.pi/6),
     )
     toe_right_joint_penalty_parameter: JointPenalty = JointPenalty(
-        joint_penalty_weight=0.0, 
+        joint_penalty_weight=0.2, 
         joint_pos_bound=(torch.pi/18, torch.pi/6),
     )
     
     contact_location_penalty: ContactLocationPenalty = ContactLocationPenalty(
-        contact_location__penalty_weight=50.0,
+        contact_location__penalty_weight=10.0,
     )
     
     action_penalty_parameter: CurriculumActionRegularizationPenalty = CurriculumActionRegularizationPenalty(
@@ -187,8 +181,8 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1),
         )
     torque_penalty_parameter: CurriculumTorqueRegularizationPenalty = CurriculumTorqueRegularizationPenalty(
-        torque_penalty_weight_start=0,
-        torque_penalty_weight_end=0, 
+        torque_penalty_weight_start=1e-4,
+        torque_penalty_weight_end=1e-4, 
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1),
     )
-    action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.5, action_bound=(0.9, 1.0))
+    action_saturation_penalty_parameter: ActionSaturationPenalty = ActionSaturationPenalty(action_penalty_weight=0.0, action_bound=(0.9, 1.0))

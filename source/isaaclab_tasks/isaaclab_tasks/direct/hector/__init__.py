@@ -18,6 +18,10 @@ from .task.hierarchical_arch import HierarchicalArch, HierarchicalArchPrime, Hie
 from .task_cfg.stepping_stone_cfg import SteppingStoneCfg
 from .task.stepping_stone import SteppingStone
 
+# stepping stone e2e
+from .task_cfg.stepping_stone_e2e_cfg import SteppingStoneE2ECfg
+from .task.stepping_stone_e2e import SteppingStoneE2E
+
 # soft terrain env
 # from .task_cfg.soft_terrain_cfg import SoftTerrainEnvCfg
 # from .task.soft_terrain import SoftTerrainEnv
@@ -27,12 +31,14 @@ BASE_CLASS = [
     "Hector-Hierarchical-Prime-Rigid",
     "Hector-Hierarchical-Prime-Full-Rigid",
     "SteppingStone",
+    "SteppingStoneE2E",
 ]
 
 ENTRY_POINT = [
     f"{__name__}.task.hierarchical_arch:HierarchicalArchPrime",
     f"{__name__}.task.hierarchical_arch:HierarchicalArchPrimeFull",
     f"{__name__}.task.stepping_stone:SteppingStone",
+    f"{__name__}.task.stepping_stone_e2e:SteppingStoneE2E",
 ]
 
 ARGS = [
@@ -46,6 +52,9 @@ ARGS = [
      "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo.yaml",
     #  "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
      },
+    {"env_cfg_entry_point": f"{__name__}.task_cfg.stepping_stone_e2e_cfg:SteppingStoneE2ECfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOGRURunnerCfg", 
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo.yaml"},
 ]
 
 for i in range(len(BASE_CLASS)):
