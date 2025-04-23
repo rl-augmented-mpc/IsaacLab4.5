@@ -172,7 +172,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
         curriculum=True,
         sub_terrains={
             "boxes1": terrain_gen.TiledMeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.06, 0.06), platform_width=25.0, platform_length=0.5, num_box=10, 
+            proportion=0.2, box_height_range=(0.0, 0.0), platform_width=25.0, platform_length=0.5, num_box=10, 
             platform_gap_range=(0.0, 0.0), border_size=1.5, height_noise_range=(-0.0, 0.0)
             ),
         },
@@ -181,8 +181,8 @@ SteppingStoneTerrain = TerrainImporterCfg(
     physics_material=sim_utils.RigidBodyMaterialCfg(
         friction_combine_mode="multiply",
         restitution_combine_mode="multiply",
-        static_friction=1.0,
-        dynamic_friction=1.0,
+        static_friction=2.0,
+        dynamic_friction=2.0,
     ),
     visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
     debug_vis=False,

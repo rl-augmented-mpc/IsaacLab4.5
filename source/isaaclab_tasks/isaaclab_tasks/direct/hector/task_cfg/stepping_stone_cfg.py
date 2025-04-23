@@ -20,7 +20,7 @@ from isaaclab_tasks.direct.hector.common.task_reward import VelocityTrackingRewa
     SagittalFPSimilarityReward, SwingFootTrackingReward
 from isaaclab_tasks.direct.hector.common.task_penalty import OrientationRegularizationPenalty, ActionRegularizationPenalty, \
     TwistPenalty, FeetSlidePenalty, JointPenalty, ActionSaturationPenalty, TerminationPenalty, CurriculumActionRegularizationPenalty, \
-        FootDistanceRegularizationPenalty, CurriculumTorqueRegularizationPenalty, VelocityPenalty, AngularVelocityPenalty, ContactLocationPenalty
+        FootDistanceRegularizationPenalty, CurriculumTorqueRegularizationPenalty, VelocityPenalty, AngularVelocityPenalty, ContactLocationPenalty, FootAnglePenalty
 from isaaclab_tasks.direct.hector.common.sampler import CircularSamplerWithLimit, BinaryOrientationSampler, PlaneSampler
 from isaaclab_tasks.direct.hector.common.curriculum import  CurriculumRateSampler, CurriculumLineSampler, CurriculumUniformLineSampler, \
     CurriculumUniformCubicSampler, CurriculumQuaternionSampler, PerformanceCurriculumLineSampler
@@ -51,7 +51,8 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     # ========================
     dt=1/400 # physics dt
     policy_dt = 0.01 # RL policy dt
-    traj_sample = int(policy_dt/dt)
+    # traj_sample = int(policy_dt/dt)
+    traj_sample = 1
     decimation = int(policy_dt/dt)
 
     action_space = traj_sample*3
@@ -115,7 +116,7 @@ class SteppingStoneCfg(HierarchicalArchCfg):
     # =====================
     
     # reward
-    reward_parameter: VelocityTrackingReward = VelocityTrackingReward(height_similarity_weight=0.3, 
+    reward_parameter: VelocityTrackingReward = VelocityTrackingReward(height_similarity_weight=1.0, 
                                                             lin_vel_similarity_weight=0.3,
                                                             ang_vel_similarity_weight=0.3,
                                                             height_similarity_coeff=0.5, 
@@ -135,7 +136,7 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         yaw_reward_mode="gaussian"
         )
     
-    alive_reward_parameter: AliveReward = AliveReward(alive_weight=0.01)
+    alive_reward_parameter: AliveReward = AliveReward(alive_weight=0.001)
 
     swing_foot_tracking_reward_parameter: SwingFootTrackingReward = SwingFootTrackingReward(
         swing_foot_weight=0.0, 
@@ -179,11 +180,15 @@ class SteppingStoneCfg(HierarchicalArchCfg):
         contact_location__penalty_weight=50.0,
     )
     
+    leg_angle_penalty_parameter: FootAnglePenalty = FootAnglePenalty(
+        foot_angle_penalty_weight=1.0, 
+    )
+    
     action_penalty_parameter: CurriculumActionRegularizationPenalty = CurriculumActionRegularizationPenalty(
-        action_penalty_weight_start=5e-4, 
-        action_penalty_weight_end=5e-4,
-        energy_penalty_weight_start=5e-4,
-        energy_penalty_weight_end=5e-4, 
+        action_penalty_weight_start=5e-2, 
+        action_penalty_weight_end=5e-2,
+        energy_penalty_weight_start=5e-2,
+        energy_penalty_weight_end=5e-2, 
         rate_sampler=CurriculumRateSampler(function="linear", start=0, end=1),
         )
     torque_penalty_parameter: CurriculumTorqueRegularizationPenalty = CurriculumTorqueRegularizationPenalty(

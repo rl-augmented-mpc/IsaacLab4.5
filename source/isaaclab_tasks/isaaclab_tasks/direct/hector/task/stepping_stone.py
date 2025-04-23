@@ -143,6 +143,7 @@ class SteppingStone(HierarchicalArch):
         Get actor and critic observations.
         """
         self._previous_actions = self._actions.clone()
+        self._get_state()
         self._get_contact_observation()
         self._get_exteroceptive_observation()
         self._get_ground_gradient_at_fps()
@@ -178,6 +179,106 @@ class SteppingStone(HierarchicalArch):
         obs = torch.cat([self.history_buffer.data_flat, self.height_map], dim=-1) # type: ignore
         observation = {"policy": obs, "critic": obs}
         return observation
+    
+    def _get_rewards(self)->torch.Tensor:
+        # reward
+        self.height_reward, self.lin_vel_reward, self.ang_vel_reward = \
+            self.cfg.reward_parameter.compute_reward(
+            self._root_pos,
+            self._root_lin_vel_b,
+            self._root_ang_vel_b,
+            torch.from_numpy(self._desired_height).to(self.device),
+            self._desired_root_lin_vel_b,
+            self._desired_root_ang_vel_b,
+        )
+        
+        self.position_reward, self.yaw_reward = self.cfg.pose_tracking_reward_parameter.compute_reward(
+            self._root_pos[:, :2], # x, y
+            self._root_yaw,
+            self._ref_pos[:, :2], # x, y
+            self._ref_yaw
+        )
+            
+        self.alive_reward = self.cfg.alive_reward_parameter.compute_reward(self.reset_terminated, self.episode_length_buf, self.max_episode_length)
+        
+        self.swing_foot_tracking_reward = self.cfg.swing_foot_tracking_reward_parameter.compute_reward(
+            (self._foot_pos_b.reshape(-1, 2, 3) * (1-self._gait_contact).reshape(-1, 2, 1)).reshape(-1, 6), 
+            (self._ref_foot_pos_b.reshape(-1, 2, 3) * (1-self._gait_contact).reshape(-1, 2, 1)).reshape(-1, 6),
+        )
+            
+        
+        # penalty
+        self.roll_penalty, self.pitch_penalty = self.cfg.orientation_penalty_parameter.compute_penalty(self._root_quat)
+        self.velocity_penalty = self.cfg.velocity_penalty_parameter.compute_penalty(self._root_lin_vel_b)
+        self.ang_velocity_penalty = self.cfg.angular_velocity_penalty_parameter.compute_penalty(self._root_ang_vel_b)
+        
+        self.foot_slide_penalty = self.cfg.foot_slide_penalty_parameter.compute_penalty(self._robot_api.body_lin_vel_w[:, -2:, :2], self._gt_contact) # ankle at last 2 body index
+        self.foot_distance_penalty = self.cfg.foot_distance_penalty_parameter.compute_penalty(self._foot_pos_b[:, :3], self._foot_pos_b[:, 3:])
+
+        self.toe_left_joint_penalty = self.cfg.toe_left_joint_penalty_parameter.compute_penalty(self._robot_api.joint_pos[:, -2])
+        self.toe_right_joint_penalty = self.cfg.toe_right_joint_penalty_parameter.compute_penalty(self._robot_api.joint_pos[:, -1])
+        
+        self.contact_location_penalty = self.cfg.contact_location_penalty.compute_penalty(self.roughness_at_fps)
+        
+        self.leg_angle_penalty = self.cfg.leg_angle_penalty_parameter.compute_penalty(
+            self.leg_angle
+        )
+        
+        self.action_penalty, self.energy_penalty = self.cfg.action_penalty_parameter.compute_penalty(
+            self._actions, 
+            self._previous_actions, 
+            self.common_step_counter//self.cfg.num_steps_per_env)
+        
+        self.torque_penalty = self.cfg.torque_penalty_parameter.compute_penalty(self._joint_actions, self.common_step_counter//self.cfg.num_steps_per_env)
+        self.action_saturation_penalty = self.cfg.action_saturation_penalty_parameter.compute_penalty(self._actions)
+        
+        # scale rewards and penalty with time step (following reward manager in manager based rl env)
+        self.height_reward = self.height_reward * self.step_dt
+        self.lin_vel_reward = self.lin_vel_reward * self.step_dt
+        self.ang_vel_reward = self.ang_vel_reward * self.step_dt
+        self.alive_reward = self.alive_reward * self.step_dt
+        self.position_reward = self.position_reward * self.step_dt
+        self.yaw_reward = self.yaw_reward * self.step_dt
+        self.swing_foot_tracking_reward = self.swing_foot_tracking_reward * self.step_dt
+        
+        self.roll_penalty = self.roll_penalty * self.step_dt
+        self.pitch_penalty = self.pitch_penalty * self.step_dt
+
+        self.velocity_penalty = self.velocity_penalty * self.step_dt
+        self.ang_velocity_penalty = self.ang_velocity_penalty * self.step_dt
+
+        self.foot_slide_penalty = self.foot_slide_penalty * self.step_dt
+        self.foot_distance_penalty = self.foot_distance_penalty * self.step_dt
+
+        self.toe_left_joint_penalty = self.toe_left_joint_penalty * self.step_dt
+        self.toe_right_joint_penalty = self.toe_right_joint_penalty * self.step_dt
+        
+        self.contact_location_penalty = self.contact_location_penalty * self.step_dt
+        self.leg_angle_penalty = self.leg_angle_penalty * self.step_dt
+
+        self.action_penalty = self.action_penalty * self.step_dt
+        self.energy_penalty = self.energy_penalty * self.step_dt
+        self.action_saturation_penalty = self.action_saturation_penalty * self.step_dt
+        self.torque_penalty = self.torque_penalty * self.step_dt
+         
+        self.reward = self.height_reward + self.lin_vel_reward + self.ang_vel_reward + self.position_reward + self.yaw_reward + \
+            self.swing_foot_tracking_reward + self.alive_reward
+        
+        self.penalty = self.roll_penalty + self.pitch_penalty + self.action_penalty + self.energy_penalty + \
+            self.foot_slide_penalty + self.action_saturation_penalty + self.foot_distance_penalty + \
+            self.toe_left_joint_penalty + self.toe_right_joint_penalty + self.contact_location_penalty + self.leg_angle_penalty + \
+                self.torque_penalty + self.velocity_penalty + self.ang_velocity_penalty
+        
+        total_reward = self.reward - self.penalty
+        
+        # push logs to extras
+        if "log" not in self.extras:
+            self.extras["log"] = dict()
+        self.log_state()
+        self.log_action()
+        self.log_episode_return()
+        self.log_reward()
+        return total_reward
     
     def _reset_robot(self, env_ids: Sequence[int])->None:
         ### set position ###
@@ -238,6 +339,37 @@ class SteppingStone(HierarchicalArch):
                 eye=(center_coord[0, 0]+camera_delta[0], center_coord[0, 1]+camera_delta[1], camera_delta[2]), 
                 lookat=(center_coord[0, 0], center_coord[0, 1], 0.0)) # type: ignore
     
+    def log_reward(self)->None:
+        log = {}
+        if self.common_step_counter % self.cfg.num_steps_per_env:
+            log["reward/height_reward"] = self.height_reward.mean().item()
+            log["reward/lin_vel_reward"] = self.lin_vel_reward.mean().item()
+            log["reward/ang_vel_reward"] = self.ang_vel_reward.mean().item()
+            log["reward/alive_reward"] = self.alive_reward.mean().item()
+            log["reward/position_reward"] = self.position_reward.mean().item()
+            log["reward/yaw_reward"] = self.yaw_reward.mean().item()
+            log["reward/swing_foot_tracking_reward"] = self.swing_foot_tracking_reward.mean().item()
+            log["reward/total_reward"] = self.reward.mean().item()
+            
+            log["penalty/roll_penalty"] = self.roll_penalty.mean().item()
+            log["penalty/pitch_penalty"] = self.pitch_penalty.mean().item()
+            log["penalty/velocity_penalty"] = self.velocity_penalty.mean().item()
+            log["penalty/ang_velocity_penalty"] = self.ang_velocity_penalty.mean().item()
+            log["penalty/feet_slide_penalty"] = self.foot_slide_penalty.mean().item()
+            log["penalty/foot_distance_penalty"] = self.foot_distance_penalty.mean().item()
+            log["penalty/action_penalty"] = self.action_penalty.mean().item()
+            log["penalty/energy_penalty"] = self.energy_penalty.mean().item()
+            log["penalty/action_saturation_penalty"] = self.action_saturation_penalty.mean().item()
+            log["penalty/torque_penalty"] = self.torque_penalty.mean().item()
+            log["penalty/toe_left_joint_penalty"] = self.toe_left_joint_penalty.mean().item()
+            log["penalty/toe_right_joint_penalty"] = self.toe_right_joint_penalty.mean().item()
+            log["penalty/total_penalty"] = self.penalty.mean().item()
+            log["penalty/contact_location_penalty"] = self.contact_location_penalty.mean().item()
+            log["penalty/leg_angle_penalty"] = self.leg_angle_penalty.mean().item()
+            
+
+        self.extras["log"].update(log)
+        
     def log_action(self)->None:
         log = {}
         if self.common_step_counter % self.cfg.num_steps_per_env == 0:
@@ -252,6 +384,15 @@ class SteppingStone(HierarchicalArch):
             #     log[f"action/foot_height_t{i+1}"] = foot_height[i:i+1]
                 # log[f"action/cp1_t{i+1}"] = cp1[i:i+1]
                 # log[f"action/cp2_t{i+1}"] = cp2[i:i+1]
+            
+            stepping_frequency = self._actions[:, 0:self.cfg.traj_sample].mean(dim=0).cpu().numpy()
+            foot_height = self._actions[:, self.cfg.traj_sample:self.cfg.traj_sample*2].mean(dim=0).cpu().numpy()
+            cp = self._actions[:, self.cfg.traj_sample*2:self.cfg.traj_sample*3].mean(dim=0).cpu().numpy()
+
+            for i in range(self.cfg.traj_sample):
+                log[f"raw_action/stepping_frequency_t{i+1}"] = stepping_frequency[i:i+1]
+                log[f"raw_action/foot_height_t{i+1}"] = foot_height[i:i+1]
+                log[f"raw_action/cp_t{i+1}"] = cp[i:i+1]
             
             stepping_frequency = self._actions_op[:, 0:self.cfg.traj_sample].mean(dim=0).cpu().numpy()
             foot_height = self._actions_op[:, self.cfg.traj_sample:self.cfg.traj_sample*2].mean(dim=0).cpu().numpy()
