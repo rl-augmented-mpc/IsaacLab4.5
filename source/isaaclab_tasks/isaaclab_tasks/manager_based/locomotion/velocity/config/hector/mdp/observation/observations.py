@@ -55,3 +55,13 @@ def joint_torque(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCf
     asset: Articulation = env.scene[asset_cfg.name]
     joint_ids, _ = asset.find_joints(joint_names, preserve_order=True)
     return asset.data.applied_torque[:, joint_ids]
+
+
+def height_scan(env: ManagerBasedEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Height scan from the given sensor w.r.t. body frame
+
+    The provided offset (Defaults to 0.5) is subtracted from the returned values.
+    """
+    # extract the used quantities (to enable type-hinting)
+    sensor: RayCaster = env.scene.sensors[sensor_cfg.name]
+    return sensor.data.ray_hits_w[..., 2]  - sensor.data.pos_w[:, 2].unsqueeze(1)
