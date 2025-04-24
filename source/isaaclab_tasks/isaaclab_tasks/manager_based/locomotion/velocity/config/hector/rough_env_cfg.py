@@ -121,7 +121,7 @@ class HECTORObservationsCfg:
 class HECTORActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_effort = hector_mdp.MPCActionCfg(
+    mpc_action = hector_mdp.MPCActionCfg(
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
