@@ -38,9 +38,9 @@ params:
       d2rl: False
 
       initializer:
-        name: default
+        # name: default
         # name: kaiming_normal
-        # name: orthogonal
+        name: orthogonal
       regularizer:
         name: None
 
@@ -81,8 +81,8 @@ params:
     critic_coef: 0.5
     clip_value: false
     seq_length: 4
-    # bound_loss_type: regularisation
-    bound_loss_type: bound
+    bound_loss_type: regularisation
+    # bound_loss_type: bound
     bounds_loss_coef: 0.005
   
   log:
