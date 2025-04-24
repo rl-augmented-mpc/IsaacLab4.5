@@ -73,13 +73,19 @@ class MySceneCfg(InteractiveSceneCfg):
     )
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
     # lights
-    sky_light = AssetBaseCfg(
-        prim_path="/World/skyLight",
-        spawn=sim_utils.DomeLightCfg(
-            intensity=750.0,
-            texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
-        ),
-    )
+    # sky_light = AssetBaseCfg(
+    #     prim_path="/World/skyLight",
+    #     spawn=sim_utils.DomeLightCfg(
+    #         intensity=750.0,
+    #         texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+    #     ),
+    # )
+    light = AssetBaseCfg(
+            prim_path="/World/distantLight",
+            spawn=sim_utils.DistantLightCfg(
+                intensity=1500.0,
+            )
+        )
 
 
 ##

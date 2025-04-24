@@ -95,6 +95,7 @@ class MPCAction(ActionTerm):
         self.foot_pos_w = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # foot position in world frame
         self.foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # foot position in body frame
         self.ref_foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # reference foot position in body frame
+        self.leg_angle = torch.zeros(self.num_envs, 4, device=self.device)
         
         # reference
         self.command = np.zeros((self.num_envs, 3), dtype=np.float32)
@@ -215,15 +216,6 @@ class MPCAction(ActionTerm):
         self.joint_pos = self._add_joint_offset(self.joint_pos) # map hardware joint zeros and simulation joint zeros
         self.joint_vel = self.robot_api.joint_vel[:, self._joint_ids]
         
-        # # foot body angle
-        # self.leg_angle = torch.zeros(self.num_envs, 4, device=self.device)
-        # stance_leg_r_left = torch.abs(self._foot_pos_b[:, :3])
-        # stance_leg_r_right = torch.abs(self._foot_pos_b[:, 3:])
-        # self.leg_angle[:, 0] = torch.abs(torch.atan2(stance_leg_r_left[:, 0], self._root_pos[:, 2]))
-        # self.leg_angle[:, 1] = torch.abs(torch.atan2(stance_leg_r_left[:, 1], self._root_pos[:, 2]))
-        # self.leg_angle[:, 2] = torch.abs(torch.atan2(stance_leg_r_right[:, 0], self._root_pos[:, 2]))
-        # self.leg_angle[:, 3] = torch.abs(torch.atan2(stance_leg_r_right[:, 1], self._root_pos[:, 2]))
-        
         self.state = torch.cat(
             (
                 self.root_pos,
@@ -268,6 +260,14 @@ class MPCAction(ActionTerm):
         self.foot_placement_b[:, 1] = -self.foot_placement_w[:, 0]*torch.sin(self.root_yaw) + self.foot_placement_w[:, 1]*torch.cos(self.root_yaw) - self.root_pos[:, 1]
         self.foot_placement_b[:, 2] = self.foot_placement_w[:, 2]*torch.cos(self.root_yaw) + self.foot_placement_w[:, 3]*torch.sin(self.root_yaw) - self.root_pos[:, 0]
         self.foot_placement_b[:, 3] = -self.foot_placement_w[:, 2]*torch.sin(self.root_yaw) + self.foot_placement_w[:, 3]*torch.cos(self.root_yaw) - self.root_pos[:, 1]
+        
+        # body-leg angle
+        stance_leg_r_left = torch.abs(self.foot_pos_b[:, :3])
+        stance_leg_r_right = torch.abs(self.foot_pos_b[:, 3:])
+        self.leg_angle[:, 0] = torch.abs(torch.atan2(stance_leg_r_left[:, 0], self.root_pos[:, 2]))
+        self.leg_angle[:, 1] = torch.abs(torch.atan2(stance_leg_r_left[:, 1], self.root_pos[:, 2]))
+        self.leg_angle[:, 2] = torch.abs(torch.atan2(stance_leg_r_right[:, 0], self.root_pos[:, 2]))
+        self.leg_angle[:, 3] = torch.abs(torch.atan2(stance_leg_r_right[:, 1], self.root_pos[:, 2]))
     
     def _add_joint_offset(self, joint_pos:torch.Tensor) -> torch.Tensor:
         joint_pos[:, 2] += torch.pi/4
@@ -281,7 +281,11 @@ class MPCAction(ActionTerm):
         return joint_pos
 
     def reset(self, env_ids: Sequence[int] | None = None) -> None:
+        # reset default position of robot
+        self.robot_api.reset_default_pose(self.robot_api.root_state_w[:, :7], env_ids) # type: ignore
+        # reset action
         self._raw_actions[env_ids] = 0.0
+        self._processed_actions[env_ids] = 0.0
         # reset mpc controller
         for i in range(self.num_envs):
             self.mpc_controller[i].reset()

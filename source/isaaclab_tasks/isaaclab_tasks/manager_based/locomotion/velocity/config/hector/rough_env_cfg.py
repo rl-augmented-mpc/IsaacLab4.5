@@ -8,6 +8,7 @@ import math
 from isaaclab.envs.common import ViewerCfg
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
+from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
@@ -16,7 +17,7 @@ from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
 from isaaclab.utils import configclass
 
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
-from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg, RewardsCfg
+from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg, RewardsCfg, EventCfg
 import isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp as hector_mdp
 
 ##
@@ -42,12 +43,35 @@ class HECTORRewards(RewardsCfg):
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_world_exp, weight=0.2, params={"command_name": "base_velocity", "std": 0.5}
     )
+    foot_placement = RewTerm(
+        func=hector_mdp.foot_placement_reward,
+        weight=0.2,
+        params={
+            "sensor_cfg": SceneEntityCfg("height_scanner"),
+            "action_name": "mpc_action", 
+            "std": 0.5,
+        },
+    )
 
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01) # type: ignore
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05) # type: ignore
-    energy_l2 = RewTerm(func=mdp.action_l2, weight=-0.01) # type: ignore
+    stepping_frequency_l2 = RewTerm(
+        func=hector_mdp.individual_action_l2, # type: ignore
+        weight=-0.01, 
+        params={
+            "action_idx": 0,
+        },
+        )
+    foot_height_l2 = RewTerm(
+        func=hector_mdp.individual_action_l2, # type: ignore
+        weight=-0.05, 
+        params={
+            "action_idx": 1,
+        },
+        )
+    # energy_l2 = RewTerm(func=mdp.action_l2, weight=-0.01) # type: ignore
     
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
@@ -91,6 +115,13 @@ class HECTORRewards(RewardsCfg):
         weight=-0.01,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_toe_joint"])},
     )
+    
+    # Penalize body leg angle
+    leg_body_angle_l2 = RewTerm(
+        func=hector_mdp.leg_body_angle_l2, 
+        weight=-0.1,
+        params={"action_name": "mpc_action"}
+    )
 
 
 @configclass
@@ -119,6 +150,7 @@ class HECTORObservationsCfg:
             # noise=Unoise(n_min=-0.05, n_max=0.05),
         )
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
+        
         joint_pos = ObsTerm(
             func=hector_mdp.joint_pos, 
             params={"joint_names": ['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint']}, 
@@ -134,6 +166,25 @@ class HECTORObservationsCfg:
             params={"joint_names": ['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint']}, 
             # noise=Unoise(n_min=-1.5, n_max=1.5),
             )
+        
+        swing_phase = ObsTerm(
+            func=hector_mdp.swing_phase, 
+            params={"action_name": "mpc_action"}
+        )
+        foot_placement_b = ObsTerm(
+            func=hector_mdp.foot_placement_b,
+            params={"action_name": "mpc_action"}
+        )
+        foot_position_b = ObsTerm(
+            func=hector_mdp.foot_position_b,
+            params={"action_name": "mpc_action"}
+        )
+        reference_foot_position_b = ObsTerm(
+            func=hector_mdp.reference_foot_position_b,
+            params={"action_name": "mpc_action"}
+        )
+        
+        
         actions = ObsTerm(func=mdp.last_action) # type: ignore
         height_scan = ObsTerm(
             func=hector_mdp.height_scan, # type: ignore
@@ -157,7 +208,7 @@ class HECTORActionsCfg:
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            (-0.4, -0.1, -0.5), 
+            (-0.4, -0.01, -0.5), 
             (0.4, 0.15, 0.5)
         )
     )
@@ -176,11 +227,64 @@ class HECTORTerminationsCfg:
         params={"asset_cfg": SceneEntityCfg("robot"), "limit_angle": math.pi/3},
         time_out=True,
     )
-    # terrain_out_of_bounds = DoneTerm(
-    #     func=mdp.terrain_out_of_bounds,
-    #     params={"asset_cfg": SceneEntityCfg("robot"), "distance_buffer": 3.0},
-    #     time_out=True,
-    # )
+    
+@configclass 
+class HECTOREventCfg(EventCfg):
+    # startup
+    physics_material = EventTerm(
+        func=mdp.randomize_rigid_body_material, # type: ignore
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+            "static_friction_range": (0.8, 0.8),
+            "dynamic_friction_range": (0.6, 0.6),
+            "restitution_range": (0.0, 0.0),
+            "num_buckets": 64,
+        },
+    )
+
+    add_base_mass = None
+
+    # reset
+    base_external_force_torque = None
+    
+    # random initial noise added to default state defined in articulation cfg
+    reset_base = EventTerm(
+        func=mdp.reset_root_state_uniform, # type: ignore
+        mode="reset",
+        params={
+            "pose_range": {
+                "x": (-0.5, 0.5), 
+                "y": (-3.0, 3.0), 
+                "z": (0.0, 0.0),
+                "roll": (0.0, 0.0),
+                "pitch": (0.0, 0.0),
+                # "yaw": (-math.pi, math.pi),
+                "yaw": (-0.0, 0.0),
+                },
+            "velocity_range": {
+                "x": (-0.0, 0.0),
+                "y": (-0.0, 0.0),
+                "z": (0.0, 0.0),  
+                "roll": (-0.0, 0.0),
+                "pitch": (-0.0, 0.0),
+                "yaw": (-0.0, 0.0),
+            },
+        },
+    )
+
+    reset_robot_joints = EventTerm(
+        func=mdp.reset_joints_by_scale, # type: ignore
+        mode="reset",
+        params={
+            "position_range": (0.0, 0.0),
+            "velocity_range": (0.0, 0.0),
+        },
+    )
+
+    # interval
+    push_robot = None
+
 
 
 @configclass
@@ -189,7 +293,8 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     actions: HECTORActionsCfg = HECTORActionsCfg()
     observations: HECTORObservationsCfg = HECTORObservationsCfg()
     terminations: HECTORTerminationsCfg = HECTORTerminationsCfg()
-    seed = 10
+    events: HECTOREventCfg = HECTOREventCfg()
+    seed = 42
 
     def __post_init__(self):
         # post init of parent
@@ -204,8 +309,8 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.viewer = ViewerCfg(
             # eye=(10.0, -10.0, 2.0), 
             # lookat=(5.0, -5.0, 0.0),
-            eye=(2.0, -5.0, 2.0), 
-            lookat=(0.0, 0.0, 0.0),
+            eye=(-1.0, -6.0, 2.0), 
+            lookat=(0.0, -3.0, 1.0),
             resolution=(1920, 1080)
         )
         
@@ -215,26 +320,6 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.height_scanner.prim_path = f"{ENV_REGEX_NS}/Robot/base"
         self.scene.height_scanner.pattern_cfg = patterns.GridPatternCfg(resolution=0.1, size=[1.0, 1.0])
         self.scene.terrain = hector_mdp.SteppingStoneTerrain
-
-        # Randomization
-        self.events.push_robot = None
-        self.events.add_base_mass = None
-        self.events.reset_robot_joints.params["position_range"] = (0.0, 0.0)
-        self.events.base_external_force_torque = None
-        # self.events.base_external_force_torque.params["asset_cfg"].body_names = ["trunk"]
-        
-        # Reset
-        self.events.reset_base.params = {
-            "pose_range": {"x": (-0.5, 0.5), "y": (-5.0, 5.0), "yaw": (-0, 0)},
-            "velocity_range": {
-                "x": (0.0, 0.0),
-                "y": (0.0, 0.0),
-                "z": (0.0, 0.0),
-                "roll": (0.0, 0.0),
-                "pitch": (0.0, 0.0),
-                "yaw": (0.0, 0.0),
-            },
-        }
 
         # Rewards
         self.rewards.undesired_contacts = None

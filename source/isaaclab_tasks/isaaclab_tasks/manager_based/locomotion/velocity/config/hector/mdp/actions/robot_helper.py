@@ -48,7 +48,9 @@ class RobotCore:
     def write_joint_state_to_sim(self, joint_pos:torch.Tensor, joint_vel:torch.Tensor, joint_id:torch.Tensor, env_id:torch.Tensor)->None:
         self.articulation.write_joint_state_to_sim(joint_pos, joint_vel, joint_id, env_id) # type: ignore
     
-    ## body ##
+    """
+    default pose
+    """
     
     @property
     def default_root_state(self)->torch.Tensor:
@@ -61,6 +63,14 @@ class RobotCore:
     @property
     def default_joint_vel(self)->torch.Tensor:
         return self.articulation.data.default_joint_vel
+    
+    """
+    root state
+    """
+    
+    @property
+    def root_state_w(self)->torch.Tensor:
+        return self.articulation.data.root_state_w
     
     @property
     def root_pos_w(self)->torch.Tensor:
@@ -127,6 +137,10 @@ class RobotCore:
     def root_ang_vel_b(self)->torch.Tensor:
         return self.articulation.data.root_ang_vel_b
     
+    """
+    joint state
+    """
+    
     @property
     def joint_pos(self)->torch.Tensor:
         return self.articulation.data.joint_pos
@@ -156,6 +170,10 @@ class RobotCore:
     def joint_effort_limit(self)->torch.Tensor:
         return self.articulation.data.joint_effort_limits
     
+    """
+    body state
+    """
+    
     @property
     def body_pos_w(self)->torch.Tensor:
         return self.articulation.data.body_pos_w
@@ -176,7 +194,6 @@ class RobotCore:
     def body_lin_acc_w(self)->torch.Tensor:
         return self.articulation.data.body_lin_acc_w
     
-    # links
     @property
     def body_jacobian(self)->torch.Tensor:
         """
@@ -190,7 +207,9 @@ class RobotCore:
     def mass_matrix(self)->torch.Tensor:
         return self.articulation.root_physx_view.get_mass_matrices()
     
-    ## Foot ##
+    """
+    foot state
+    """
     
     @property
     def foot_com_rot(self)->torch.Tensor:

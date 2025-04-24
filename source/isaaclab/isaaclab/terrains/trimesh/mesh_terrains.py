@@ -628,8 +628,8 @@ def tiled_box_terrain(
     
     for i in range(cfg.num_box):
         # Generate the top box
-        dim = (cfg.platform_length, cfg.platform_width, terrain_height + height_noise[i] + total_height)
-        pos = (box_origins_x[i], 0.5 * cfg.size[1], (total_height+height_noise[i] - terrain_height) / 2)
+        dim = (cfg.platform_length, cfg.platform_width, total_height+height_noise[i])
+        pos = (box_origins_x[i], 0.5 * cfg.size[1], (total_height+height_noise[i]) / 2)
         box_mesh = trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
         meshes_list.append(box_mesh)
     
@@ -639,8 +639,8 @@ def tiled_box_terrain(
     ground_mesh = trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
     meshes_list.append(ground_mesh)
 
-    # specify the origin of the terrain
-    origin = np.array([pos[0], pos[1], total_height])
+    # specify the origin of the terrain (z to be 0)
+    origin = np.array([pos[0], pos[1], 0.0])
 
     return meshes_list, origin
 
