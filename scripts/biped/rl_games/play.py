@@ -208,7 +208,7 @@ def main():
         
         if args_cli.log:
             logger.log(state=env.unwrapped._state.cpu().numpy(), # type: ignore
-                    obs=obs.cpu().numpy(),
+                    obs=obs.cpu().numpy(), # type: ignore
                     raw_action=actions.cpu().numpy(),
                     action=env.unwrapped._actions_op.cpu().numpy(), # type: ignore
                     done=dones.cpu().numpy(), 

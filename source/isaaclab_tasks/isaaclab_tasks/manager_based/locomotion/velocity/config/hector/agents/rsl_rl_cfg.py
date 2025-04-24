@@ -119,7 +119,7 @@ class HectorPPOMLPRunnerCfg(RslRlOnPolicyRunnerCfg):
     )
     logger = "wandb"
     wandb_project = "rl_mpc_manager"
-    experiment_name = "ppo_rsl_rl_stepping_stone"
+    experiment_name = "manager_ppo_rl_games_stepping_stone_mlp"
     
 @configclass
 class HectorPPOGRURunnerCfg(RslRlOnPolicyRunnerCfg):
