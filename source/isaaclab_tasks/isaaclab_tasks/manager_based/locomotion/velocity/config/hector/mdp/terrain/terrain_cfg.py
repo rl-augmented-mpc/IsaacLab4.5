@@ -184,7 +184,12 @@ SteppingStoneTerrain = TerrainImporterCfg(
         static_friction=2.0,
         dynamic_friction=2.0,
     ),
-    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    visual_material=sim_utils.MdlFileCfg(
+        mdl_path="omniverse://localhost/NVIDIA/Assets/Isaac/4.2/NVIDIA/Materials/Base/Stone/Slate.mdl",
+        project_uvw=True,
+        texture_scale=(0.25, 0.25),
+    ),
     debug_vis=False,
     disable_colllider=False,
     num_curriculums=1
