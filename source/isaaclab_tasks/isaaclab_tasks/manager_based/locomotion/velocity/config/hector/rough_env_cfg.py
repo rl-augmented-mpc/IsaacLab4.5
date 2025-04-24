@@ -47,6 +47,8 @@ class HECTORRewards(RewardsCfg):
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01) # type: ignore
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05) # type: ignore
+    energy_l2 = RewTerm(func=mdp.action_l2, weight=-0.01) # type: ignore
+    
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
         weight=0.0,
@@ -64,19 +66,16 @@ class HECTORRewards(RewardsCfg):
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
         },
     )
+    
     dof_torques_l2 = RewTerm(
         func=mdp.joint_torques_l2,  # type: ignore
         weight=-1.0e-5, 
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])}
         )
-    dof_acc_l2 = RewTerm(
-        func=mdp.joint_acc_l2,  # type: ignore
-        weight=-2.5e-7, 
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])}
-        )
+    dof_acc_l2 = None
     dof_vel_l2 = RewTerm(
         func=mdp.joint_vel_l2,  # type: ignore
-        weight=-1e-3,
+        weight=-1e-4,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])}
     )
 
@@ -87,9 +86,9 @@ class HECTORRewards(RewardsCfg):
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_toe_joint"])},
     )
     # Penalize deviation from default of the joints that are not essential for locomotion
-    joint_deviation_hip = RewTerm(
+    joint_deviation = RewTerm(
         func=mdp.joint_deviation_l1, # type: ignore
-        weight=-0.5,
+        weight=-0.01,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_toe_joint"])},
     )
 
