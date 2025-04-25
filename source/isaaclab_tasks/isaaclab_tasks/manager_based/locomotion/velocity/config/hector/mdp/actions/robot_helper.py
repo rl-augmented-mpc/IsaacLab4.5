@@ -15,7 +15,6 @@ class RobotCore:
         
     # state reset
     def reset_default_pose(self, default_pose:torch.Tensor, env_id:torch.Tensor)->None:
-        self.articulation.data.default_root_state[env_id, :7] = default_pose
         self._init_pos[env_id] = default_pose[:, :3]
         self._init_rot[env_id] = matrix_from_quat(default_pose[:, 3:7])
         

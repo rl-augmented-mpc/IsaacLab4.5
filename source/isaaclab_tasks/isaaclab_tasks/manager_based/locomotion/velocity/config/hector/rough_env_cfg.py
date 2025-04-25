@@ -122,6 +122,8 @@ class HECTORRewards(RewardsCfg):
         weight=-0.1,
         params={"action_name": "mpc_action"}
     )
+    
+    undesired_contacts = None
 
 
 @configclass
@@ -212,6 +214,23 @@ class HECTORActionsCfg:
             (0.4, 0.15, 0.5)
         )
     )
+
+@configclass
+class HECTORCommandsCfg:
+    """Command specifications for the MDP."""
+
+    base_velocity = mdp.UniformVelocityCommandCfg( # type: ignore
+        asset_name="robot",
+        resampling_time_range=(20.0, 20.0),
+        rel_standing_envs=0.02,
+        rel_heading_envs=1.0,
+        heading_command=False,
+        heading_control_stiffness=0.5,
+        debug_vis=True,
+        ranges=mdp.UniformVelocityCommandCfg.Ranges( # type: ignore
+            lin_vel_x=(0.2, 0.5), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
+        ),
+    )
     
 @configclass
 class HECTORTerminationsCfg:
@@ -291,6 +310,7 @@ class HECTOREventCfg(EventCfg):
 class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     rewards: HECTORRewards = HECTORRewards()
     actions: HECTORActionsCfg = HECTORActionsCfg()
+    commands: HECTORCommandsCfg = HECTORCommandsCfg()
     observations: HECTORObservationsCfg = HECTORObservationsCfg()
     terminations: HECTORTerminationsCfg = HECTORTerminationsCfg()
     events: HECTOREventCfg = HECTOREventCfg()
@@ -320,40 +340,3 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.height_scanner.prim_path = f"{ENV_REGEX_NS}/Robot/base"
         self.scene.height_scanner.pattern_cfg = patterns.GridPatternCfg(resolution=0.1, size=[1.0, 1.0])
         self.scene.terrain = hector_mdp.SteppingStoneTerrain
-
-        # Rewards
-        self.rewards.undesired_contacts = None
-
-        # Commands
-        self.commands.base_velocity.ranges.lin_vel_x = (0.3, 0.5)
-        self.commands.base_velocity.ranges.lin_vel_y = (-0.0, 0.0)
-        self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
-
-
-@configclass
-class HECTORRoughEnvCfg_PLAY(HECTORRoughEnvCfg):
-    def __post_init__(self):
-        # post init of parent
-        super().__post_init__()
-
-        # make a smaller scene for play
-        self.scene.num_envs = 50
-        self.scene.env_spacing = 2.5
-        self.episode_length_s = 40.0
-        # spawn the robot randomly in the grid (instead of their terrain levels)
-        self.scene.terrain.max_init_terrain_level = None
-        # reduce the number of terrains to save memory
-        if self.scene.terrain.terrain_generator is not None:
-            self.scene.terrain.terrain_generator.num_rows = 5
-            self.scene.terrain.terrain_generator.num_cols = 5
-            self.scene.terrain.terrain_generator.curriculum = False
-
-        self.commands.base_velocity.ranges.lin_vel_x = (1.0, 1.0)
-        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
-        self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
-        self.commands.base_velocity.ranges.heading = (0.0, 0.0)
-        # disable randomization for play
-        self.observations.policy.enable_corruption = False
-        # remove random pushing
-        self.events.base_external_force_torque = None
-        self.events.push_robot = None
