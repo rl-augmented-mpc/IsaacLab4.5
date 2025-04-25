@@ -282,7 +282,7 @@ class MPCAction(ActionTerm):
 
     def reset(self, env_ids: Sequence[int] | None = None) -> None:
         # reset default position of robot
-        self.robot_api.reset_default_pose(self.robot_api.root_state_w[:, :7], env_ids) # type: ignore
+        self.robot_api.reset_default_pose(self.robot_api.root_state_w[env_ids, :7], env_ids) # type: ignore
         # reset action
         self._raw_actions[env_ids] = 0.0
         self._processed_actions[env_ids] = 0.0
