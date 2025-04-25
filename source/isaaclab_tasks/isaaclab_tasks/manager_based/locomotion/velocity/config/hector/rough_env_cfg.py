@@ -59,16 +59,23 @@ class HECTORRewards(RewardsCfg):
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05) # type: ignore
     stepping_frequency_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-0.01, 
+        weight=-0.1, 
         params={
             "action_idx": 0,
         },
         )
     foot_height_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-0.05, 
+        weight=-0.1, 
         params={
             "action_idx": 1,
+        },
+        )
+    control_point_l2 = RewTerm(
+        func=hector_mdp.individual_action_l2, # type: ignore
+        weight=-0.1,
+        params={
+            "action_idx": 2,
         },
         )
     # energy_l2 = RewTerm(func=mdp.action_l2, weight=-0.01) # type: ignore
@@ -99,7 +106,7 @@ class HECTORRewards(RewardsCfg):
     dof_acc_l2 = None
     dof_vel_l2 = RewTerm(
         func=mdp.joint_vel_l2,  # type: ignore
-        weight=-1e-4,
+        weight=-2e-4,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])}
     )
 
@@ -210,8 +217,8 @@ class HECTORActionsCfg:
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            (-0.4, -0.01, -0.5), 
-            (0.4, 0.15, 0.5)
+            (-0.4, 0.0, -0.4), 
+            (0.4, 0.15, 0.4)
         )
     )
 

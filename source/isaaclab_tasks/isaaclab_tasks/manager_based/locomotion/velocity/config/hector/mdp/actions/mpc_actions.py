@@ -131,10 +131,11 @@ class MPCAction(ActionTerm):
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
         self._raw_actions[:] = actions
+        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
-        # process raw actions
-        positive_action_mask = (actions > 0).to(torch.float32)
-        self._processed_actions[:] = positive_action_mask * self._action_ub * self._raw_actions + (1 - positive_action_mask) * self._action_lb * (-self._raw_actions)
+        # # process raw actions
+        # positive_action_mask = (actions > 0).to(torch.float32)
+        # self._processed_actions[:] = positive_action_mask * self._action_ub * self._raw_actions + (1 - positive_action_mask) * self._action_lb * (-self._raw_actions)
         
         # split processed actions into individual control parameters
         stepping_frequency = self._processed_actions[:, 0].cpu().numpy()

@@ -195,7 +195,8 @@ def main():
             if args_cli.use_rl:
                 action = agent.get_action(obs, is_deterministic=agent.is_deterministic)
             else:
-                action = torch.zeros(env.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
+                action = torch.zeros(env.unwrapped.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
+                action[:, 1:] = -1.0
             obs, _, dones, _ = env.step(action)
             obs = agent.obs_to_torch(obs)
             
