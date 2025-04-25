@@ -28,6 +28,10 @@ class MPCActionCfg(ActionTermCfg):
     """Nominal swing height of the robot."""
     nominal_stepping_frequency: float = 1.0
     """Nominal stepping frequency of the robot."""
+    double_support_duration: float = 0.0
+    """Double support duration of the robot."""
+    single_support_duration: float = 0.2
+    """Single support duration of the robot."""
     nominal_cp1_coef: float = 1/3
     """Nominal cp1 coefficient of the robot."""
     nominal_cp2_coef: float = 2/3

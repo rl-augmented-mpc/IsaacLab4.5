@@ -175,7 +175,6 @@ class MPCAction(ActionTerm):
         px = (swing_foot_pos[:, 0]//scan_resolution).long() + int(scan_width//scan_resolution+1)/2
         py = -(swing_foot_pos[:, 1]//scan_resolution).long() + int(scan_width//scan_resolution+1)/2
         indices = (int(scan_width/scan_resolution + 1)*px + py).long()
-        # print(indices.shape)
         self.reference_height = self.cfg.reference_height + height_map[torch.arange(self.num_envs), indices].cpu().numpy() # type: ignore
 
     def apply_actions(self):
@@ -262,12 +261,12 @@ class MPCAction(ActionTerm):
         self.foot_placement_b[:, 3] = -self.foot_placement_w[:, 2]*torch.sin(self.root_yaw) + self.foot_placement_w[:, 3]*torch.cos(self.root_yaw) - self.root_pos[:, 1]
         
         # body-leg angle
-        stance_leg_r_left = torch.abs(self.foot_pos_b[:, :3])
-        stance_leg_r_right = torch.abs(self.foot_pos_b[:, 3:])
-        self.leg_angle[:, 0] = torch.abs(torch.atan2(stance_leg_r_left[:, 0], self.root_pos[:, 2]))
-        self.leg_angle[:, 1] = torch.abs(torch.atan2(stance_leg_r_left[:, 1], self.root_pos[:, 2]))
-        self.leg_angle[:, 2] = torch.abs(torch.atan2(stance_leg_r_right[:, 0], self.root_pos[:, 2]))
-        self.leg_angle[:, 3] = torch.abs(torch.atan2(stance_leg_r_right[:, 1], self.root_pos[:, 2]))
+        stance_leg_r_left = torch.abs(self.foot_pos_b[:, :3]).clamp(min=1e-6)  # avoid division by zero
+        stance_leg_r_right = torch.abs(self.foot_pos_b[:, 3:]).clamp(min=1e-6)  # avoid division by zero
+        self.leg_angle[:, 0] = torch.abs(torch.atan2(stance_leg_r_left[:, 0], stance_leg_r_left[:, 2]))
+        self.leg_angle[:, 1] = torch.abs(torch.atan2(stance_leg_r_left[:, 1], stance_leg_r_left[:, 2]))
+        self.leg_angle[:, 2] = torch.abs(torch.atan2(stance_leg_r_right[:, 0], stance_leg_r_right[:, 2]))
+        self.leg_angle[:, 3] = torch.abs(torch.atan2(stance_leg_r_right[:, 1], stance_leg_r_right[:, 2]))
     
     def _add_joint_offset(self, joint_pos:torch.Tensor) -> torch.Tensor:
         joint_pos[:, 2] += torch.pi/4
@@ -287,5 +286,8 @@ class MPCAction(ActionTerm):
         self._raw_actions[env_ids] = 0.0
         self._processed_actions[env_ids] = 0.0
         # reset mpc controller
-        for i in range(self.num_envs):
+        for i in env_ids.cpu().numpy(): # type: ignore
             self.mpc_controller[i].reset()
+            self.mpc_controller[i].update_gait_parameter(
+                np.array([int(self.cfg.double_support_duration/self._env.physics_dt), int(self.cfg.double_support_duration/self._env.physics_dt)]), 
+                np.array([int(self.cfg.single_support_duration/self._env.physics_dt), int(self.cfg.single_support_duration/self._env.physics_dt)]),)
