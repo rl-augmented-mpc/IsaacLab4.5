@@ -79,9 +79,11 @@ def get_ground_gradient_at_landing_point(
 rewards
 """
 
-def individual_action_l2(env: ManagerBasedRLEnv, action_idx:int) -> torch.Tensor:
+def individual_action_l2(env: ManagerBasedRLEnv, action_idx:int, action_name: str = "mpc_action",) -> torch.Tensor:
     """Penalize the actions using L2 squared kernel."""
-    return torch.square(env.action_manager.action[:, action_idx])
+    action_term = env.action_manager.get_term(action_name)
+    processed_actions = action_term.processed_actions
+    return torch.square(processed_actions[:, action_idx])
 
 def foot_placement_reward(
     env: ManagerBasedRLEnv, 
