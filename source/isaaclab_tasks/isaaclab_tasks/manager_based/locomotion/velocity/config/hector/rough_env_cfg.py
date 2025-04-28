@@ -44,15 +44,15 @@ class HECTORRewards(RewardsCfg):
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_world_exp, weight=0.2, params={"command_name": "base_velocity", "std": 0.5}
     )
-    # foot_placement = RewTerm(
-    #     func=hector_mdp.foot_placement_reward,
-    #     weight=0.2,
-    #     params={
-    #         "sensor_cfg": SceneEntityCfg("height_scanner"),
-    #         "action_name": "mpc_action", 
-    #         "std": 0.5,
-    #     },
-    # )
+    foot_placement = RewTerm(
+        func=hector_mdp.foot_placement_reward,
+        weight=0.2,
+        params={
+            "sensor_cfg": SceneEntityCfg("height_scanner"),
+            "action_name": "mpc_action", 
+            "std": 0.01,
+        },
+    )
 
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
@@ -68,7 +68,7 @@ class HECTORRewards(RewardsCfg):
         )
     foot_height_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-0.5, 
+        weight=-0.1, 
         params={
             "action_idx": 1,
         },
@@ -294,7 +294,6 @@ class HECTOREventCfg(EventCfg):
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),
-                # "yaw": (-math.pi, math.pi),
                 "yaw": (-0.0, 0.0),
                 },
             "velocity_range": {
