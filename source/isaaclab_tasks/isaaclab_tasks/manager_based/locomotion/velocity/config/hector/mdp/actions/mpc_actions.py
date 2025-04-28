@@ -96,6 +96,8 @@ class MPCAction(ActionTerm):
         self.foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # foot position in body frame
         self.ref_foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # reference foot position in body frame
         self.leg_angle = torch.zeros(self.num_envs, 4, device=self.device)
+        self.mpc_counter = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
+        self.mpc_cost = torch.zeros(self.num_envs, device=self.device)
         
         # reference
         self.command = np.zeros((self.num_envs, 3), dtype=np.float32)
@@ -133,10 +135,6 @@ class MPCAction(ActionTerm):
         self._raw_actions[:] = actions
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
-        # # process raw actions
-        # positive_action_mask = (actions > 0).to(torch.float32)
-        # self._processed_actions[:] = positive_action_mask * self._action_ub * self._raw_actions + (1 - positive_action_mask) * self._action_lb * (-self._raw_actions)
-        
         # split processed actions into individual control parameters
         stepping_frequency = self._processed_actions[:, 0].cpu().numpy()
         swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
@@ -149,7 +147,9 @@ class MPCAction(ActionTerm):
         cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
         
         # update mpc state
-        self.command[:] = self._env.command_manager.get_command(self.cfg.command_name).cpu().numpy()
+        ramp_up_duration = 0.5 # seconds
+        ramp_up_coef = torch.clip(self.mpc_counter/int(ramp_up_duration/self._env.physics_dt), 0.0, 1.0).unsqueeze(1)
+        self.command[:, :] = (ramp_up_coef * self._env.command_manager.get_command(self.cfg.command_name)).cpu().numpy()
         
         for i in range(self.num_envs):
             self.mpc_controller[i].set_swing_parameters(stepping_frequency=stepping_frequency[i], foot_height=swing_foot_height[i], cp1=cp1[i], cp2=cp2[i])
@@ -189,6 +189,7 @@ class MPCAction(ActionTerm):
             self._joint_actions[i] = self.mpc_controller[i].get_action()
         joint_actions = torch.from_numpy(self._joint_actions).to(self.device)
         self.robot_api.set_joint_effort_target(joint_actions, self._joint_ids)
+        self.mpc_counter += 1
     
     def _get_state(self) -> None:
         """
@@ -236,6 +237,7 @@ class MPCAction(ActionTerm):
         foot_placement_w = []
         foot_pos_b = []
         foot_ref_pos_b = []
+        mpc_cost = []
         
         for i in range(len(self.mpc_controller)):
             grw_accel.append(self.mpc_controller[i].accel_gyro(self.root_rot_mat[i].cpu().numpy()))
@@ -245,6 +247,7 @@ class MPCAction(ActionTerm):
             foot_placement_w.append(self.mpc_controller[i].foot_placement)
             foot_pos_b.append(self.mpc_controller[i].foot_pos_b)
             foot_ref_pos_b.append(self.mpc_controller[i].ref_foot_pos_b)
+            mpc_cost.append(self.mpc_controller[i].mpc_cost)
         
         self.grw_accel = torch.from_numpy(np.array(grw_accel)).to(self.device).view(self.num_envs, 6).to(torch.float32)
         self.grw = torch.from_numpy(np.array(grw)).to(self.device).view(self.num_envs, 12).to(torch.float32)
@@ -268,6 +271,9 @@ class MPCAction(ActionTerm):
         self.leg_angle[:, 1] = torch.abs(torch.atan2(stance_leg_r_left[:, 1], stance_leg_r_left[:, 2]))
         self.leg_angle[:, 2] = torch.abs(torch.atan2(stance_leg_r_right[:, 0], stance_leg_r_right[:, 2]))
         self.leg_angle[:, 3] = torch.abs(torch.atan2(stance_leg_r_right[:, 1], stance_leg_r_right[:, 2]))
+        
+        # compute mpc cost
+        self.mpc_cost = torch.from_numpy(np.array(mpc_cost)).to(self.device).view(self.num_envs).to(torch.float32)
     
     def _add_joint_offset(self, joint_pos:torch.Tensor) -> torch.Tensor:
         joint_pos[:, 2] += torch.pi/4
@@ -292,3 +298,4 @@ class MPCAction(ActionTerm):
             self.mpc_controller[i].update_gait_parameter(
                 np.array([int(self.cfg.double_support_duration/self._env.physics_dt), int(self.cfg.double_support_duration/self._env.physics_dt)]), 
                 np.array([int(self.cfg.single_support_duration/self._env.physics_dt), int(self.cfg.single_support_duration/self._env.physics_dt)]),)
+        self.mpc_counter[env_ids] = 0

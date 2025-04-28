@@ -200,10 +200,10 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="generator",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(20.0, 20.0), # size of sub-terrain
+        size=(25.0, 25.0), # size of sub-terrain
         border_width=0.0,
-        num_rows=2,
-        num_cols=2,
+        num_rows=4,
+        num_cols=1,
         horizontal_scale=0.1,
         vertical_scale=0.005,
         slope_threshold=0.75,
@@ -223,20 +223,20 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
             # proportion=0.2, box_height_range=(0.12, 0.12), platform_width=15.0, platform_length=0.5
             # ),
             "boxes1": terrain_gen.TiledMeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.08, 0.08), platform_width=15.0, platform_length=0.5, num_box=10, 
-            platform_gap_range=(-0.2, 0.2), border_size=1.5, height_noise_range=(-0.02, 0.01)
+            proportion=0.2, box_height_range=(0.06, 0.06), platform_width=25.0, platform_length=0.5, num_box=10, 
+            platform_gap_range=(-0.0, 0.0), border_size=1.5, height_noise_range=(-0.00, 0.00)
             ),
             "boxes2": terrain_gen.TiledMeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.09, 0.09), platform_width=15.0, platform_length=0.5, num_box=10, 
-            platform_gap_range=(-0.2, 0.2), border_size=1.5, height_noise_range=(-0.02, 0.01)
+            proportion=0.2, box_height_range=(0.08, 0.08), platform_width=25.0, platform_length=0.5, num_box=10, 
+            platform_gap_range=(-0.0, 0.0), border_size=1.5, height_noise_range=(-0.0, 0.0)
             ),
             "boxes3": terrain_gen.TiledMeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.1, 0.1), platform_width=15.0, platform_length=0.5, num_box=10, 
-            platform_gap_range=(-0.2, 0.2), border_size=1.5, height_noise_range=(-0.02, 0.01)
+            proportion=0.2, box_height_range=(0.1, 0.1), platform_width=25.0, platform_length=0.5, num_box=10, 
+            platform_gap_range=(-0.0, 0.0), border_size=1.5, height_noise_range=(-0.0, 0.00)
             ),
             "boxes4": terrain_gen.TiledMeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.11, 0.11), platform_width=15.0, platform_length=0.5, num_box=10, 
-            platform_gap_range=(-0.2, 0.2), border_size=1.5, height_noise_range=(-0.02, 0.01)
+            proportion=0.2, box_height_range=(0.12, 0.12), platform_width=25.0, platform_length=0.5, num_box=10, 
+            platform_gap_range=(-0.0, 0.0), border_size=1.5, height_noise_range=(-0.0, 0.0)
             ),
         },
     ),
@@ -244,10 +244,16 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
     physics_material=sim_utils.RigidBodyMaterialCfg(
         friction_combine_mode="multiply",
         restitution_combine_mode="multiply",
-        static_friction=1.0,
-        dynamic_friction=1.0,
+        static_friction=2.0,
+        dynamic_friction=2.0,
     ),
-    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    visual_material=sim_utils.MdlFileCfg(
+        mdl_path="omniverse://localhost/NVIDIA/Assets/Isaac/4.2/NVIDIA/Materials/Base/Stone/Slate.mdl",
+        project_uvw=True,
+        texture_scale=(0.25, 0.25),
+    ),
+    max_init_terrain_level=0,
     debug_vis=False,
     disable_colllider=False,
     num_curriculums=4

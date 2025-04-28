@@ -244,3 +244,7 @@ class MPCController:
     @property
     def foot_pos_b(self) -> np.ndarray:
         return self.hc.getFootPosition().astype(np.float32)
+    
+    @property
+    def mpc_cost(self) -> float:
+        return float(self.hc.getCost())
