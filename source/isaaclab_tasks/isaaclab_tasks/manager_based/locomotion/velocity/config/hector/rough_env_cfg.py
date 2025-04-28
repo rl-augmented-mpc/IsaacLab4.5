@@ -6,6 +6,7 @@
 import math
 
 from isaaclab.envs.common import ViewerCfg
+from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import EventTermCfg as EventTerm
@@ -43,20 +44,21 @@ class HECTORRewards(RewardsCfg):
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_world_exp, weight=0.2, params={"command_name": "base_velocity", "std": 0.5}
     )
-    foot_placement = RewTerm(
-        func=hector_mdp.foot_placement_reward,
-        weight=0.2,
-        params={
-            "sensor_cfg": SceneEntityCfg("height_scanner"),
-            "action_name": "mpc_action", 
-            "std": 0.5,
-        },
-    )
+    # foot_placement = RewTerm(
+    #     func=hector_mdp.foot_placement_reward,
+    #     weight=0.2,
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("height_scanner"),
+    #         "action_name": "mpc_action", 
+    #         "std": 0.5,
+    #     },
+    # )
 
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01) # type: ignore
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05) # type: ignore
+    
     stepping_frequency_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
         weight=-0.1, 
@@ -66,7 +68,7 @@ class HECTORRewards(RewardsCfg):
         )
     foot_height_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-0.1, 
+        weight=-0.5, 
         params={
             "action_idx": 1,
         },
@@ -76,6 +78,13 @@ class HECTORRewards(RewardsCfg):
         weight=-0.1,
         params={
             "action_idx": 2,
+        },
+        )
+    mpc_cost_l2 = RewTerm(
+        func=hector_mdp.mpc_cost_l1, # type: ignore
+        weight=-1e-4,
+        params={
+            "action_name": "mpc_action",
         },
         )
     # energy_l2 = RewTerm(func=mdp.action_l2, weight=-0.01) # type: ignore
@@ -123,7 +132,7 @@ class HECTORRewards(RewardsCfg):
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_toe_joint"])},
     )
     
-    # Penalize body leg angle
+    # # Penalize body leg angle
     leg_body_angle_l2 = RewTerm(
         func=hector_mdp.leg_body_angle_l2, 
         weight=-0.1,
@@ -229,13 +238,13 @@ class HECTORCommandsCfg:
     base_velocity = mdp.UniformVelocityCommandCfg( # type: ignore
         asset_name="robot",
         resampling_time_range=(20.0, 20.0),
-        rel_standing_envs=0.02,
+        rel_standing_envs=0.0,
         rel_heading_envs=1.0,
         heading_command=False,
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges( # type: ignore
-            lin_vel_x=(0.2, 0.5), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
+            lin_vel_x=(0.3, 0.6), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
         ),
     )
     
@@ -310,7 +319,21 @@ class HECTOREventCfg(EventCfg):
 
     # interval
     push_robot = None
+    
+    # reset camera
+    reset_camera = EventTerm(
+        func=hector_mdp.reset_camera, # type: ignore
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+        },
+    )
 
+@configclass
+class CurriculumCfg:
+    """Curriculum terms for the MDP."""
+
+    terrain_levels = CurrTerm(func=hector_mdp.terrain_levels_vel)
 
 
 @configclass
@@ -321,6 +344,7 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     observations: HECTORObservationsCfg = HECTORObservationsCfg()
     terminations: HECTORTerminationsCfg = HECTORTerminationsCfg()
     events: HECTOREventCfg = HECTOREventCfg()
+    curriculum: CurriculumCfg = CurriculumCfg()
     seed = 42
 
     def __post_init__(self):
@@ -332,18 +356,10 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.decimation = 4
         self.sim.render_interval = 10
         
-        # viewer 
-        self.viewer = ViewerCfg(
-            # eye=(10.0, -10.0, 2.0), 
-            # lookat=(5.0, -5.0, 0.0),
-            eye=(-1.0, -6.0, 2.0), 
-            lookat=(0.0, -3.0, 1.0),
-            resolution=(1920, 1080)
-        )
-        
         # Scene
         self.scene.robot = HECTOR_CFG.replace(prim_path=f"{ENV_REGEX_NS}/Robot")
         # self.scene.contact_forces.prim_path = f"{ENV_REGEX_NS}/Robot/[L|R]_toe"
         self.scene.height_scanner.prim_path = f"{ENV_REGEX_NS}/Robot/base"
         self.scene.height_scanner.pattern_cfg = patterns.GridPatternCfg(resolution=0.1, size=[1.0, 1.0])
-        self.scene.terrain = hector_mdp.SteppingStoneTerrain
+        # self.scene.terrain = hector_mdp.SteppingStoneTerrain
+        self.scene.terrain = hector_mdp.CurriculumSteppingStoneTerrain

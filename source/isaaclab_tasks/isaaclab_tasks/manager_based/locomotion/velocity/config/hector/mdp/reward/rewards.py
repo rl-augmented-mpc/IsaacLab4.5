@@ -40,8 +40,9 @@ def get_ground_gradient_at_landing_point(
     height_map_2d: torch.Tensor,
     ):
     foot_placement = foot_placement.reshape(-1, 2, 2)[gait_contact==0]
-    height_map_2d_grad = get_ground_gradient(height_map_2d)
-    height, width = height_map_2d_grad.shape[1:3]
+    # height_map_2d_grad = get_ground_gradient(height_map_2d)
+    # height, width = height_map_2d_grad.shape[1:3]
+    height, width = height_map_2d.shape[1:3]
     
     # get neighboring 3x3 grid with center being projected foot placement
     resolution = 0.1
@@ -70,7 +71,8 @@ def get_ground_gradient_at_landing_point(
     indices = torch.clamp(indices, 0, height*width-1).view(-1)
     
     env_ids = torch.arange(num_envs).view(-1, 1).repeat(1,9).view(-1)
-    ground_gradient = height_map_2d_grad.reshape(num_envs, -1).repeat(9, 1)[env_ids, indices] # type: ignore
+    # ground_gradient = height_map_2d_grad.reshape(num_envs, -1).repeat(9, 1)[env_ids, indices] # type: ignore
+    ground_gradient = height_map_2d.reshape(num_envs, -1).repeat(9, 1)[env_ids, indices] # type: ignore
     ground_gradient_at_foot = ground_gradient.view(num_envs, 9).mean(dim=1)
     return ground_gradient_at_foot
 
@@ -83,7 +85,7 @@ def individual_action_l2(env: ManagerBasedRLEnv, action_idx:int, action_name: st
     """Penalize the actions using L2 squared kernel."""
     action_term = env.action_manager.get_term(action_name)
     processed_actions = action_term.processed_actions
-    return torch.square(processed_actions[:, action_idx])
+    return torch.square(processed_actions[:, action_idx]).view(-1)
 
 def foot_placement_reward(
     env: ManagerBasedRLEnv, 
@@ -119,3 +121,11 @@ def leg_body_angle_l2(
     leg_body_angle = action_term.leg_angle # (num_envs, 4)
     
     return torch.sum(torch.square(leg_body_angle), dim=1)
+
+def mpc_cost_l1(
+    env: ManagerBasedRLEnv,
+    action_name: str = "mpc_action",
+):
+    action_term = env.action_manager.get_term(action_name)
+    mpc_cost = action_term.mpc_cost.clamp(max=1e3) # (num_envs, 1)
+    return torch.abs(mpc_cost)
