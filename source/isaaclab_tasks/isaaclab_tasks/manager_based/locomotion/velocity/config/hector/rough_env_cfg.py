@@ -61,21 +61,24 @@ class HECTORRewards(RewardsCfg):
     
     stepping_frequency_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-0.1, 
+        # weight=-0.1, 
+        weight=-0.3, 
         params={
             "action_idx": 0,
         },
         )
     foot_height_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-0.1, 
+        # weight=-0.1, 
+        weight=-0.3, 
         params={
             "action_idx": 1,
         },
         )
     control_point_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-0.1,
+        # weight=-0.1,
+        weight=-0.3,
         params={
             "action_idx": 2,
         },
@@ -362,3 +365,15 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.height_scanner.pattern_cfg = patterns.GridPatternCfg(resolution=0.1, size=[1.0, 1.0])
         # self.scene.terrain = hector_mdp.SteppingStoneTerrain
         self.scene.terrain = hector_mdp.CurriculumSteppingStoneTerrain
+
+@configclass
+class HECTORRoughEnvCfgPLAY(HECTORRoughEnvCfg):
+    """Playground environment configuration for HECTOR."""
+    
+    def __post_init__(self):
+        # post init of parent
+        super().__post_init__()
+        self.seed = 77
+        self.scene.terrain.max_init_terrain_level = 3
+        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.7)
+        self.curriculum.terrain_levels = None
