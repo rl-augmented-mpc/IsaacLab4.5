@@ -88,13 +88,14 @@ def get_ground_gradient_at_landing_point(
     So, if robot is stepping on non-flat surface, flatness value results in terrain height value.
     """
     
-    foot_placement = foot_placement.reshape(-1, 2, 2)[gait_contact==0]
+    swing_foot_placement = foot_placement.clone().reshape(-1, 2, 2)[gait_contact==0]
     height, width = height_map_2d.shape[1:3]
     
     # get neighboring 3x3 grid with center being projected foot placement
     resolution = 0.1
-    row_index = (int(width/2) - (foot_placement[:, 1]//resolution).long()).long().clamp(0, width-1)
-    col_index = (int(height/2) + (foot_placement[:, 0]//resolution).long()).long().clamp(0, height-1)
+    row_index = (int(width/2) - (swing_foot_placement[:, 1]//resolution).long()).long().clamp(0, width-1)
+    col_index = (int(height/2) + (swing_foot_placement[:, 0]//resolution).long()).long().clamp(0, height-1)
+    
     row_indexes = torch.zeros(num_envs, 3).long()
     col_indexes = torch.zeros(num_envs, 3).long()
     row_indexes[:, 0] = row_index - 1
