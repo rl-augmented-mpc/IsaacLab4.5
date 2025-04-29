@@ -13,12 +13,17 @@ from . import agents
 
 BASE_CLASS = [
     "HECTOR-ManagerBased-RL",
+    "Hector-ManagerBased-RL-PLAY",
 ]
 
 ARGS = [
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_cfg:HECTORRoughEnvCfg",
-        # "env_cfg_entry_point": f"{__name__}.task_cfg.stepping_stone_cfg:SteppingStoneCfg", 
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo.yaml",
+    },
+    {
+        "env_cfg_entry_point": f"{__name__}.rough_env_cfg:HECTORRoughEnvCfgPLAY",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo.yaml",
     },
