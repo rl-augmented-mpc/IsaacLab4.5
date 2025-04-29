@@ -265,6 +265,11 @@ class HECTORTerminationsCfg:
         params={"asset_cfg": SceneEntityCfg("robot"), "limit_angle": math.pi/3},
         time_out=True,
     )
+    terrain_out_of_bounds = DoneTerm(
+        func=mdp.terrain_out_of_bounds,
+        params={"asset_cfg": SceneEntityCfg("robot"), "distance_buffer": 1.5},
+        time_out=True,
+    )
     
 @configclass 
 class HECTOREventCfg(EventCfg):
@@ -297,7 +302,8 @@ class HECTOREventCfg(EventCfg):
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),
-                "yaw": (-0.0, 0.0),
+                # "yaw": (-0.0, 0.0),
+                "yaw": (-math.pi/6, math.pi/6),
                 },
             "velocity_range": {
                 "x": (-0.0, 0.0),
@@ -365,6 +371,7 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.height_scanner.pattern_cfg = patterns.GridPatternCfg(resolution=0.1, size=[1.0, 1.0])
         # self.scene.terrain = hector_mdp.SteppingStoneTerrain
         self.scene.terrain = hector_mdp.CurriculumSteppingStoneTerrain
+        # self.scene.terrain = hector_mdp.RandomOrientationCubeTerrain
 
 @configclass
 class HECTORRoughEnvCfgPLAY(HECTORRoughEnvCfg):
