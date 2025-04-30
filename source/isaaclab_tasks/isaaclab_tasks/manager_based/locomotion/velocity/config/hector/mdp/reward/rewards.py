@@ -93,7 +93,6 @@ def bilinear_interpolation(
     num_foot_edge = foot_position_2d.shape[2]
     num_foot = foot_position_2d.shape[1]
     
-    env_ids = torch.arange(num_envs)
     height, width = height_map_2d.shape[1:3]
     
     # in image space
@@ -118,12 +117,40 @@ def bilinear_interpolation(
     P4[:, :, 0] = foot_position_discrete[:, :, 0].ceil().clamp(0, height-1)
     P4[:, :, 1] = foot_position_discrete[:, :, 1].ceil().clamp(0, width-1)
     
-    P1_height = height_map_2d.reshape(num_envs, -1).repeat(4, 1)[env_ids, P1[:, :, 0] * width + P1[:, :, 1]].view(num_envs, -1)
-    P2_height = height_map_2d.reshape(num_envs, -1).repeat(4, 1)[env_ids, P2[:, :, 0] * width + P2[:, :, 1]].view(num_envs, -1)
-    P3_height = height_map_2d.reshape(num_envs, -1).repeat(4, 1)[env_ids, P3[:, :, 0] * width + P3[:, :, 1]].view(num_envs, -1)
-    P4_height = height_map_2d.reshape(num_envs, -1).repeat(4, 1)[env_ids, P4[:, :, 0] * width + P4[:, :, 1]].view(num_envs, -1)
+    # (num_envs, num_foot_edge*num_foot)
+    env_ids = torch.arange(num_envs).view(-1, 1).repeat(1, num_foot_edge*num_foot).view(-1)
+    P1_height = height_map_2d.reshape(num_envs, -1).repeat(num_foot_edge*num_foot, 1)[env_ids, (P1[:, :, 0] * width + P1[:, :, 1]).view(-1)].view(num_envs, num_foot_edge*num_foot)
+    P2_height = height_map_2d.reshape(num_envs, -1).repeat(num_foot_edge*num_foot, 1)[env_ids, (P2[:, :, 0] * width + P2[:, :, 1]).view(-1)].view(num_envs, num_foot_edge*num_foot)
+    P3_height = height_map_2d.reshape(num_envs, -1).repeat(num_foot_edge*num_foot, 1)[env_ids, (P3[:, :, 0] * width + P3[:, :, 1]).view(-1)].view(num_envs, num_foot_edge*num_foot)
+    P4_height = height_map_2d.reshape(num_envs, -1).repeat(num_foot_edge*num_foot, 1)[env_ids, (P4[:, :, 0] * width + P4[:, :, 1]).view(-1)].view(num_envs, num_foot_edge*num_foot)
     
-    height_at_foot = (P1_height + P2_height + P3_height + P4_height) / 4
+    # Calculate distances from the foot position to each corner
+    dist_P1 = (foot_position_discrete - P1).float().abs()
+    dist_P2 = (foot_position_discrete - P2).float().abs()
+    dist_P3 = (foot_position_discrete - P3).float().abs()
+    dist_P4 = (foot_position_discrete - P4).float().abs()
+
+    # Compute weights based on inverse distance
+    weights_P1 = (1.0 / (dist_P1[:, :, 0] * dist_P1[:, :, 1] + 1e-6))
+    weights_P2 = (1.0 / (dist_P2[:, :, 0] * dist_P2[:, :, 1] + 1e-6))
+    weights_P3 = (1.0 / (dist_P3[:, :, 0] * dist_P3[:, :, 1] + 1e-6))
+    weights_P4 = (1.0 / (dist_P4[:, :, 0] * dist_P4[:, :, 1] + 1e-6))
+
+    # Normalize weights
+    total_weights = weights_P1 + weights_P2 + weights_P3 + weights_P4
+    weights_P1 /= total_weights
+    weights_P2 /= total_weights
+    weights_P3 /= total_weights
+    weights_P4 /= total_weights
+
+    # Compute weighted average height
+    height_at_foot = (
+        weights_P1 * P1_height +
+        weights_P2 * P2_height +
+        weights_P3 * P3_height +
+        weights_P4 * P4_height
+    )
+    
     height_at_foot = height_at_foot.reshape(-1, num_foot, num_foot_edge).transpose(1, 2) # (num_envs, num_foot_edge, num_foot)
     
     return height_at_foot
@@ -149,13 +176,14 @@ def get_ground_roughness_at_landing_point(
     3 ------ 4
     """
     # foot size to consider stepping over 
-    foot_size_x = 0.145
+    # foot_size_x = 0.145
+    foot_size_x = 0.12
     foot_size_y = 0.073
     
     # in cartesian space 
     foot_position_2d = foot_position.clone().reshape(-1, 2, 3)[:, :, :2] # foot position wrt body frame
     
-    foot_edge_positions = torch.zeros(num_envs, 2, 4, 2)
+    foot_edge_positions = torch.zeros(num_envs, 2, 4, 2, device=foot_position.device)
     foot_edge_positions[:, 0, :, :] = foot_position_2d[:, :1, :].repeat(1, 4, 1)
     foot_edge_positions[:, 1, :, :] = foot_position_2d[:, 1:, :].repeat(1, 4, 1)
     foot_edge_positions[:, :, 0, 0] -= foot_size_x/2
