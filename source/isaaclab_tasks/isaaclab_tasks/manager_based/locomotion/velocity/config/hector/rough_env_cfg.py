@@ -5,17 +5,22 @@
 
 import math
 
-from isaaclab.envs.common import ViewerCfg
+import isaaclab.sim as sim_utils
+from isaaclab.assets import ArticulationCfg, AssetBaseCfg
+from isaaclab.envs import ManagerBasedRLEnvCfg
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
+from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
-from isaaclab.managers import EventTermCfg as EventTerm
-from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
+from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
+from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils import configclass
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
+from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg, RewardsCfg, EventCfg
@@ -25,8 +30,46 @@ import isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp as hec
 # Pre-defined configs
 ##
 from isaaclab_assets.robots.hector import HECTOR_CFG
-ENV_REGEX_NS = "/World/envs/env_.*"
 
+@configclass
+class HECTORSceneCfg(InteractiveSceneCfg):
+    """Configuration for the terrain scene with a legged robot."""
+
+    # ground terrain
+    terrain = hector_mdp.CurriculumSteppingStoneTerrain
+    # robots
+    robot: ArticulationCfg = HECTOR_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    # sensors
+    height_scanner = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.0)),
+        attach_yaw_only=True,
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.05, size=[1.0, 1.0]),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+        update_period=1/10,
+    )
+    contact_forces = ContactSensorCfg(
+        # prim_path="{ENV_REGEX_NS}/Robot/.*", 
+        prim_path="{ENV_REGEX_NS}/Robot/.*_toe", 
+        history_length=3, 
+        track_air_time=True,
+        update_period=1/100,
+        )
+    # lights
+    sky_light = AssetBaseCfg(
+        prim_path="/World/skyLight",
+        spawn=sim_utils.DomeLightCfg(
+            intensity=750.0,
+            texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+        ),
+    )
+    # light = AssetBaseCfg(
+    #         prim_path="/World/distantLight",
+    #         spawn=sim_utils.DistantLightCfg(
+    #             intensity=1500.0,
+    #         )
+    #     )
 
 @configclass
 class HECTORRewards(RewardsCfg):
@@ -38,17 +81,18 @@ class HECTORRewards(RewardsCfg):
     )
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=0.2,
+        weight=0.1,
         params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=0.2, params={"command_name": "base_velocity", "std": 0.5}
+        func=mdp.track_ang_vel_z_world_exp, weight=0.1, params={"command_name": "base_velocity", "std": 0.5}
     )
     foot_placement = RewTerm(
-        func=hector_mdp.foot_placement_reward,
+        func=hector_mdp.stance_foot_position_reward,
         weight=0.2,
         params={
             "sensor_cfg": SceneEntityCfg("height_scanner"),
+            "contact_sensor_cfg": SceneEntityCfg("contact_forces"),
             "action_name": "mpc_action", 
             "std": 0.01,
         },
@@ -131,7 +175,7 @@ class HECTORRewards(RewardsCfg):
     # Penalize deviation from default of the joints that are not essential for locomotion
     joint_deviation = RewTerm(
         func=mdp.joint_deviation_l1, # type: ignore
-        weight=-0.01,
+        weight=-0.005,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_toe_joint"])},
     )
     
@@ -247,7 +291,7 @@ class HECTORCommandsCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges( # type: ignore
-            lin_vel_x=(0.3, 0.6), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
+            lin_vel_x=(0.4, 0.7), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
         ),
     )
     
@@ -256,10 +300,10 @@ class HECTORTerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True) # type: ignore
-    body_contact = DoneTerm(
-        func=mdp.illegal_contact, # type: ignore
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["base"]), "threshold": 1.0},
-    )
+    # body_contact = DoneTerm(
+    #     func=mdp.illegal_contact, # type: ignore
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=["base"]), "threshold": 1.0},
+    # ) # this triggers wrong body names register to contact sensor
     bad_orientation = DoneTerm(
         func=mdp.bad_orientation,  # type: ignore
         params={"asset_cfg": SceneEntityCfg("robot"), "limit_angle": math.pi/3},
@@ -302,8 +346,8 @@ class HECTOREventCfg(EventCfg):
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),
-                # "yaw": (-0.0, 0.0),
-                "yaw": (-math.pi/6, math.pi/6),
+                "yaw": (-0.0, 0.0),
+                # "yaw": (-math.pi/6, math.pi/6),
                 },
             "velocity_range": {
                 "x": (-0.0, 0.0),
@@ -346,6 +390,7 @@ class CurriculumCfg:
 
 @configclass
 class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
+    scene: HECTORSceneCfg = HECTORSceneCfg(num_envs=4096, env_spacing=2.5)
     rewards: HECTORRewards = HECTORRewards()
     actions: HECTORActionsCfg = HECTORActionsCfg()
     commands: HECTORCommandsCfg = HECTORCommandsCfg()
@@ -363,15 +408,6 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.sim.dt = 1/400
         self.decimation = 4
         self.sim.render_interval = 10
-        
-        # Scene
-        self.scene.robot = HECTOR_CFG.replace(prim_path=f"{ENV_REGEX_NS}/Robot")
-        # self.scene.contact_forces.prim_path = f"{ENV_REGEX_NS}/Robot/[L|R]_toe"
-        self.scene.height_scanner.prim_path = f"{ENV_REGEX_NS}/Robot/base"
-        self.scene.height_scanner.pattern_cfg = patterns.GridPatternCfg(resolution=0.1, size=[1.0, 1.0])
-        # self.scene.terrain = hector_mdp.SteppingStoneTerrain
-        self.scene.terrain = hector_mdp.CurriculumSteppingStoneTerrain
-        # self.scene.terrain = hector_mdp.RandomOrientationCubeTerrain
 
 @configclass
 class HECTORRoughEnvCfgPLAY(HECTORRoughEnvCfg):
@@ -383,6 +419,6 @@ class HECTORRoughEnvCfgPLAY(HECTORRoughEnvCfg):
         self.seed = 77
         self.scene.terrain.max_init_terrain_level = 3
         self.scene.height_scanner.debug_vis = True
-        self.events.reset_camera = None
+        # self.events.reset_camera = None
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.7)
         self.curriculum.terrain_levels = None

@@ -164,11 +164,11 @@ class MPCAction(ActionTerm):
         self._get_height_at_swing_foot()
     
     def _get_height_at_swing_foot(self):
-        scan_width = 1.0
-        scan_resolution = 0.1
-        
         sensor= self._env.scene.sensors["height_scanner"]
         height_map = sensor.data.ray_hits_w[..., 2]
+        
+        scan_width, scan_height = sensor.cfg.pattern_cfg.size
+        scan_resolution = sensor.cfg.pattern_cfg.resolution
         
         swing_foot_pos = (self.foot_pos_b.reshape(self.num_envs, 2, 3) * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
         swing_foot_pos[:, 0] += 0.05 # track toe pos
