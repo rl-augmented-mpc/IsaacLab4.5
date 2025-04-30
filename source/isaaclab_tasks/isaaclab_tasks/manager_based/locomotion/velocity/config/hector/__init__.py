@@ -13,7 +13,7 @@ from . import agents
 
 BASE_CLASS = [
     "HECTOR-ManagerBased-RL",
-    "Hector-ManagerBased-RL-PLAY",
+    "HECTOR-ManagerBased-RL-PLAY",
 ]
 
 ARGS = [

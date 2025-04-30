@@ -88,7 +88,8 @@ def get_ground_gradient_at_landing_point(
     So, if robot is stepping on non-flat surface, flatness value results in terrain height value.
     """
     
-    swing_foot_placement = foot_placement.clone().reshape(-1, 2, 2)[gait_contact==0]
+    swing_foot_placement = foot_placement.clone().reshape(-1, 2, 2)
+    swing_foot_placement = (swing_foot_placement * (gait_contact==0).unsqueeze(2)).sum(dim=1)
     height, width = height_map_2d.shape[1:3]
     
     # get neighboring 3x3 grid with center being projected foot placement

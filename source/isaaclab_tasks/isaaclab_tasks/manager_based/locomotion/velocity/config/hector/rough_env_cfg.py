@@ -382,5 +382,7 @@ class HECTORRoughEnvCfgPLAY(HECTORRoughEnvCfg):
         super().__post_init__()
         self.seed = 77
         self.scene.terrain.max_init_terrain_level = 3
+        self.scene.height_scanner.debug_vis = True
+        self.events.reset_camera = None
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.7)
         self.curriculum.terrain_levels = None

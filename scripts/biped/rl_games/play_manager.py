@@ -126,11 +126,14 @@ def main():
     # convert to single-agent instance if required by the RL algorithm
     if isinstance(env.unwrapped, DirectMARLEnv):
         env = multi_agent_to_single_agent(env)
+        
+    # for logging
+    name = "play_rl" if args_cli.use_rl else "play_mpc"
 
     # wrap for video recording
     if args_cli.video:
         video_kwargs = {
-            "video_folder": os.path.join(log_root_path, log_dir, "videos", "play"), # type: ignore
+            "video_folder": os.path.join(log_root_path, log_dir, "videos", name), # type: ignore
             "step_trigger": lambda step: step == 0,
             "video_length": args_cli.video_length,
             "disable_logger": True,
@@ -141,10 +144,7 @@ def main():
     
     if args_cli.log:
         max_episode_length = int(env_cfg.episode_length_s/(env_cfg.decimation*env_cfg.sim.dt))
-        if args_cli.use_rl:
-            logger = BenchmarkLogger(log_dir, "rl", num_envs=args_cli.num_envs, max_trials=args_cli.max_trials, max_episode_length=max_episode_length)
-        else:
-            logger = BenchmarkLogger(log_dir, "mpc", num_envs=args_cli.num_envs, max_trials=args_cli.max_trials, max_episode_length=max_episode_length)
+        logger = BenchmarkLogger(log_dir, name, num_envs=args_cli.num_envs, max_trials=args_cli.max_trials, max_episode_length=max_episode_length)
         
     # wrap around environment for rl-games
     env = RlGamesVecEnvWrapper(env, rl_device, clip_obs, clip_actions)
@@ -180,6 +180,8 @@ def main():
     obs = env.reset()
     if isinstance(obs, dict):
         obs = obs["obs"]
+    # convert obs to agent format
+    obs = agent.obs_to_torch(obs)
     
     # required: enables the flag for batched observations
     _ = agent.get_batch_size(obs, 1)
@@ -190,8 +192,6 @@ def main():
     # simulate environment
     while simulation_app.is_running():
         with torch.inference_mode():
-            # convert obs to agent format
-            obs = agent.obs_to_torch(obs)
             if args_cli.use_rl:
                 action = agent.get_action(obs, is_deterministic=agent.is_deterministic)
             else:
