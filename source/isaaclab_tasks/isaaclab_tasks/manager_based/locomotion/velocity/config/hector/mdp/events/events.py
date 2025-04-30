@@ -44,7 +44,7 @@ def reset_camera(
     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
     robot_pos = asset.data.root_pos_w[0].cpu().numpy().tolist()
     # camera_delta = [-1.0, -6.0, 2.0]
-    camera_delta = [-0.0, -6.0, 0.5]
+    camera_delta = [3.0, -6.0, 0.5]
     env.viewport_camera_controller.update_view_location(
                 eye=(robot_pos[0]+camera_delta[0], robot_pos[1]+camera_delta[1], camera_delta[2]), 
-                lookat=(robot_pos[0], robot_pos[1], 0.0)) # type: ignore
+                lookat=(robot_pos[0]+camera_delta[0], robot_pos[1], 0.0)) # type: ignore

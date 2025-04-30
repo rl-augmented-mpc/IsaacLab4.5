@@ -154,7 +154,7 @@ class MPCAction(ActionTerm):
         for i in range(self.num_envs):
             self.mpc_controller[i].set_swing_parameters(stepping_frequency=stepping_frequency[i], foot_height=swing_foot_height[i], cp1=cp1[i], cp2=cp2[i])
             self.mpc_controller[i].set_command(
-                gait_num=2, 
+                gait_num=2, #1:standing, 2:walking
                 roll_pitch=np.zeros(2, dtype=np.float32),
                 twist=self.command[i],
                 height=self.reference_height[i],
@@ -170,7 +170,7 @@ class MPCAction(ActionTerm):
         sensor= self._env.scene.sensors["height_scanner"]
         height_map = sensor.data.ray_hits_w[..., 2]
         
-        swing_foot_pos = self.foot_pos_b.reshape(self.num_envs, 2, 3)[self.gait_contact==0]
+        swing_foot_pos = (self.foot_pos_b.reshape(self.num_envs, 2, 3) * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
         swing_foot_pos[:, 0] += 0.05 # track toe pos
         
         px = (swing_foot_pos[:, 0]//scan_resolution).long() + int(scan_width//scan_resolution+1)/2
