@@ -96,7 +96,7 @@ class HECTORRewards(RewardsCfg):
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "contact_sensor_cfg": SceneEntityCfg("contact_forces"),
             "action_name": "mpc_action", 
-            "std": 0.01,
+            "std": 0.05,
         },
     )
 
