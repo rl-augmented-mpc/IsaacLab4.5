@@ -292,6 +292,14 @@ class ActionManager(ManagerBase):
         """
         for term in self._terms.values():
             term.set_debug_vis(debug_vis)
+            
+    def log(self) -> dict[str, torch.Tensor]:
+        extras = {}
+        for name, term in self._terms.items():
+            for i in range(term.action_dim):
+                extras[f"{name}/raw_{i}"] = term.raw_actions[:, i].mean(dim=0).item()
+                extras[f"{name}/processed_{i}"] = term.processed_actions[:, i].mean(dim=0).item()
+        return extras
 
     def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, torch.Tensor]:
         """Resets the action history.

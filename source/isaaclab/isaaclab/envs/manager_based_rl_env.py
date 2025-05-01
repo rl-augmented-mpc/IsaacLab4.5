@@ -237,6 +237,14 @@ class ManagerBasedRLEnv(ManagerBasedEnv, gym.Env):
         # -- compute observations
         # note: done after reset to get the correct observations for reset envs
         self.obs_buf = self.observation_manager.compute()
+        
+        
+        # -- log step info
+        self.extras["log"] = dict()
+        info = self.reward_manager.log()
+        self.extras["log"].update(info)
+        info = self.action_manager.log()
+        self.extras["log"].update(info)
 
         # return observations, rewards, resets and extras
         return self.obs_buf, self.reward_buf, self.reset_terminated, self.reset_time_outs, self.extras
