@@ -44,7 +44,7 @@ class HECTORSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/Robot/base",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.0)),
         attach_yaw_only=True,
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.05, size=[1.0, 1.0]),
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.0, 1.0]),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
         update_period=1/10,
@@ -81,11 +81,13 @@ class HECTORRewards(RewardsCfg):
     )
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=0.1,
+        weight=0.2,
         params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=0.1, params={"command_name": "base_velocity", "std": 0.5}
+        func=mdp.track_ang_vel_z_world_exp, 
+        weight=0.2, 
+        params={"command_name": "base_velocity", "std": 0.5}
     )
     foot_placement = RewTerm(
         func=hector_mdp.stance_foot_position_reward,
@@ -103,6 +105,7 @@ class HECTORRewards(RewardsCfg):
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01) # type: ignore
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05) # type: ignore
     
+    # processed action regularization 
     stepping_frequency_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
         # weight=-0.1, 
@@ -114,7 +117,7 @@ class HECTORRewards(RewardsCfg):
     foot_height_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
         # weight=-0.1, 
-        weight=-0.3, 
+        weight=-0.5, 
         params={
             "action_idx": 1,
         },
@@ -175,7 +178,7 @@ class HECTORRewards(RewardsCfg):
     # Penalize deviation from default of the joints that are not essential for locomotion
     joint_deviation = RewTerm(
         func=mdp.joint_deviation_l1, # type: ignore
-        weight=-0.005,
+        weight=-0.01,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_toe_joint"])},
     )
     

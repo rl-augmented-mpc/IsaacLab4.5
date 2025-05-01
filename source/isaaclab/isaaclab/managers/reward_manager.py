@@ -96,6 +96,12 @@ class RewardManager(ManagerBase):
     """
     Operations.
     """
+    
+    def log(self) -> dict[str, torch.Tensor]:
+        extras = {}
+        for idx, name in enumerate(self._term_names):
+            extras["Step_Reward/" + name] = self._step_reward[:, idx].mean(dim=0).item()
+        return extras
 
     def reset(self, env_ids: Sequence[int] | None = None) -> dict[str, torch.Tensor]:
         """Returns the episodic sum of individual reward terms.
