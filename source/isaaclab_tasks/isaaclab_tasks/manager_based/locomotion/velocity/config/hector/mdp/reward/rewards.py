@@ -78,12 +78,12 @@ def get_ground_gradient_at_landing_point(
 
 def bilinear_interpolation(
     foot_position_2d: torch.Tensor, 
-    height_map_2d: torch.Tensor,
+    costmap_2d: torch.Tensor,
     resolution: float = 0.1,
 ):
     """
     foot position_2d: (num_envs, num_sample, 2, 2)
-    height_map_2d: (num_envs, height, width)
+    costmap_2d: (num_envs, height, width)
     
     P1 ----- P2
     |    x   |
@@ -92,8 +92,7 @@ def bilinear_interpolation(
     num_envs = foot_position_2d.shape[0]
     num_foot_edge = foot_position_2d.shape[2]
     num_foot = foot_position_2d.shape[1]
-    
-    height, width = height_map_2d.shape[1:3]
+    height, width = costmap_2d.shape[1:3]
     
     # in image space
     # foot position_2d_flat: (num_envs, num_foot_edge*num_foot, 2)
@@ -119,10 +118,10 @@ def bilinear_interpolation(
     
     # (num_envs, num_foot_edge*num_foot)
     env_ids = torch.arange(num_envs).view(-1, 1).repeat(1, num_foot_edge*num_foot).view(-1)
-    P1_height = height_map_2d.reshape(num_envs, -1).repeat(num_foot_edge*num_foot, 1)[env_ids, (P1[:, :, 0] * width + P1[:, :, 1]).view(-1)].view(num_envs, num_foot_edge*num_foot)
-    P2_height = height_map_2d.reshape(num_envs, -1).repeat(num_foot_edge*num_foot, 1)[env_ids, (P2[:, :, 0] * width + P2[:, :, 1]).view(-1)].view(num_envs, num_foot_edge*num_foot)
-    P3_height = height_map_2d.reshape(num_envs, -1).repeat(num_foot_edge*num_foot, 1)[env_ids, (P3[:, :, 0] * width + P3[:, :, 1]).view(-1)].view(num_envs, num_foot_edge*num_foot)
-    P4_height = height_map_2d.reshape(num_envs, -1).repeat(num_foot_edge*num_foot, 1)[env_ids, (P4[:, :, 0] * width + P4[:, :, 1]).view(-1)].view(num_envs, num_foot_edge*num_foot)
+    P1_height = costmap_2d.reshape(num_envs, -1).repeat(num_foot_edge*num_foot, 1)[env_ids, (P1[:, :, 0] * width + P1[:, :, 1]).view(-1)].view(num_envs, num_foot_edge*num_foot)
+    P2_height = costmap_2d.reshape(num_envs, -1).repeat(num_foot_edge*num_foot, 1)[env_ids, (P2[:, :, 0] * width + P2[:, :, 1]).view(-1)].view(num_envs, num_foot_edge*num_foot)
+    P3_height = costmap_2d.reshape(num_envs, -1).repeat(num_foot_edge*num_foot, 1)[env_ids, (P3[:, :, 0] * width + P3[:, :, 1]).view(-1)].view(num_envs, num_foot_edge*num_foot)
+    P4_height = costmap_2d.reshape(num_envs, -1).repeat(num_foot_edge*num_foot, 1)[env_ids, (P4[:, :, 0] * width + P4[:, :, 1]).view(-1)].view(num_envs, num_foot_edge*num_foot)
     
     # Calculate distances from the foot position to each corner
     dist_P1 = (foot_position_discrete - P1).float().abs()
@@ -160,7 +159,7 @@ def get_ground_roughness_at_landing_point(
     num_envs: int,
     foot_position: torch.Tensor,
     foot_contact: torch.Tensor,
-    height_map_2d: torch.Tensor,
+    costmap_2d: torch.Tensor,
     resolution: float = 0.1,
     ):
     """
@@ -197,13 +196,24 @@ def get_ground_roughness_at_landing_point(
     
     height_at_foot = bilinear_interpolation(
         foot_position_2d=foot_edge_positions, 
-        height_map_2d=height_map_2d, 
+        costmap_2d=costmap_2d, 
         resolution=resolution
     ) # (num_envs, 4, 2)
     
     roughness_at_foot = torch.abs(height_at_foot.max(dim=1).values - height_at_foot.min(dim=1).values) # (num_envs, 2)
     roughness_at_foot = (roughness_at_foot * foot_contact).sum(dim=1) # (num_envs, 1)
     return roughness_at_foot
+
+def discrete_terrain_costmap(
+    height_map_2d: torch.Tensor,
+):
+    costmap_2d = torch.zeros_like(height_map_2d)
+    edgemap_2d = torch.zeros_like(height_map_2d)
+    edgemap_2d[:, :, 1:] = torch.abs(height_map_2d[:, :, :-1] - height_map_2d[:, :, 1:])
+    costmap_2d[:, :, 1:-1] = (torch.abs(edgemap_2d[:, :, 2:] - edgemap_2d[:, :, 1:-1]) + \
+                            torch.abs(edgemap_2d[:, :, :-2] - edgemap_2d[:, :, 1:-1]))/2
+    
+    return costmap_2d
 
 """ 
 rewards
@@ -261,10 +271,10 @@ def stance_foot_position_reward(
     resolution = raycaster.cfg.pattern_cfg.resolution
     grid_x, grid_y = raycaster.cfg.pattern_cfg.size
     width, height = int(grid_x/resolution + 1), int(grid_y/resolution + 1)
-    height_map_2d = height_map.view(-1, height, width)
+    heightmap_2d = height_map.view(-1, height, width)
+    costmap_2d = discrete_terrain_costmap(heightmap_2d)
     
     contacts = (contact_sensor.data.net_forces_w.norm(dim=2) > 1.0).float()
-    
     action_term = env.action_manager.get_term(action_name)
     foot_position_b = action_term.foot_pos_b.reshape(-1, 2, 3)
     
@@ -273,14 +283,16 @@ def stance_foot_position_reward(
         env.num_envs,
         foot_position_b,
         contacts,
-        height_map_2d, 
+        costmap_2d, # costmap
+        # heightmap_2d, # heightmap
         resolution,
     )
     
+    # filter reward when robot does not see any stepping stone terrain.
     window_size = 5 # 5*0.05 = 0.25m
-    truncated_height_map = height_map_2d[:, width//2-window_size:width//2+window_size+1, height//2-window_size:height//2+window_size+1].reshape(env.num_envs, -1)
+    truncated_height_map = heightmap_2d[:, width//2-window_size:width//2+window_size+1, height//2-window_size:height//2+window_size+1].reshape(env.num_envs, -1)
     stepping_stone_mask = torch.max(truncated_height_map, dim=1).values - torch.min(truncated_height_map, dim=1).values
-    reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) * (stepping_stone_mask > 0.01).float() # do not give reward if height map do not see stepping stone
+    reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) * (stepping_stone_mask > 0.01).float()
     return reward
 
 

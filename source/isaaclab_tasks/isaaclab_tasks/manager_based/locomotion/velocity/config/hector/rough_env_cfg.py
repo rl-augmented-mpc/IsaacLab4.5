@@ -349,8 +349,8 @@ class HECTOREventCfg(EventCfg):
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),
-                "yaw": (-0.0, 0.0),
-                # "yaw": (-math.pi/6, math.pi/6),
+                # "yaw": (-0.0, 0.0),
+                "yaw": (-math.pi/9, math.pi/9),
                 },
             "velocity_range": {
                 "x": (-0.0, 0.0),
@@ -420,8 +420,8 @@ class HECTORRoughEnvCfgPLAY(HECTORRoughEnvCfg):
         # post init of parent
         super().__post_init__()
         self.seed = 77
-        self.scene.terrain.max_init_terrain_level = 3
+        self.scene.terrain.max_init_terrain_level = self.scene.terrain.terrain_generator.num_rows - 1
         self.scene.height_scanner.debug_vis = True
         # self.events.reset_camera = None
-        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.7)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
         self.curriculum.terrain_levels = None
