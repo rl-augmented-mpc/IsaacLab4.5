@@ -24,9 +24,9 @@ params:
         sigma_activation: None
 
         mu_init:
-          name: default
-          # name: const_initializer
-          # val: 0
+          # name: default
+          name: const_initializer
+          val: 0
         sigma_init:
           name: const_initializer
           val: 0
@@ -37,9 +37,9 @@ params:
       d2rl: False
 
       initializer:
-        name: default
+        # name: default
         # name: kaiming_normal
-        # name: orthogonal
+        name: orthogonal
       regularizer:
         name: None
       
@@ -49,58 +49,57 @@ params:
   load_path: '' # path to the checkpoint to load
 
   config:
-    name: sac_rl_games_stepping_stone_mlp
+    name: manager_sac_rl_games_stepping_stone_mlp
     env_name: rlgpu
     device: 'cuda:0'
     device_name: 'cuda:0'
     multi_gpu: False
-    ppo: True
+
+    # common parameters
     mixed_precision: True
     normalize_input: True
     normalize_value: True
     num_actors: -1  # configured from the script (based on num_envs)
     reward_shaper:
       scale_value: 1.0
-    normalize_advantage: True
     gamma: 0.99
-    tau : 0.95
-    learning_rate: 1e-4
-    lr_schedule: adaptive
-    kl_threshold: 0.008
+    entropy_coef: 0.001
     score_to_win: 20000
     max_epochs: 30000
     save_best_after: 500
     save_frequency: 500
-    grad_norm: 1.0
-    entropy_coef: 0.001
-    truncate_grads: True
-    e_clip: 0.2
-    horizon_length: 32
-    minibatch_size: 256 # num_envs*horizon/num_mini_batch=32*32/4
-    mini_epochs: 5
-    critic_coef: 0.5
-    clip_value: false
-    seq_length: 4
-    # bound_loss_type: regularisation
-    bound_loss_type: bound
-    bounds_loss_coef: 0.001
-    # use_smooth_clamp: True
+
+    # PPO
+    # normalize_advantage: True
+    # tau : 0.95
+    # learning_rate: 1e-4
+    # lr_schedule: adaptive
+    # kl_threshold: 0.008
+    # grad_norm: 1.0
+    # truncate_grads: True
+    # e_clip: 0.2
+    # horizon_length: 32
+    # minibatch_size: 384 # num_envs*horizon/num_mini_batch=64*24/4
+    # mini_epochs: 5
+    # critic_coef: 0.5
+    # clip_value: false
+    # seq_length: 4
 
     # SAC specific parameters
-    num_steps_per_episode: 32
-    init_alpha: 1
-    alpha_lr: 0.0002
-    actor_lr: 0.0003
-    critic_lr: 0.0003
-    critic_tau: 0.005
-    batch_size: 1024
+    num_steps_per_episode: 24
+    horizon_length: ${.num_steps_per_episode}
+    init_alpha: 1.0 # initial std (log(std)=0.0)
+    alpha_lr: 2e-4 # actor learning rate
+    actor_lr: 3e-4 # critic learning rate
+    critic_lr: 3e-4 # std network learning rate
+    critic_tau: 5e-3 # GAE parameter
+    batch_size: 1536 # num_envs*horizon_length=64*24
     learnable_temperature: True
-    num_warmup_steps: 5 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
+    num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
     replay_buffer_size: 1000000
-    num_actors: -1
   
   log:
     logger: wandb
     wandb_project_name: rl_mpc_manager
     wandb_entity: jnskkmr
-    name: sac_rl_games_stepping_stone_mlp
+    name: manager_sac_rl_games_stepping_stone_mlp
