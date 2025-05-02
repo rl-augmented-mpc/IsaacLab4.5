@@ -32,8 +32,8 @@ BaseTerrain = TerrainImporterCfg(
     physics_material=sim_utils.RigidBodyMaterialCfg(
         friction_combine_mode="multiply",
         restitution_combine_mode="multiply",
-        static_friction=0.5,
-        dynamic_friction=0.5,
+        static_friction=2.0,
+        dynamic_friction=2.0,
     ),
     visual_material=sim_utils.MdlFileCfg(
         mdl_path=f"{ISAACLAB_NUCLEUS_DIR}/Materials/TilesMarbleSpiderWhiteBrickBondHoned/TilesMarbleSpiderWhiteBrickBondHoned.mdl",
