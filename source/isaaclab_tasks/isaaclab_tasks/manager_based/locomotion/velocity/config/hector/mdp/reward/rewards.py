@@ -283,13 +283,13 @@ def stance_foot_position_reward(
         env.num_envs,
         foot_position_b,
         contacts,
-        costmap_2d, # costmap
-        # heightmap_2d, # heightmap
+        # costmap_2d, # costmap
+        heightmap_2d, # heightmap
         resolution,
     )
     
     # filter reward when robot does not see any stepping stone terrain.
-    window_size = 5 # 5*0.05 = 0.25m
+    window_size = 2 # 4*0.1 = 0.3m
     truncated_height_map = heightmap_2d[:, width//2-window_size:width//2+window_size+1, height//2-window_size:height//2+window_size+1].reshape(env.num_envs, -1)
     stepping_stone_mask = torch.max(truncated_height_map, dim=1).values - torch.min(truncated_height_map, dim=1).values
     reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) * (stepping_stone_mask > 0.01).float()
@@ -301,9 +301,22 @@ def leg_body_angle_l2(
     action_name: str = "mpc_action",
 ):
     action_term = env.action_manager.get_term(action_name)
-    leg_body_angle = action_term.leg_angle # (num_envs, 4)
-    
-    return torch.sum(torch.square(leg_body_angle), dim=1)
+    sagittal_leg_body_angle = action_term.leg_angle[:, [0, 2]] # (num_envs, 2)
+    # print((180/torch.pi) * sagittal_leg_body_angle)
+    reward = torch.sum(torch.square(sagittal_leg_body_angle), dim=1)
+    # print(reward)
+    return reward
+
+def leg_distance_l2(
+    env: ManagerBasedRLEnv,
+    action_name: str = "mpc_action",
+):
+    action_term = env.action_manager.get_term(action_name)
+    foot_pos_b = action_term.foot_pos_b # (num_envs, 6)
+    foot_pos_b_lateral = foot_pos_b[:, [1, 4]]
+    reward = torch.square(foot_pos_b_lateral[:, 0] - foot_pos_b_lateral[:, 1])
+    # print(reward)
+    return reward
 
 def mpc_cost_l1(
     env: ManagerBasedRLEnv,
@@ -312,3 +325,24 @@ def mpc_cost_l1(
     action_term = env.action_manager.get_term(action_name)
     mpc_cost = action_term.mpc_cost.clamp(max=1e3) # (num_envs, 1)
     return torch.abs(mpc_cost)
+
+
+"""
+feet rewards
+"""
+
+def feet_accel_l2(env, sensor_cfg: SceneEntityCfg, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Penalize feet acceleration.
+
+    This function penalizes the agent for accelerating its feet on the ground. The reward is computed as the
+    norm of the linear acceleration of the feet multiplied by a binary contact sensor. This ensures that the
+    agent is penalized only when the feet are in contact with the ground.
+    """
+    # Penalize feet acceleration
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    contacts = (contact_sensor.data.net_forces_w_history[:, :, sensor_cfg.body_ids, :].norm(dim=-1).max(dim=1).values > 1.0).float()
+    asset = env.scene[asset_cfg.name]
+
+    body_accel = asset.data.body_lin_acc_w[:, asset_cfg.body_ids, :] # foot acceleration
+    reward = torch.sum(body_accel.norm(dim=-1) * (1-contacts), dim=1) # swing foot acceleration
+    return reward

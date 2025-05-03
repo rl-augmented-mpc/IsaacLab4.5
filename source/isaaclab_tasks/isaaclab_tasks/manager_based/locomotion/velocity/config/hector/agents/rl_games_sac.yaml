@@ -93,7 +93,7 @@ params:
     actor_lr: 3e-4 # critic learning rate
     critic_lr: 3e-4 # std network learning rate
     critic_tau: 5e-3 # GAE parameter
-    batch_size: 1536 # num_envs*horizon_length=64*24
+    batch_size: 576 # num_envs*horizon_length=24*24
     learnable_temperature: True
     num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
     replay_buffer_size: 1000000

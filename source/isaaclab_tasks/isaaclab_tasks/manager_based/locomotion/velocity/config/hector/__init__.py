@@ -20,14 +20,14 @@ ARGS = [
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_cfg:HECTORRoughEnvCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo.yaml",
-        # "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
+        # "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
     },
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_cfg:HECTORRoughEnvCfgPLAY",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo.yaml",
-        # "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
+        # "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
     },
 ]
 

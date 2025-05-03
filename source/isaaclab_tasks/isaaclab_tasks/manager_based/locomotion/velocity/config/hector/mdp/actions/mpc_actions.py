@@ -146,11 +146,8 @@ class MPCAction(ActionTerm):
         cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
         cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
         
-        # update mpc state
-        ramp_up_duration = 0.5 # seconds
-        ramp_up_coef = torch.clip(self.mpc_counter/int(ramp_up_duration/self._env.physics_dt), 0.0, 1.0).unsqueeze(1)
-        self.command[:, :] = (ramp_up_coef * self._env.command_manager.get_command(self.cfg.command_name)).cpu().numpy()
-        
+        # update reference
+        self._get_reference_velocity()
         for i in range(self.num_envs):
             self.mpc_controller[i].set_swing_parameters(stepping_frequency=stepping_frequency[i], foot_height=swing_foot_height[i], cp1=cp1[i], cp2=cp2[i])
             self.mpc_controller[i].set_command(
@@ -162,6 +159,30 @@ class MPCAction(ActionTerm):
         
         self._get_mpc_state()
         self._get_height_at_swing_foot()
+        
+    def _get_reference_velocity(self):
+        # sensor= self._env.scene.sensors["height_scanner"]
+        # height_map = sensor.data.ray_hits_w[..., 2]
+        
+        # scan_width, scan_height = sensor.cfg.pattern_cfg.size
+        # scan_resolution = sensor.cfg.pattern_cfg.resolution
+        # scan_width = int(scan_width/scan_resolution) + 1
+        # scan_height = int(scan_height/scan_resolution) + 1
+        # height_map_2d = height_map.reshape(self.num_envs, scan_height, scan_width)
+        
+        # window_size = int(0.2/scan_resolution)
+        # height_map_patch = height_map_2d[:, scan_height//2-window_size:scan_height//2+window_size+1, scan_width//2-window_size:scan_width//2+window_size+1].reshape(self.num_envs, -1)
+        # roughness = torch.abs(height_map_patch.max(dim=1).values - height_map_patch.min(dim=1).values)
+        # scaling_factor = torch.exp(-roughness/0.2).unsqueeze(1)
+        # print("scaling_factor", scaling_factor)
+        
+        # ramp_up_duration = 0.5 # seconds
+        # ramp_up_coef = torch.clip(self.mpc_counter/int(ramp_up_duration/self._env.physics_dt), 0.0, 1.0).unsqueeze(1)
+        # self.command[:, :] = (scaling_factor * ramp_up_coef * self._env.command_manager.get_command(self.cfg.command_name)).cpu().numpy()
+        
+        ramp_up_duration = 0.4 # seconds
+        ramp_up_coef = torch.clip(self.mpc_counter/int(ramp_up_duration/self._env.physics_dt), 0.0, 1.0).unsqueeze(1)
+        self.command[:, :] = (ramp_up_coef * self._env.command_manager.get_command(self.cfg.command_name)).cpu().numpy()
     
     def _get_height_at_swing_foot(self):
         sensor= self._env.scene.sensors["height_scanner"]
@@ -267,10 +288,10 @@ class MPCAction(ActionTerm):
         # body-leg angle
         stance_leg_r_left = torch.abs(self.foot_pos_b[:, :3]).clamp(min=1e-6)  # avoid division by zero
         stance_leg_r_right = torch.abs(self.foot_pos_b[:, 3:]).clamp(min=1e-6)  # avoid division by zero
-        self.leg_angle[:, 0] = torch.abs(torch.atan2(stance_leg_r_left[:, 0], stance_leg_r_left[:, 2]))
-        self.leg_angle[:, 1] = torch.abs(torch.atan2(stance_leg_r_left[:, 1], stance_leg_r_left[:, 2]))
-        self.leg_angle[:, 2] = torch.abs(torch.atan2(stance_leg_r_right[:, 0], stance_leg_r_right[:, 2]))
-        self.leg_angle[:, 3] = torch.abs(torch.atan2(stance_leg_r_right[:, 1], stance_leg_r_right[:, 2]))
+        self.leg_angle[:, 0] = torch.abs(torch.atan2(stance_leg_r_left[:, 0], stance_leg_r_left[:, 2])) # left sagittal
+        self.leg_angle[:, 1] = torch.abs(torch.atan2(stance_leg_r_left[:, 1], stance_leg_r_left[:, 2])) # left lateral
+        self.leg_angle[:, 2] = torch.abs(torch.atan2(stance_leg_r_right[:, 0], stance_leg_r_right[:, 2])) # right sagittal
+        self.leg_angle[:, 3] = torch.abs(torch.atan2(stance_leg_r_right[:, 1], stance_leg_r_right[:, 2])) # right lateral
         
         # compute mpc cost
         self.mpc_cost = torch.from_numpy(np.array(mpc_cost)).to(self.device).view(self.num_envs).to(torch.float32)
