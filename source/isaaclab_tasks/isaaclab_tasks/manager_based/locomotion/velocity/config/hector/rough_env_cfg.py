@@ -77,7 +77,7 @@ class HECTORRewards(RewardsCfg):
     # -- rewards
     alive = RewTerm(
         func=mdp.is_alive,  # type: ignore
-        weight=0.01,
+        weight=0.05,
     )
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
@@ -96,16 +96,17 @@ class HECTORRewards(RewardsCfg):
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "contact_sensor_cfg": SceneEntityCfg("contact_forces"),
             "action_name": "mpc_action", 
-            "std": 0.05,
+            "std": 0.1,
         },
     )
 
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01) # type: ignore
+    lin_accel_l2 = RewTerm(func=mdp.body_lin_acc_l2, weight=-1e-4) # type: ignore
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05) # type: ignore
     
-    # processed action regularization 
+    # -- processed action regularization 
     stepping_frequency_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
         # weight=-0.1, 
@@ -117,7 +118,7 @@ class HECTORRewards(RewardsCfg):
     foot_height_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
         # weight=-0.1, 
-        weight=-0.5, 
+        weight=-0.3, 
         params={
             "action_idx": 1,
         },
@@ -139,24 +140,7 @@ class HECTORRewards(RewardsCfg):
         )
     # energy_l2 = RewTerm(func=mdp.action_l2, weight=-0.01) # type: ignore
     
-    feet_air_time = RewTerm(
-        func=mdp.feet_air_time_positive_biped,
-        weight=0.0,
-        params={
-            "command_name": "base_velocity",
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
-            "threshold": 0.4,
-        },
-    )
-    feet_slide = RewTerm(
-        func=mdp.feet_slide,
-        weight=-0.1,
-        params={
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
-        },
-    )
-    
+    # -- joint penalties
     dof_torques_l2 = RewTerm(
         func=mdp.joint_torques_l2,  # type: ignore
         weight=-1.0e-5, 
@@ -179,16 +163,48 @@ class HECTORRewards(RewardsCfg):
     joint_deviation = RewTerm(
         func=mdp.joint_deviation_l1, # type: ignore
         weight=-0.01,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_toe_joint"])},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint"])},
     )
     
-    # # Penalize body leg angle
+    # -- foot penalties
+    feet_slide = RewTerm(
+        func=mdp.feet_slide,
+        weight=-0.1,
+        params={
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
+        },
+    )
+    
+    # feet_accel = RewTerm(
+    #     func=hector_mdp.feet_accel_l2,
+    #     weight=-1e-5,
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
+    #     },
+    # )
+    
+    # penalty for stepping stone
     leg_body_angle_l2 = RewTerm(
         func=hector_mdp.leg_body_angle_l2, 
+        weight=-0.5,
+        params={"action_name": "mpc_action"}
+    )
+    leg_body_distance_l2 = RewTerm(
+        func=hector_mdp.leg_distance_l2,
         weight=-0.1,
         params={"action_name": "mpc_action"}
     )
     
+    ankle_joint_deviation = RewTerm(
+        func=mdp.joint_deviation_l1, # type: ignore
+        weight=-0.03,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_toe_joint"])},
+    )
+    
+    feet_air_time = None
+    flat_orientation_l2 = None
     undesired_contacts = None
 
 
@@ -277,7 +293,7 @@ class HECTORActionsCfg:
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
             (-0.4, 0.0, -0.4), 
-            (0.4, 0.15, 0.4)
+            (0.4, 0.2, 0.4)
         )
     )
 
@@ -345,12 +361,12 @@ class HECTOREventCfg(EventCfg):
         params={
             "pose_range": {
                 "x": (-0.5, 0.5), 
-                "y": (-3.0, 3.0), 
+                "y": (-2.0, 2.0), 
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),
-                # "yaw": (-0.0, 0.0),
-                "yaw": (-math.pi/9, math.pi/9),
+                "yaw": (-0.0, 0.0),
+                # "yaw": (-math.pi/9, math.pi/9),
                 },
             "velocity_range": {
                 "x": (-0.0, 0.0),
@@ -420,7 +436,7 @@ class HECTORRoughEnvCfgPLAY(HECTORRoughEnvCfg):
         # post init of parent
         super().__post_init__()
         self.seed = 77
-        self.scene.terrain.max_init_terrain_level = self.scene.terrain.terrain_generator.num_rows - 1
+        self.scene.terrain = hector_mdp.SteppingStoneTerrain
         self.scene.height_scanner.debug_vis = True
         # self.events.reset_camera = None
         self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
