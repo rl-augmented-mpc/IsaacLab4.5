@@ -175,8 +175,8 @@ def get_ground_roughness_at_landing_point(
     3 ------ 4
     """
     # foot size to consider stepping over 
-    # foot_size_x = 0.145
-    foot_size_x = 0.12
+    foot_size_x = 0.145
+    # foot_size_x = 0.12
     foot_size_y = 0.073
     
     # in cartesian space 
