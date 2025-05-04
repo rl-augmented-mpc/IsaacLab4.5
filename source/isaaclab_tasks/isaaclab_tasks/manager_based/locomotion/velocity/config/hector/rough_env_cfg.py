@@ -103,7 +103,7 @@ class HECTORRewards(RewardsCfg):
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01) # type: ignore
-    lin_accel_l2 = RewTerm(func=mdp.body_lin_acc_l2, weight=-1e-4) # type: ignore
+    lin_accel_l2 = RewTerm(func=mdp.body_lin_acc_l2, weight=-3e-4) # type: ignore
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05) # type: ignore
     
     # -- processed action regularization 
@@ -310,7 +310,7 @@ class HECTORCommandsCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges( # type: ignore
-            lin_vel_x=(0.4, 0.7), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
+            lin_vel_x=(0.3, 0.7), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
         ),
     )
     
@@ -356,12 +356,12 @@ class HECTOREventCfg(EventCfg):
     
     # random initial noise added to default state defined in articulation cfg
     reset_base = EventTerm(
-        func=mdp.reset_root_state_uniform, # type: ignore
+        func=hector_mdp.reset_root_state_uniform, # type: ignore
         mode="reset",
         params={
             "pose_range": {
                 "x": (-0.5, 0.5), 
-                "y": (-2.0, 2.0), 
+                "y": (-3.0, 3.0), 
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),

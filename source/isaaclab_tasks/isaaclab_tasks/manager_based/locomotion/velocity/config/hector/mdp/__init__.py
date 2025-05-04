@@ -12,5 +12,5 @@ from .reward.rewards import (
     individual_action_l2,mpc_cost_l1, stance_foot_position_reward, 
     feet_accel_l2
 )
-from .events.events import reset_camera
+from .events.events import reset_camera, reset_root_state_uniform
 from .curriculums.curriculums import terrain_levels_vel
