@@ -56,6 +56,12 @@ class HECTORSceneCfg(InteractiveSceneCfg):
         track_air_time=True,
         update_period=1/100,
         )
+    toe_contact = ContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/.*_toe_tip",
+        history_length=3,
+        track_air_time=True,
+        update_period=1/100,
+        )
     # lights
     sky_light = AssetBaseCfg(
         prim_path="/World/skyLight",
@@ -203,9 +209,15 @@ class HECTORRewards(RewardsCfg):
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_toe_joint"])},
     )
     
+    undesired_contacts = RewTerm(
+        func=mdp.undesired_contacts, # type: ignore
+        weight=-0.5,
+        params={"sensor_cfg": SceneEntityCfg("toe_contact", body_names=".*_toe_tip"), "threshold": 1.0},
+    )
+    
     feet_air_time = None
     flat_orientation_l2 = None
-    undesired_contacts = None
+    # undesired_contacts = None
 
 
 @configclass
@@ -292,8 +304,10 @@ class HECTORActionsCfg:
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            (-0.4, 0.0, -0.4), 
-            (0.4, 0.2, 0.4)
+            # (-0.4, 0.0, -0.4), 
+            # (0.4, 0.2, 0.4)
+            (-0.4, 0.0, -0.4, -0.05, -0.05), 
+            (0.4, 0.2, 0.4, 0.05, 0.05)
         )
     )
 
@@ -310,7 +324,7 @@ class HECTORCommandsCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges( # type: ignore
-            lin_vel_x=(0.3, 0.7), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
+            lin_vel_x=(0.4, 0.7), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
         ),
     )
     
