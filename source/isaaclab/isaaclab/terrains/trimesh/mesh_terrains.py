@@ -618,8 +618,8 @@ def tiled_box_terrain(
     terrain_height = 1.0
     
     # generate list of box origins
-    box_origin1 = np.linspace(cfg.border_size, cfg.size[0]/2 - cfg.border_size, num=cfg.num_box//2)
-    box_origin2 = np.linspace(cfg.size[0]/2 + cfg.border_size,
+    box_origin1 = np.linspace(cfg.border_size, cfg.size[0]/2 - cfg.center_area_size/2, num=cfg.num_box//2)
+    box_origin2 = np.linspace(cfg.size[0]/2 + cfg.center_area_size/2,
                               cfg.size[0] - cfg.border_size, num=cfg.num_box//2)
     box_origins_x = np.concatenate((box_origin1, box_origin2))
     noise_x = np.random.uniform(cfg.platform_gap_range[0], cfg.platform_gap_range[1], size=cfg.num_box)

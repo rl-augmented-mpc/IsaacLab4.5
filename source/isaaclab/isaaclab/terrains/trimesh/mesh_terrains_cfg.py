@@ -149,6 +149,8 @@ class TiledMeshBoxTerrainCfg(SubTerrainBaseCfg):
     """The length (x) of the rectangular platform at the center of the terrain. Defaults to 1.0."""
     border_size: float = 0.0
     """The size of the border around the terrain (in m)."""
+    center_area_size: float = 0.0
+    """The size of the center area (in m)."""
     num_box: int = 1
     """The number of boxes to add to the terrain."""
     platform_gap_range: tuple[float, float] = MISSING
