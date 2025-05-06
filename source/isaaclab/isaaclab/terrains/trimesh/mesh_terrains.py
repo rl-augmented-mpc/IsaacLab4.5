@@ -584,7 +584,6 @@ def box_terrain(
 
     return meshes_list, origin
 
-
 def tiled_box_terrain(
     difficulty: float, cfg: mesh_terrains_cfg.TiledMeshBoxTerrainCfg
 ) -> tuple[list[trimesh.Trimesh], np.ndarray]:
@@ -609,24 +608,32 @@ def tiled_box_terrain(
     """
     # resolve the terrain configuration
     box_height = cfg.box_height_range[0] + difficulty * (cfg.box_height_range[1] - cfg.box_height_range[0])
+    platform_gap_0 = cfg.platform_gap_range_start[0] + difficulty * (cfg.platform_gap_range_end[0] - cfg.platform_gap_range_start[0])
+    platform_gap_1 = cfg.platform_gap_range_start[1] + difficulty * (cfg.platform_gap_range_end[1] - cfg.platform_gap_range_start[1])
 
     # initialize list of meshes
     meshes_list = list()
     # extract quantities
     total_height = box_height
     # constants for terrain generation
-    terrain_height = 1.0
+    terrain_height = 0.2
     
-    # generate list of box origins
-    box_origin1 = np.linspace(cfg.border_size, cfg.size[0]/2 - cfg.center_area_size/2, num=cfg.num_box//2)
-    box_origin2 = np.linspace(cfg.size[0]/2 + cfg.center_area_size/2,
-                              cfg.size[0] - cfg.border_size, num=cfg.num_box//2)
-    box_origins_x = np.concatenate((box_origin1, box_origin2))
-    noise_x = np.random.uniform(cfg.platform_gap_range[0], cfg.platform_gap_range[1], size=cfg.num_box)
-    box_origins_x = (box_origins_x + noise_x).tolist()
-    height_noise = np.random.uniform(cfg.height_noise_range[0], cfg.height_noise_range[1], size=cfg.num_box)
+    step_sizes = np.random.uniform(platform_gap_0, platform_gap_1, size=cfg.num_box).cumsum()
+    box_origins_x = cfg.border_size + step_sizes
     
-    for i in range(cfg.num_box):
+    # filter box origins
+    is_within_platform_1 = (cfg.border_size < box_origins_x)
+    is_within_platform_2 = (box_origins_x < cfg.size[0] / 2 - cfg.center_area_size / 2)
+    is_within_platform_3 = (box_origins_x > cfg.size[0] / 2 + cfg.center_area_size / 2)
+    is_within_platform_4 = (box_origins_x < cfg.size[0] - cfg.border_size)
+    valid_indices = np.logical_or(np.logical_and(is_within_platform_1, is_within_platform_2),
+                                  np.logical_and(is_within_platform_3, is_within_platform_4))
+    box_origins_x = box_origins_x[valid_indices]
+    valid_num_boxes = len(box_origins_x)
+    
+    height_noise = np.random.uniform(cfg.height_noise_range[0], cfg.height_noise_range[1], size=valid_num_boxes)
+    
+    for i in range(valid_num_boxes):
         # Generate the top box
         dim = (cfg.platform_length, cfg.platform_width, total_height+height_noise[i])
         pos = (box_origins_x[i], 0.5 * cfg.size[1], (total_height+height_noise[i]) / 2)
@@ -893,12 +900,13 @@ def repeated_objects_terrain(
     else:
         raise ValueError(f"Unknown terrain configuration: {cfg}")
     # constants for the terrain
-    platform_clearance = 0.1
+    platform_clearance = 0.0
 
     # initialize list of meshes
     meshes_list = list()
     # compute quantities
-    origin = np.asarray((0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.5 * height))
+    # origin = np.asarray((0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.5 * height))
+    origin = np.asarray((0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.0))
     platform_corners = np.asarray([
         [origin[0] - cfg.platform_width / 2, origin[1] - cfg.platform_width / 2],
         [origin[0] + cfg.platform_width / 2, origin[1] + cfg.platform_width / 2],
@@ -943,5 +951,137 @@ def repeated_objects_terrain(
     # pos = (0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.25 * height)
     # platform = trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
     # meshes_list.append(platform)
+
+    return meshes_list, origin
+
+
+
+
+def random_block_terrain(
+    difficulty: float, cfg: mesh_terrains_cfg.MeshRandomGridTerrainCfg
+) -> tuple[list[trimesh.Trimesh], np.ndarray]:
+    """Generate a terrain with cells of random heights and fixed width.
+
+    The terrain is generated in the x-y plane and has a height of 1.0. It is then divided into a grid of the
+    specified size :obj:`cfg.grid_width`. Each grid cell is then randomly shifted in the z-direction by a value uniformly
+    sampled between :obj:`cfg.grid_height_range`. At the center of the terrain, a platform of the specified width
+    :obj:`cfg.platform_width` is generated.
+
+    If :obj:`cfg.holes` is True, the terrain will have randomized grid cells only along the plane extending
+    from the platform (like a plus sign). The remaining area remains empty and no border will be added.
+
+    .. image:: ../../_static/terrains/trimesh/random_grid_terrain.jpg
+       :width: 45%
+
+    .. image:: ../../_static/terrains/trimesh/random_grid_terrain_with_holes.jpg
+       :width: 45%
+
+    Args:
+        difficulty: The difficulty of the terrain. This is a value between 0 and 1.
+        cfg: The configuration for the terrain.
+
+    Returns:
+        A tuple containing the tri-mesh of the terrain and the origin of the terrain (in m).
+
+    Raises:
+        ValueError: If the terrain is not square. This method only supports square terrains.
+        RuntimeError: If the grid width is large such that the border width is negative.
+    """
+    # check to ensure square terrain
+    if cfg.size[0] != cfg.size[1]:
+        raise ValueError(f"The terrain must be square. Received size: {cfg.size}.")
+    # resolve the terrain configuration
+    grid_height = cfg.grid_height_range[0] + difficulty * (cfg.grid_height_range[1] - cfg.grid_height_range[0])
+
+    # initialize list of meshes
+    meshes_list = list()
+    # compute the number of boxes in each direction
+    num_boxes_x = int(cfg.size[0] / cfg.grid_width)
+    num_boxes_y = int(cfg.size[1] / cfg.grid_width)
+    # constant parameters
+    terrain_height = 1.0
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
+    # generate the border
+    border_width = cfg.size[0] - min(num_boxes_x, num_boxes_y) * cfg.grid_width
+    if border_width > 0:
+        # compute parameters for the border
+        border_center = (0.5 * cfg.size[0], 0.5 * cfg.size[1], -terrain_height / 2)
+        border_inner_size = (cfg.size[0] - border_width, cfg.size[1] - border_width)
+        # create border meshes
+        make_borders = make_border(cfg.size, border_inner_size, terrain_height, border_center)
+        meshes_list += make_borders
+    # else:
+    #     raise RuntimeError("Border width must be greater than 0! Adjust the parameter 'cfg.grid_width'.")
+
+    # create a template grid of terrain height
+    grid_dim = [cfg.grid_width, cfg.grid_width, terrain_height]
+    grid_position = [0.5 * cfg.grid_width, 0.5 * cfg.grid_width, -terrain_height / 2]
+    template_box = trimesh.creation.box(grid_dim, trimesh.transformations.translation_matrix(grid_position))
+    # extract vertices and faces of the box to create a template
+    template_vertices = template_box.vertices  # (8, 3)
+    template_faces = template_box.faces
+
+    # repeat the template box vertices to span the terrain (num_boxes_x * num_boxes_y, 8, 3)
+    vertices = torch.tensor(template_vertices, device=device).repeat(num_boxes_x * num_boxes_y, 1, 1)
+    # create a meshgrid to offset the vertices
+    x = torch.arange(0, num_boxes_x, device=device)
+    y = torch.arange(0, num_boxes_y, device=device)
+    xx, yy = torch.meshgrid(x, y, indexing="ij")
+    xx = xx.flatten().view(-1, 1)
+    yy = yy.flatten().view(-1, 1)
+    xx_yy = torch.cat((xx, yy), dim=1)
+    # offset the vertices
+    offsets = cfg.grid_width * xx_yy + border_width / 2
+    vertices[:, :, :2] += offsets.unsqueeze(1)
+    # mask the vertices to create holes, s.t. only grids along the x and y axis are present
+    if cfg.holes:
+        # -- x-axis
+        mask_x = torch.logical_and(
+            (vertices[:, :, 0] > (cfg.size[0] - border_width - cfg.platform_width) / 2).all(dim=1),
+            (vertices[:, :, 0] < (cfg.size[0] + border_width + cfg.platform_width) / 2).all(dim=1),
+        )
+        vertices_x = vertices[mask_x]
+        # -- y-axis
+        mask_y = torch.logical_and(
+            (vertices[:, :, 1] > (cfg.size[1] - border_width - cfg.platform_width) / 2).all(dim=1),
+            (vertices[:, :, 1] < (cfg.size[1] + border_width + cfg.platform_width) / 2).all(dim=1),
+        )
+        vertices_y = vertices[mask_y]
+        # -- combine these vertices
+        vertices = torch.cat((vertices_x, vertices_y))
+    # add noise to the vertices to have a random height over each grid cell
+    num_boxes = len(vertices)
+    # create noise for the z-axis
+    h_noise = torch.zeros((num_boxes, 3), device=device)
+    h_noise[:, 2].uniform_(0, grid_height)
+    
+    # zero at the center
+    num_platform = int(cfg.platform_width / cfg.grid_width)
+    h_noise = h_noise.reshape(num_boxes_y, num_boxes_x, 3)
+    h_noise[(num_boxes_y+1)//2-(num_platform+1)//2 : (num_boxes_y+1)//2+(num_platform+1)//2+1, (num_boxes_x+1)//2-(num_platform+1)//2 : (num_boxes_x+1)//2+(num_platform+1)//2+1, 2] = 0
+    h_noise = h_noise.view(-1, 3)
+    
+    # reshape noise to match the vertices (num_boxes, 4, 3)
+    # only the top vertices of the box are affected
+    vertices_noise = torch.zeros((num_boxes, 4, 3), device=device)
+    vertices_noise += h_noise.unsqueeze(1)
+    # add height only to the top vertices of the box
+    vertices[vertices[:, :, 2] == 0] += vertices_noise.view(-1, 3)
+    # move to numpy
+    vertices = vertices.reshape(-1, 3).cpu().numpy()
+
+    # create faces for boxes (num_boxes, 12, 3). Each box has 6 faces, each face has 2 triangles.
+    faces = torch.tensor(template_faces, device=device).repeat(num_boxes, 1, 1)
+    face_offsets = torch.arange(0, num_boxes, device=device).unsqueeze(1).repeat(1, 12) * 8
+    faces += face_offsets.unsqueeze(2)
+    # move to numpy
+    faces = faces.view(-1, 3).cpu().numpy()
+    # convert to trimesh
+    grid_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+    meshes_list.append(grid_mesh)
+
+    # specify the origin of the terrain
+    origin = np.array([0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.0])
 
     return meshes_list, origin

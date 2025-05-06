@@ -28,4 +28,5 @@ from .mesh_terrains_cfg import (
     MeshStarTerrainCfg,
     MeshThickTerrainCfg,
     TiledMeshBoxTerrainCfg,
+    MeshRandomBlockTerrainCfg,
 )
