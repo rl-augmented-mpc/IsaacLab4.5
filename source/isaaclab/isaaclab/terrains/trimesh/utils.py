@@ -123,6 +123,7 @@ def make_box(
     transform[0:3, -1] = np.asarray(center)
     # -- create a random rotation
     euler_zyx = tf.Rotation.random().as_euler("zyx")  # returns rotation of shape (3,)
+    euler_zyx[0] = 0.0  # -- keep the z axis fixed
     # -- cap the rotation along the y and x axis
     if degrees:
         max_yx_angle = max_yx_angle / 180.0

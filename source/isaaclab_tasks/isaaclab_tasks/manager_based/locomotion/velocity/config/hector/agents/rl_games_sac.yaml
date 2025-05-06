@@ -65,7 +65,7 @@ params:
     gamma: 0.99
     entropy_coef: 0.001
     score_to_win: 20000
-    max_epochs: 40000
+    max_epochs: 60000
     save_best_after: 500
     save_frequency: 500
 
