@@ -300,12 +300,19 @@ class HECTORObservationsCfg:
 class HECTORActionsCfg:
     """Action specifications for the MDP."""
 
-    mpc_action = hector_mdp.MPCActionCfg(
+    # mpc_action = hector_mdp.MPCActionCfg(
+    #     asset_name="robot", 
+    #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
+    #     action_range = (
+    #         (-0.4, 0.0, -0.4), 
+    #         (0.4, 0.2, 0.4)
+    #     )
+    # )
+    
+    mpc_action = hector_mdp.MPCActionCfgV2(
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            # (-0.4, 0.0, -0.4), 
-            # (0.4, 0.2, 0.4)
             (-0.4, 0.0, -0.4, -0.05, -0.05), 
             (0.4, 0.2, 0.4, 0.05, 0.05)
         )
@@ -375,7 +382,7 @@ class HECTOREventCfg(EventCfg):
         params={
             "pose_range": {
                 "x": (-0.5, 0.5), 
-                "y": (-3.0, 3.0), 
+                "y": (-2.0, 2.0), 
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),

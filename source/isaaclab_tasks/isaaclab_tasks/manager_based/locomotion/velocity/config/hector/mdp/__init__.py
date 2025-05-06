@@ -1,4 +1,4 @@
-from .actions.actions_cfg import MPCActionCfg
+from .actions.actions_cfg import MPCActionCfg, MPCActionCfgV2
 from .terrain.terrain_cfg import (
     SteppingStoneTerrain, CurriculumSteppingStoneTerrain, RandomOrientationCubeTerrain,
     PyramidHfTerrain, FractalTerrain, BaseTerrain

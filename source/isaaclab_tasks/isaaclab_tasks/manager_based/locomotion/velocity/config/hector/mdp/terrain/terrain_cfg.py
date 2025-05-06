@@ -142,16 +142,16 @@ SteppingStoneTerrain = TerrainImporterCfg(
         curriculum=True,
         sub_terrains={
             "terrain1": terrain_gen.TiledMeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.1, 0.1), platform_width=10.0, platform_length=0.5, num_box=14, 
-            platform_gap_range=(-0.1, 0.1), border_size=1.0, height_noise_range=(-0.00, 0.00)
+            proportion=0.2, box_height_range=(0.12, 0.12), platform_width=10.0, platform_length=0.5, num_box=14, 
+            platform_gap_range=(-0.1, 0.1), border_size=1.0, height_noise_range=(-0.00, 0.00), center_area_size=2.0
             ),
             # "terrain2": terrain_gen.TiledMeshBoxTerrainCfg(
             # proportion=0.2, box_height_range=(0.1, 0.1), platform_width=10.0, platform_length=0.5, num_box=24, 
-            # platform_gap_range=(-0.2, 0.2), border_size=1.0, height_noise_range=(-0.00, 0.00)
+            # platform_gap_range=(-0.2, 0.2), border_size=1.0, height_noise_range=(-0.00, 0.00), center_area_size=2.0
             # ),
             # "terrain3": terrain_gen.TiledMeshBoxTerrainCfg(
             # proportion=0.2, box_height_range=(0.1, 0.1), platform_width=8.0, platform_length=0.5, num_box=44, 
-            # platform_gap_range=(-0.1, 0.1), border_size=1.0, height_noise_range=(-0.00, 0.00)
+            # platform_gap_range=(-0.1, 0.1), border_size=1.0, height_noise_range=(-0.00, 0.00), center_area_size=2.0
             # ),
         },
     ),
@@ -178,10 +178,10 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="generator",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(30.0, 10.0), # size of sub-terrain
+        size=(20.0, 20.0), # size of sub-terrain
         border_width=0.0,
         num_rows=10,
-        num_cols=4,
+        num_cols=5,
         horizontal_scale=0.1,
         vertical_scale=0.005,
         slope_threshold=0.75,
@@ -192,48 +192,46 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
             proportion=0.2, box_height_range=(0.06, 0.1), platform_width=10.0, platform_length=0.5, num_box=16, 
             platform_gap_range=(-0.1, 0.1), border_size=0.5, height_noise_range=(-0.00, 0.00), center_area_size=2.0
             ),
+            
             "terrain2": terrain_gen.TiledMeshBoxTerrainCfg(
-            proportion=0.2, box_height_range=(0.06, 0.1), platform_width=10.0, platform_length=0.5, num_box=20, 
-            platform_gap_range=(-0.2, 0.2), border_size=0.5, height_noise_range=(-0.00, 0.00), center_area_size=2.0
-            ),
-            "terrain3": terrain_gen.TiledMeshBoxTerrainCfg(
             proportion=0.2, box_height_range=(0.06, 0.1), platform_width=10.0, platform_length=0.5, num_box=24, 
             platform_gap_range=(-0.2, 0.2), border_size=0.5, height_noise_range=(-0.00, 0.00), center_area_size=2.0
             ),
-            "terrain4": terrain_gen.TiledMeshBoxTerrainCfg(
+            
+            "terrain3": terrain_gen.TiledMeshBoxTerrainCfg(
             proportion=0.2, box_height_range=(0.06, 0.1), platform_width=10.0, platform_length=0.4, num_box=36, 
             platform_gap_range=(-0.1, 0.1), border_size=0.5, height_noise_range=(-0.00, 0.00), center_area_size=2.0
             ),
             
-            # "terrain2": terrain_gen.MeshRepeatedBoxesTerrainCfg(
-            #     object_type="box", 
-            #     max_height_noise=0.00, 
-            #     platform_width=0.2,
-            #     object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-            #         num_objects=1500, 
-            #         height=0.06, 
-            #         size=(0.2, 0.2),
-            #         max_yx_angle=10.0, 
-            #     ), 
-            #     object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-            #         num_objects=1500, 
-            #         height=0.1, 
-            #         size=(0.2, 0.2),
-            #         max_yx_angle=45.0, 
-            #     )
-            # ), 
-            # "boxes2": terrain_gen.TiledMeshBoxTerrainCfg(
-            # proportion=0.2, box_height_range=(0.06, 0.12), platform_width=20.0, platform_length=0.5, num_box=10, 
-            # platform_gap_range=(-0.0, 0.0), border_size=1.5, height_noise_range=(-0.0, 0.0)
-            # ),
-            # "boxes3": terrain_gen.TiledMeshBoxTerrainCfg(
-            # proportion=0.2, box_height_range=(0.06, 0.12), platform_width=20.0, platform_length=0.5, num_box=10, 
-            # platform_gap_range=(-0.0, 0.0), border_size=1.5, height_noise_range=(-0.0, 0.00)
-            # ),
-            # "boxes4": terrain_gen.TiledMeshBoxTerrainCfg(
-            # proportion=0.2, box_height_range=(0.06, 0.12), platform_width=20.0, platform_length=0.5, num_box=10, 
-            # platform_gap_range=(-0.0, 0.0), border_size=1.5, height_noise_range=(-0.0, 0.0)
-            # ),
+            "terrain4": terrain_gen.MeshRepeatedBoxesTerrainCfg(
+                object_type="box", 
+                max_height_noise=0.00, 
+                platform_width=1.0,
+                object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+                    num_objects=800, 
+                    height=0.06, 
+                    size=(0.3, 0.3),
+                    max_yx_angle=10.0,
+                ), 
+                object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+                    num_objects=800, 
+                    height=0.1, 
+                    size=(0.3, 0.3),
+                    max_yx_angle=10.0, 
+                )
+            ), 
+            
+            "terrain5": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
+                step_height_range=(0.06, 0.1),
+                step_width=0.5, 
+                platform_width=6.0
+            ),
+            
+            # "terrain6": terrain_gen.MeshPyramidStairsTerrainCfg(
+            #     step_height_range=(0.06, 0.1),
+            #     step_width=0.5, 
+            #     platform_width=6.0
+            # )
         },
     ),
     collision_group=-1,
