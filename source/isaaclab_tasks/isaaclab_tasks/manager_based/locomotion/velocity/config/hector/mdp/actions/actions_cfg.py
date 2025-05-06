@@ -40,3 +40,7 @@ class MPCActionCfg(ActionTermCfg):
     """Foot placement planner to be used. Can be either "LIP" or "Raibert"."""
     friction_cone_coef: float = 0.5
     """Friction cone coefficient of the robot."""
+    
+@configclass
+class MPCActionCfgV2(MPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.MPCAction2

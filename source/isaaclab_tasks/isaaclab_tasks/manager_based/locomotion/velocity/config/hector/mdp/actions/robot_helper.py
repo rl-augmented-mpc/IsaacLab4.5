@@ -81,7 +81,8 @@ class RobotCore:
         root position wrt odom frame (i.e. initial frame)
         """
         root_pos_w = self.root_pos_w.clone()
-        root_pos_w[:, :2] -= self._init_pos[:, :2]
+        root_pos_w[:, :] -= self._init_pos[:, :]
+        root_pos_w[:, 2] += self.default_root_state[:, 2]
         return torch.bmm(torch.transpose(self._init_rot, 1, 2), root_pos_w.view(-1, 3, 1)).view(-1, 3)
     
     @property

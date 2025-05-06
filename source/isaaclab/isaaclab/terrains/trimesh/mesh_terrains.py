@@ -939,9 +939,9 @@ def repeated_objects_terrain(
     ground_plane = make_plane(cfg.size, height=0.0, center_zero=False)
     meshes_list.append(ground_plane)
     # generate a platform in the middle
-    dim = (cfg.platform_width, cfg.platform_width, 0.5 * height)
-    pos = (0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.25 * height)
-    platform = trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
-    meshes_list.append(platform)
+    # dim = (cfg.platform_width, cfg.platform_width, 0.5 * height)
+    # pos = (0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.25 * height)
+    # platform = trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
+    # meshes_list.append(platform)
 
     return meshes_list, origin
