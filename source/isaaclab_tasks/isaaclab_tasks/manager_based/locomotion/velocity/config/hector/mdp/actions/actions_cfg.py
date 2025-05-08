@@ -44,3 +44,7 @@ class MPCActionCfg(ActionTermCfg):
 @configclass
 class MPCActionCfgV2(MPCActionCfg):
     class_type: type[ActionTerm] = mpc_actions.MPCAction2
+
+@configclass
+class MPCActionCfgV3(MPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.MPCAction3
