@@ -147,8 +147,8 @@ SteppingStoneTerrain = TerrainImporterCfg(
             # platform_gap_range_start=(1.5, 2.0), platform_gap_range_end=(1.5, 2.0), 
             # platform_gap_range_start=(1.3, 1.3), platform_gap_range_end=(1.3, 1.3), # 0.8m gap
             # platform_gap_range_start=(1.2, 1.2), platform_gap_range_end=(1.2, 1.2), # 0.7m gap
-            # platform_gap_range_start=(1.0, 1.0), platform_gap_range_end=(1.0, 1.0), # 0.5m gap
-            platform_gap_range_start=(1.2, 1.5), platform_gap_range_end=(1.2, 1.5), 
+            platform_gap_range_start=(1.0, 1.0), platform_gap_range_end=(1.0, 1.0), # 0.5m gap
+            # platform_gap_range_start=(1.2, 1.5), platform_gap_range_end=(1.2, 1.5), 
             border_size=0.25, height_noise_range=(-0.00, 0.00), center_area_size=1.5
             ),
             
@@ -222,7 +222,7 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
         sub_terrains={
             "terrain1": terrain_gen.TiledMeshBoxTerrainCfg(
             proportion=0.2, box_height_range=(0.06, 0.12), platform_width=20.0, platform_length=0.5, num_box=30, 
-            platform_gap_range_start=(1.5, 2.0), platform_gap_range_end=(0.7, 1.5),
+            platform_gap_range_start=(1.5, 2.0), platform_gap_range_end=(0.6, 1.5),
             border_size=0.25, height_noise_range=(-0.00, 0.00), center_area_size=1.5
             ),
             
@@ -246,12 +246,12 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
             #     size=(20.0, 20.0)
             # ), 
             
-            "terrain3": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
-                step_height_range=(0.06, 0.12),
-                step_width=0.5, 
-                platform_width=6.0, 
-                proportion=0.2,
-            ),
+            # "terrain3": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
+            #     step_height_range=(0.06, 0.12),
+            #     step_width=0.5, 
+            #     platform_width=6.0, 
+            #     proportion=0.2,
+            # ),
             
             # "terrain4": terrain_gen.MeshPyramidStairsTerrainCfg(
             #     step_height_range=(0.06, 0.1),

@@ -22,7 +22,7 @@ class MPCActionCfg(ActionTermCfg):
     """action range to deal with assymetric action space. """
     command_name: str = "base_velocity"
     """Name of the command to be used for the action term."""
-    reference_height: float = 0.55
+    nominal_height: float = 0.55
     """Reference height of the robot."""
     nominal_swing_height : float = 0.12
     """Nominal swing height of the robot."""
