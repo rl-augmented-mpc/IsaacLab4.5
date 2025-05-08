@@ -132,17 +132,19 @@ class MPCController:
         """
         self.hc.updateGaitParameter(dsp_durations, ssp_durations)
 
-    def set_swing_parameters(self, stepping_frequency: float, foot_height: float, cp1: float, cp2: float) -> None:
+    def set_swing_parameters(self, stepping_frequency: float, foot_height: float, cp1: float, cp2: float, pf_z: float) -> None:
         """
         Set swing parameters.
 
         Args:
             stepping_frequency (float): gait stepping frequency
             foot_height (float): foot height
+            pf_z (float): foot placement z-coordinate
         """
         self.hc.setGaitSteppingFrequency(stepping_frequency)
         self.hc.setFootHeight(foot_height)
         self.hc.setSwingFootControlPoint(cp1, cp2)
+        self.hc.setFootPlacementZ(pf_z)
 
     def set_srbd_peturbation(self, accel: np.ndarray, ang_accel: np.ndarray) -> None:
         """

@@ -77,6 +77,7 @@ def get_ground_gradient_at_landing_point(
 
 
 def bilinear_interpolation(
+    sensor_offset: tuple,
     foot_position_2d: torch.Tensor, 
     costmap_2d: torch.Tensor,
     resolution: float = 0.1,
@@ -93,13 +94,15 @@ def bilinear_interpolation(
     num_foot_edge = foot_position_2d.shape[2]
     num_foot = foot_position_2d.shape[1]
     height, width = costmap_2d.shape[1:3]
+    body_center_in_image_space = (height//2 - int(sensor_offset[1]/resolution), width//2 - int(sensor_offset[0]/resolution))
     
     # in image space
     # foot position_2d_flat: (num_envs, num_foot_edge*num_foot, 2)
     foot_position_2d_flat = foot_position_2d.clone().reshape(num_envs, -1, 2)
+    
     foot_position_discrete = torch.zeros_like(foot_position_2d_flat)
-    foot_position_discrete[:, :, 0] = height//2 - (foot_position_2d_flat[:, :, 1]/resolution) # row 
-    foot_position_discrete[:, :, 1] = width//2 + (foot_position_2d_flat[:, :, 0]/resolution) # col
+    foot_position_discrete[:, :, 0] = (body_center_in_image_space[0] + (foot_position_2d_flat[:, :, 1]/resolution)).clamp(0, height-1) # row 
+    foot_position_discrete[:, :, 1] = (body_center_in_image_space[1] + (foot_position_2d_flat[:, :, 0]/resolution)).clamp(0, width-1) # col
     
     # (num_envs, num_foot_edge*num_foot, 2)
     P1 = torch.zeros_like(foot_position_discrete).to(torch.long)
@@ -157,6 +160,7 @@ def bilinear_interpolation(
 
 def get_ground_roughness_at_landing_point(
     num_envs: int,
+    sensor_offset: tuple, 
     foot_position: torch.Tensor,
     foot_contact: torch.Tensor,
     costmap_2d: torch.Tensor,
@@ -176,7 +180,6 @@ def get_ground_roughness_at_landing_point(
     """
     # foot size to consider stepping over 
     foot_size_x = 0.145
-    # foot_size_x = 0.12
     foot_size_y = 0.073
     
     # in cartesian space 
@@ -195,6 +198,7 @@ def get_ground_roughness_at_landing_point(
     foot_edge_positions[:, :, 3, 1] -= foot_size_y/2
     
     height_at_foot = bilinear_interpolation(
+        sensor_offset=sensor_offset,
         foot_position_2d=foot_edge_positions, 
         costmap_2d=costmap_2d, 
         resolution=resolution
@@ -271,8 +275,9 @@ def stance_foot_position_reward(
     resolution = raycaster.cfg.pattern_cfg.resolution
     grid_x, grid_y = raycaster.cfg.pattern_cfg.size
     width, height = int(grid_x/resolution + 1), int(grid_y/resolution + 1)
+    sensor_offset = (raycaster.cfg.offset.pos[0], raycaster.cfg.offset.pos[1])
     heightmap_2d = height_map.view(-1, height, width)
-    costmap_2d = discrete_terrain_costmap(heightmap_2d)
+    # costmap_2d = discrete_terrain_costmap(heightmap_2d)
     
     contacts = (contact_sensor.data.net_forces_w.norm(dim=2) > 1.0).float()
     action_term = env.action_manager.get_term(action_name)
@@ -281,6 +286,7 @@ def stance_foot_position_reward(
     # retrieves ground flatness where stance foot position is projected onto height map.
     ground_flatness_at_foot = get_ground_roughness_at_landing_point(
         env.num_envs,
+        sensor_offset,
         foot_position_b,
         contacts,
         # costmap_2d, # costmap
@@ -289,10 +295,11 @@ def stance_foot_position_reward(
     )
     
     # filter reward when robot does not see any stepping stone terrain.
-    window_size = 2 # 4*0.1 = 0.3m
-    truncated_height_map = heightmap_2d[:, width//2-window_size:width//2+window_size+1, height//2-window_size:height//2+window_size+1].reshape(env.num_envs, -1)
-    stepping_stone_mask = torch.max(truncated_height_map, dim=1).values - torch.min(truncated_height_map, dim=1).values
-    reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) * (stepping_stone_mask > 0.01).float()
+    # window_size = 2 # 4*0.1 = 0.3m
+    # truncated_height_map = heightmap_2d[:, width//2-window_size:width//2+window_size+1, height//2-window_size:height//2+window_size+1].reshape(env.num_envs, -1)
+    # stepping_stone_mask = torch.max(truncated_height_map, dim=1).values - torch.min(truncated_height_map, dim=1).values
+    # reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) * (stepping_stone_mask > 0.01).float()
+    reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2)
     return reward
 
 
@@ -302,9 +309,7 @@ def leg_body_angle_l2(
 ):
     action_term = env.action_manager.get_term(action_name)
     sagittal_leg_body_angle = action_term.leg_angle[:, [0, 2]] # (num_envs, 2)
-    # print((180/torch.pi) * sagittal_leg_body_angle)
     reward = torch.sum(torch.square(sagittal_leg_body_angle), dim=1)
-    # print(reward)
     return reward
 
 def leg_distance_l2(
@@ -315,7 +320,6 @@ def leg_distance_l2(
     foot_pos_b = action_term.foot_pos_b # (num_envs, 6)
     foot_pos_b_lateral = foot_pos_b[:, [1, 4]]
     reward = torch.square(foot_pos_b_lateral[:, 0] - foot_pos_b_lateral[:, 1])
-    # print(reward)
     return reward
 
 def mpc_cost_l1(
