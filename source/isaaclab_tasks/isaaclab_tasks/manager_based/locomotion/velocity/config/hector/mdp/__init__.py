@@ -4,6 +4,7 @@ from .terrain.terrain_cfg import (
     PyramidHfTerrain, FractalTerrain, BaseTerrain
 )
 from .observation.observations import (
+    base_pos_z,
     joint_pos, joint_vel, joint_torque, height_scan,
     swing_phase, foot_placement_b, foot_position_b, reference_foot_position_b
 )

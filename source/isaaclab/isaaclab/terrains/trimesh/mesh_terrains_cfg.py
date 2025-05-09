@@ -180,6 +180,36 @@ class TiledMeshBoxTerrainCfg(SubTerrainBaseCfg):
     """The minimum and maximum noise to add to the height of the boxes (in m)."""
     double_box: bool = False
     """If True, the pit contains two levels of stairs/boxes. Defaults to False."""
+    
+@configclass
+class StairTerrainCfg(SubTerrainBaseCfg):
+    """Configuration for a terrain with boxes (similar to a pyramid)."""
+
+    function = mesh_terrains.stair_terrain
+
+    box_height_range: tuple[float, float] = MISSING
+    """The minimum and maximum height of the box (in m)."""
+    
+    platform_length_range_start: tuple[float, float] = MISSING
+    """The minimum and maximum length of the platform (in m)."""
+    platform_length_range_end: tuple[float, float] = MISSING
+    """The minimum and maximum length of the platform (in m)."""
+    
+    platform_gap_range_start: tuple[float, float] = MISSING
+    """The minimum and maximum gap between the boxes (in m)."""
+    platform_gap_range_end: tuple[float, float] = MISSING
+    """The minimum and maximum gap between the boxes (in m)."""
+    
+    platform_width: float = 1.0
+    """The width (y) of the rectangular platform at the center of the terrain. Defaults to 1.0."""
+    border_size: float = 0.0
+    """The size of the border around the terrain (in m)."""
+    center_area_size: float = 0.0
+    """The size of the center area (in m)."""
+    num_box: int = 1
+    """The number of boxes to add to the terrain."""
+    height_noise_range: tuple[float, float] = MISSING
+    """The minimum and maximum noise to add to the height of the boxes (in m)."""
 
 
 @configclass
