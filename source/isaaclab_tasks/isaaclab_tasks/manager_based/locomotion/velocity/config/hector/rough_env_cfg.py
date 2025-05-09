@@ -144,7 +144,6 @@ class HECTORRewards(RewardsCfg):
             "action_name": "mpc_action",
         },
         )
-    # energy_l2 = RewTerm(func=mdp.action_l2, weight=-0.01) # type: ignore
     
     # -- joint penalties
     dof_torques_l2 = RewTerm(
@@ -194,12 +193,12 @@ class HECTORRewards(RewardsCfg):
     # penalty for stepping stone
     leg_body_angle_l2 = RewTerm(
         func=hector_mdp.leg_body_angle_l2, 
-        weight=-0.5,
+        weight=-1.0,
         params={"action_name": "mpc_action"}
     )
     leg_body_distance_l2 = RewTerm(
         func=hector_mdp.leg_distance_l2,
-        weight=-0.1,
+        weight=-0.5,
         params={"action_name": "mpc_action"}
     )
     
@@ -211,7 +210,7 @@ class HECTORRewards(RewardsCfg):
     
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts, # type: ignore
-        weight=-0.5,
+        weight=-2.0,
         params={"sensor_cfg": SceneEntityCfg("toe_contact", body_names=".*_toe_tip"), "threshold": 1.0},
     )
     
@@ -230,7 +229,11 @@ class HECTORObservationsCfg:
 
         # observation terms (order preserved)
         base_pos_z = ObsTerm(
-            func=mdp.base_pos_z, # type: ignore
+            func=hector_mdp.base_pos_z, # type: ignore
+            params={
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
+                },
             # noise=Unoise(n_min=-0.1, n_max=0.1)
             )
         base_lin_vel = ObsTerm(
@@ -292,9 +295,24 @@ class HECTORObservationsCfg:
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
+    
+    @configclass
+    class ImageCfg(ObsGroup):
+        """Observations for image group."""
+        height_scan = ObsTerm(
+            func=hector_mdp.height_scan, # type: ignore
+            params={"sensor_cfg": SceneEntityCfg("height_scanner"), "reshape_as_image": True},
+            # noise=Unoise(n_min=-0.1, n_max=0.1),
+            clip=(-1.0, 1.0),
+        )
+        
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
+    image: ImageCfg = ImageCfg()
     
 @configclass
 class HECTORActionsCfg:
@@ -304,8 +322,8 @@ class HECTORActionsCfg:
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            (-0.5, 0.0, -0.4), 
-            (0.5, 0.2, 0.4)
+            (-0.5, 0.0, -0.5), 
+            (0.5, 0.2, 0.5)
         )
     )
     
@@ -392,7 +410,7 @@ class HECTOREventCfg(EventCfg):
         params={
             "pose_range": {
                 "x": (-0.5, 0.5), 
-                "y": (-2.0, 2.0), 
+                "y": (-3.0, 3.0), 
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),

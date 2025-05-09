@@ -651,6 +651,99 @@ def tiled_box_terrain(
 
     return meshes_list, origin
 
+def stair_terrain(
+    difficulty: float, cfg: mesh_terrains_cfg.StairTerrainCfg
+) -> tuple[list[trimesh.Trimesh], np.ndarray]:
+    """Generate a terrain with multiple stairs with random up and downs.
+
+    .. image:: ../../_static/terrains/trimesh/box_terrain.jpg
+       :width: 40%
+
+    .. image:: ../../_static/terrains/trimesh/box_terrain_with_two_boxes.jpg
+       :width: 40%
+
+    Args:
+        difficulty: The difficulty of the terrain. This is a value between 0 and 1.
+        cfg: The configuration for the terrain.
+
+    Returns:
+        A tuple containing the tri-mesh of the terrain and the origin of the terrain (in m).
+    """
+    # resolve the terrain configuration
+    box_height = cfg.box_height_range[0] + difficulty * (cfg.box_height_range[1] - cfg.box_height_range[0])
+    platform_gap_0 = cfg.platform_gap_range_start[0] + difficulty * (cfg.platform_gap_range_end[0] - cfg.platform_gap_range_start[0]) # lower bound
+    platform_gap_1 = cfg.platform_gap_range_start[1] + difficulty * (cfg.platform_gap_range_end[1] - cfg.platform_gap_range_start[1]) # upper bound
+    platform_length_0 = cfg.platform_length_range_start[0] + difficulty * (cfg.platform_length_range_end[0] - cfg.platform_length_range_start[0]) # lower bound
+    platform_length_1 = cfg.platform_length_range_start[1] + difficulty * (cfg.platform_length_range_end[1] - cfg.platform_length_range_start[1]) # upper bound
+
+    # initialize list of meshes
+    meshes_list = list()
+    
+    # construct center block
+    dim = (cfg.center_area_size, cfg.platform_width, box_height)
+    pos = (0.5*cfg.size[0], 0.5 * cfg.size[1], -box_height / 2)
+    meshes_list.append(
+        trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
+    )
+    
+    # construct the left and right blocks
+    platform_gap_left_half = np.random.uniform(platform_gap_0, platform_gap_1, size=cfg.num_box//2)
+    platform_gap_right_half = np.random.uniform(platform_gap_0, platform_gap_1, size=cfg.num_box//2)
+    platform_length_left_half = np.random.uniform(platform_length_0, platform_length_1, size=cfg.num_box//2)
+    platform_length_right_half = np.random.uniform(platform_length_0, platform_length_1, size=cfg.num_box//2)
+    
+    # left blocks
+    block_length_prev = cfg.center_area_size
+    h_prev = box_height
+    center_z = -box_height/2
+    height_noise = np.random.uniform(cfg.height_noise_range[0], cfg.height_noise_range[1], size=len(platform_gap_left_half))
+    ascend_descend = np.random.choice([-1, 1], size=len(platform_gap_left_half))
+    block_center = (0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.0)
+    for i in range(len(platform_gap_left_half)):
+        block_length = platform_length_left_half[i]
+        h = box_height + height_noise[i]
+        center_z = center_z + (h_prev/2 + h/2)*ascend_descend[i]
+        dim = (block_length, cfg.platform_width, h)
+        block_center = (block_center[0]-block_length/2-block_length_prev/2 - platform_gap_left_half[i], block_center[1], center_z)
+        if block_center[0] < cfg.border_size:
+            break
+        
+        meshes_list.append(
+            trimesh.creation.box(dim, trimesh.transformations.translation_matrix(block_center))
+        )
+        
+        # update memory
+        h_prev = h
+        block_length_prev = block_length
+    
+    # right blocks
+    block_length_prev = cfg.center_area_size
+    h_prev = box_height
+    center_z = -box_height/2
+    height_noise = np.random.uniform(cfg.height_noise_range[0], cfg.height_noise_range[1], size=len(platform_gap_right_half))
+    ascend_descend = np.random.choice([-1, 1], size=len(platform_gap_right_half))
+    block_center = (0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.0)
+    for i in range(len(platform_gap_right_half)):
+        block_length = platform_length_right_half[i]
+        h = box_height + height_noise[i]
+        center_z = center_z + (h_prev/2 + h/2)*ascend_descend[i]
+        dim = (block_length, cfg.platform_width, h)
+        block_center = (block_center[0]+block_length/2+block_length_prev/2 + platform_gap_right_half[i], block_center[1], center_z)
+        if block_center[0] > cfg.size[0] - cfg.border_size:
+            break
+        
+        meshes_list.append(
+            trimesh.creation.box(dim, trimesh.transformations.translation_matrix(block_center))
+        )
+        
+        # update memory
+        h_prev = h
+        block_length_prev = block_length
+    
+    pos = (0.5*cfg.size[0], 0.5 * cfg.size[1], 0.0)
+    origin = np.array([pos[0], pos[1], pos[2]])
+
+    return meshes_list, origin
 
 def gap_terrain(
     difficulty: float, cfg: mesh_terrains_cfg.MeshGapTerrainCfg

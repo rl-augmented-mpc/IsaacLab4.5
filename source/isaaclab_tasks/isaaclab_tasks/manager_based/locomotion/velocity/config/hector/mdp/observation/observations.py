@@ -19,15 +19,25 @@ from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers.manager_base import ManagerTermBase
 from isaaclab.managers.manager_term_cfg import ObservationTermCfg
-from isaaclab.sensors import Camera, Imu, RayCaster, RayCasterCamera, TiledCamera
+from isaaclab.sensors import Camera, Imu, RayCaster, RayCasterCamera, TiledCamera, ContactSensor
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv, ManagerBasedRLEnv
     
     
 """
-General
+Proprioceptive observations
 """
+
+def base_pos_z(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), sensor_cfg: SceneEntityCfg = SceneEntityCfg("sensor")) -> torch.Tensor:
+    asset: Articulation = env.scene[asset_cfg.name]
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    
+    contacts = (contact_sensor.data.net_forces_w.norm(dim=2) > 1.0).float()
+    root_pos_z = asset.data.root_pos_w[:, 2].unsqueeze(1)
+    body_pos_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2]
+    height = (root_pos_z - contacts*body_pos_z).max(dim=1).values
+    return height.unsqueeze(-1)
 
 def joint_pos(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), joint_names: list[str]=[]) -> torch.Tensor:
     """The joint positions of the asset.
@@ -66,19 +76,27 @@ def joint_torque(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCf
     joint_ids, _ = asset.find_joints(joint_names, preserve_order=True)
     return asset.data.applied_torque[:, joint_ids]
 
+"""
+Exteroceptive observations
+"""
 
-def height_scan(env: ManagerBasedEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
-    """Height scan from the given sensor w.r.t. body frame
-
-    The provided offset (Defaults to 0.5) is subtracted from the returned values.
+def height_scan(env: ManagerBasedEnv, sensor_cfg: SceneEntityCfg, reshape_as_image: bool=False) -> torch.Tensor:
+    """
+    Height scan from the given sensor w.r.t. body frame
     """
     # extract the used quantities (to enable type-hinting)
     sensor: RayCaster = env.scene.sensors[sensor_cfg.name]
-    return sensor.data.ray_hits_w[..., 2]  - sensor.data.pos_w[:, 2].unsqueeze(1)
+    height_scan_b = (sensor.data.ray_hits_w[..., 2]  - sensor.data.pos_w[:, 2].unsqueeze(1)).clamp(-1.0, 0.0)
+    if reshape_as_image:
+        resolution = sensor.cfg.pattern_cfg.resolution
+        grid_x, grid_y = sensor.cfg.pattern_cfg.size
+        width, height = int(grid_x/resolution + 1), int(grid_y/resolution + 1)
+        height_scan_b = height_scan_b.reshape(-1, 1, height, width).clamp(-1.0, 0.0)
+    return height_scan_b
 
 
 """
-mpc states
+MPC states
 """
 
 def swing_phase(env: ManagerBasedEnv, action_name: str = "mpc_action")-> torch.Tensor:
