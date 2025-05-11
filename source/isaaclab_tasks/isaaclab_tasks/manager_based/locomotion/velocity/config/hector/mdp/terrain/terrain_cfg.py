@@ -204,9 +204,9 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
             "terrain1": terrain_gen.StairTerrainCfg(
             proportion=0.2, 
             num_box=60,
-            box_height_range=(0.06, 0.12), 
+            box_height_range=(0.02, 0.12), 
             platform_width=10.0, 
-            platform_length_range_start=(0.6, 1.0), platform_length_range_end=(0.2, 0.6),
+            platform_length_range_start=(0.6, 1.0), platform_length_range_end=(0.1, 0.6),
             platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
             border_size=0.0, 
             height_noise_range=(-0.00, 0.00), 

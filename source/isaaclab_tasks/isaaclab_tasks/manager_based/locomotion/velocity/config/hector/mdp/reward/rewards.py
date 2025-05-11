@@ -199,7 +199,7 @@ def stance_foot_position_reward(
     heightmap_2d = height_map.view(-1, height, width)
     # costmap_2d = discrete_terrain_costmap(heightmap_2d)
     
-    contacts = (contact_sensor.data.net_forces_w.norm(dim=2) > 1.0).float()
+    contacts = (contact_sensor.data.net_forces_w[:, contact_sensor_cfg.body_ids, :].norm(dim=2) > 1.0).float()
     action_term = env.action_manager.get_term(action_name)
     foot_position_b = action_term.foot_pos_b.reshape(-1, 2, 3)
     
@@ -214,16 +214,21 @@ def stance_foot_position_reward(
         resolution,
     )
     
-    # filter reward when robot does not see any stepping stone terrain.
-    window_size = 2 # 2*2*0.1 = 0.4m
-    body_in_image_space = (height//2 - int(sensor_offset[1]/resolution), width//2 - int(sensor_offset[0]/resolution))
-    row_lb = body_in_image_space[0] - window_size
-    row_ub = body_in_image_space[0] + window_size + 1
-    col_lb = body_in_image_space[1] - window_size
-    col_ub = body_in_image_space[1] + window_size + 1
-    truncated_height_map = heightmap_2d[:, row_lb:row_ub, col_lb:col_ub].reshape(env.num_envs, -1)
-    non_flat_mask = torch.max(truncated_height_map, dim=1).values - torch.min(truncated_height_map, dim=1).values
-    reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) * (non_flat_mask > 1e-2).float()  # do not give reward if height map is flat
+    reward = torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential
+    # reward = 1-torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential
+    # reward = 1-torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian
+    
+    # # filter reward when robot does not see any stepping stone terrain.
+    # window_size = 2 # 2*2*0.1 = 0.4m
+    # body_in_image_space = (height//2 - int(sensor_offset[1]/resolution), width//2 - int(sensor_offset[0]/resolution))
+    # row_lb = body_in_image_space[0] - window_size
+    # row_ub = body_in_image_space[0] + window_size + 1
+    # col_lb = body_in_image_space[1] - window_size
+    # col_ub = body_in_image_space[1] + window_size + 1
+    # truncated_height_map = heightmap_2d[:, row_lb:row_ub, col_lb:col_ub].reshape(env.num_envs, -1)
+    # non_flat_mask = torch.max(truncated_height_map, dim=1).values - torch.min(truncated_height_map, dim=1).values
+    # reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) * (non_flat_mask > 1e-2).float()  # do not give reward if height map is flat
+
     return reward
 
 

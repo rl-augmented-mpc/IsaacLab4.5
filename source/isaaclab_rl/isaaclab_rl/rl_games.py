@@ -135,7 +135,7 @@ class RlGamesVecEnvWrapper(IVecEnv):
         return self.env.render_mode
 
     @property
-    def observation_space(self) -> gym.spaces.Box:
+    def observation_space(self) -> gym.spaces.Box | gym.spaces.Dict:
         """Returns the :attr:`Env` :attr:`observation_space`."""
         # note: rl-games only wants single observation space
         policy_obs_space = self.unwrapped.single_observation_space["policy"]
@@ -147,7 +147,25 @@ class RlGamesVecEnvWrapper(IVecEnv):
             )
         # note: maybe should check if we are a sub-set of the actual space. don't do it right now since
         #   in ManagerBasedRLEnv we are setting action space as (-inf, inf).
-        return gym.spaces.Box(-self._clip_obs, self._clip_obs, policy_obs_space.shape)
+        
+        # process image space
+        image_obs_space = self.unwrapped.single_observation_space.get("image", None)
+        if image_obs_space is None:
+            return gym.spaces.Box(-self._clip_obs, self._clip_obs, policy_obs_space.shape)
+        else:
+            if not isinstance(image_obs_space, gymnasium.spaces.Box):
+                raise NotImplementedError(
+                    f"The RL-Games wrapper does not currently support image space: '{type(image_obs_space)}'."
+                    f" If you need to support this, please modify the wrapper: {self.__class__.__name__},"
+                    " and if you are nice, please send a merge-request."
+                )
+            
+            return gym.spaces.Dict(
+                {
+                    "state": gym.spaces.Box(-self._clip_obs, self._clip_obs, policy_obs_space.shape),
+                    "image": gym.spaces.Box(-self._clip_obs, self._clip_obs, image_obs_space.shape),
+                }
+            )
 
     @property
     def action_space(self) -> gym.Space:
@@ -270,7 +288,44 @@ class RlGamesVecEnvWrapper(IVecEnv):
     Helper functions
     """
 
-    def _process_obs(self, obs_dict: VecEnvObs) -> torch.Tensor | dict[str, torch.Tensor]:
+    # def _process_obs(self, obs_dict: VecEnvObs) -> torch.Tensor | dict[str, torch.Tensor]:
+    #     """Processing of the observations and states from the environment.
+
+    #     Note:
+    #         States typically refers to privileged observations for the critic function. It is typically used in
+    #         asymmetric actor-critic algorithms.
+
+    #     Args:
+    #         obs_dict: The current observations from environment.
+
+    #     Returns:
+    #         If environment provides states, then a dictionary containing the observations and states is returned.
+    #         Otherwise just the observations tensor is returned.
+    #     """
+    #     # process policy obs
+    #     obs = obs_dict["policy"]
+    #     # clip the observations
+    #     obs = torch.clamp(obs, -self._clip_obs, self._clip_obs)
+    #     # move the buffer to rl-device
+    #     obs = obs.to(device=self._rl_device).clone()
+
+    #     # check if asymmetric actor-critic or not
+    #     if self.rlg_num_states > 0:
+    #         # acquire states from the environment if it exists
+    #         try:
+    #             states = obs_dict["critic"]
+    #         except AttributeError:
+    #             raise NotImplementedError("Environment does not define key 'critic' for privileged observations.")
+    #         # clip the states
+    #         states = torch.clamp(states, -self._clip_obs, self._clip_obs)
+    #         # move buffers to rl-device
+    #         states = states.to(self._rl_device).clone()
+    #         # convert to dictionary
+    #         return {"obs": obs, "states": states}
+    #     else:
+    #         return obs
+    
+    def _process_obs(self, obs_dict: VecEnvObs) -> torch.Tensor | dict[str, torch.Tensor] | dict[str, dict[str, torch.Tensor] | torch.Tensor]:
         """Processing of the observations and states from the environment.
 
         Note:
@@ -290,6 +345,16 @@ class RlGamesVecEnvWrapper(IVecEnv):
         obs = torch.clamp(obs, -self._clip_obs, self._clip_obs)
         # move the buffer to rl-device
         obs = obs.to(device=self._rl_device).clone()
+        
+        # process image
+        if "image" in obs_dict:
+            image = obs_dict["image"]
+            # clip the image
+            image = torch.clamp(image, -self._clip_obs, self._clip_obs)
+            # move the buffer to rl-device
+            image = image.to(device=self._rl_device).clone()
+            # convert to dictionary
+            obs = {"state": obs, "image": image}
 
         # check if asymmetric actor-critic or not
         if self.rlg_num_states > 0:
