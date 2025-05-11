@@ -122,15 +122,17 @@ class PenetrationVisualizer:
 class FootPlacementVisualizer:
     def __init__(self, prim_path):
         self.prim_path = prim_path
+        self.foot_size_x = 0.145
+        self.foot_size_y = 0.073
         self.markers_cfg = VisualizationMarkersCfg(
             prim_path=prim_path,
             markers={
                 "left_fps": sim_utils.CuboidCfg(
-                size=(0.1, 0.1 , 0.01),
+                size=(self.foot_size_x, self.foot_size_y, 0.01),
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.5), opacity=1.0),
                 ),
                 "right_fps": sim_utils.CuboidCfg(
-                size=(0.1, 0.1 , 0.01),
+                size=(self.foot_size_x, self.foot_size_y, 0.01),
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.8), opacity=1.0),
                 ),
             }
