@@ -692,17 +692,32 @@ def stair_terrain(
     platform_length_left_half = np.random.uniform(platform_length_0, platform_length_1, size=cfg.num_box//2)
     platform_length_right_half = np.random.uniform(platform_length_0, platform_length_1, size=cfg.num_box//2)
     
+    # up
+    if cfg.profile_mode == "up":
+        block_height_profile_left = np.ones(len(platform_gap_left_half))
+        block_height_profile_right = np.ones(len(platform_gap_right_half))
+    elif cfg.profile_mode == "down":
+        block_height_profile_left = -np.ones(len(platform_gap_left_half))
+        block_height_profile_right = -np.ones(len(platform_gap_right_half))
+    elif cfg.profile_mode == "up_down":
+        block_height_profile_left = np.ones(len(platform_gap_left_half))
+        block_height_profile_left[np.arange(1, len(platform_gap_left_half), 2)] = -1
+        block_height_profile_right = np.ones(len(platform_gap_right_half))
+        block_height_profile_right[np.arange(1, len(platform_gap_right_half), 2)] = -1
+    elif cfg.profile_mode == "random":
+        block_height_profile_left = np.random.choice([-1, 1], size=len(platform_gap_left_half))
+        block_height_profile_right = np.random.choice([-1, 1], size=len(platform_gap_right_half))
+    
     # left blocks
     block_length_prev = cfg.center_area_size
     h_prev = box_height
     center_z = -box_height/2
     height_noise = np.random.uniform(cfg.height_noise_range[0], cfg.height_noise_range[1], size=len(platform_gap_left_half))
-    ascend_descend = np.random.choice([-1, 1], size=len(platform_gap_left_half))
     block_center = (0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.0)
     for i in range(len(platform_gap_left_half)):
         block_length = platform_length_left_half[i]
         h = box_height + height_noise[i]
-        center_z = center_z + (h_prev/2 + h/2)*ascend_descend[i]
+        center_z = center_z + (h_prev/2 + h/2)*block_height_profile_left[i]
         dim = (block_length, cfg.platform_width, h)
         block_center = (block_center[0]-block_length/2-block_length_prev/2 - platform_gap_left_half[i], block_center[1], center_z)
         if block_center[0] < cfg.border_size:
@@ -721,12 +736,11 @@ def stair_terrain(
     h_prev = box_height
     center_z = -box_height/2
     height_noise = np.random.uniform(cfg.height_noise_range[0], cfg.height_noise_range[1], size=len(platform_gap_right_half))
-    ascend_descend = np.random.choice([-1, 1], size=len(platform_gap_right_half))
     block_center = (0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.0)
     for i in range(len(platform_gap_right_half)):
         block_length = platform_length_right_half[i]
         h = box_height + height_noise[i]
-        center_z = center_z + (h_prev/2 + h/2)*ascend_descend[i]
+        center_z = center_z + (h_prev/2 + h/2)*block_height_profile_right[i]
         dim = (block_length, cfg.platform_width, h)
         block_center = (block_center[0]+block_length/2+block_length_prev/2 + platform_gap_right_half[i], block_center[1], center_z)
         if block_center[0] > cfg.size[0] - cfg.border_size:

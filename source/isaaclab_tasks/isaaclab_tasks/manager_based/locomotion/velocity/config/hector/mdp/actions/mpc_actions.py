@@ -385,9 +385,8 @@ class MPCAction2(MPCAction):
         - gait stepping frequency 
         - swing foot height 
         - swing trajectory control points
-        - foot placement in body frame
         """
-        return 5
+        return 3
     
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
@@ -395,27 +394,20 @@ class MPCAction2(MPCAction):
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
-        stepping_frequency = self._processed_actions[:, 0].cpu().numpy()
+        sagittal_fp_delta = self._processed_actions[:, 0].cpu().numpy()
         swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
         trajectory_control_points = self._processed_actions[:, 2].cpu().numpy()
-        sagittal_foot_placement = self._processed_actions[:, 3:5].cpu().numpy()
         
         # form actual control parameters (nominal value + residual)
-        stepping_frequency = self.cfg.nominal_stepping_frequency + stepping_frequency
+        stepping_frequency = 1.0 - sagittal_fp_delta/(self.root_lin_vel_b[:, 0]*self._env.physics_dt)
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
         cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
         cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
         
-        footplacement_residual = np.zeros((self.num_envs, 4), dtype=np.float32)
-        footplacement_residual[:, 0] = sagittal_foot_placement[:, 0] * np.cos(self.root_yaw.cpu().numpy())
-        footplacement_residual[:, 1] = sagittal_foot_placement[:, 0] * np.sin(self.root_yaw.cpu().numpy())
-        footplacement_residual[:, 2] = sagittal_foot_placement[:, 1] * np.cos(self.root_yaw.cpu().numpy())
-        footplacement_residual[:, 3] = sagittal_foot_placement[:, 1] * np.sin(self.root_yaw.cpu().numpy())
-        
+        # update reference
         self._get_mpc_state()
         self._get_reference_velocity()
         self._get_reference_height()
-        
         for i in range(self.num_envs):
             self.mpc_controller[i].set_swing_parameters(
                 stepping_frequency=stepping_frequency[i], 
@@ -423,13 +415,13 @@ class MPCAction2(MPCAction):
                 cp1=cp1[i], 
                 cp2=cp2[i], 
                 pf_z=self.reference_height[i]-self.cfg.nominal_height)
-            self.mpc_controller[i].add_foot_placement_residual(footplacement_residual[i])
             self.mpc_controller[i].set_command(
                 gait_num=2, #1:standing, 2:walking
                 roll_pitch=np.zeros(2, dtype=np.float32),
                 twist=self.command[i],
                 height=self.reference_height[i],
             )
+        self.visualize_marker()
         
         
 class MPCAction3(MPCAction):
