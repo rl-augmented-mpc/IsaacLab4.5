@@ -33,7 +33,7 @@ def base_pos_z(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg(
     asset: Articulation = env.scene[asset_cfg.name]
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     
-    contacts = (contact_sensor.data.net_forces_w.norm(dim=2) > 1.0).float()
+    contacts = (contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :].norm(dim=2) > 1.0).float()
     root_pos_z = asset.data.root_pos_w[:, 2].unsqueeze(1)
     body_pos_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2]
     height = (root_pos_z - contacts*body_pos_z).max(dim=1).values

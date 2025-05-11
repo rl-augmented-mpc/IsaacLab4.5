@@ -240,7 +240,6 @@ class ManagerBasedRLEnv(ManagerBasedEnv, gym.Env):
         
         
         # -- log step info
-        self.extras["log"] = dict()
         info = self.reward_manager.log()
         self.extras["log"].update(info)
         info = self.action_manager.log()
