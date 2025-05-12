@@ -135,30 +135,37 @@ class HECTORRewards(RewardsCfg):
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05) # type: ignore
     
     # -- processed action regularization 
-    stepping_frequency_l2 = RewTerm(
-        func=hector_mdp.individual_action_l2, # type: ignore
-        # weight=-0.1, 
-        weight=-0.3, 
+    processed_action_l2 = RewTerm(
+        func=hector_mdp.processed_action_l2, # type: ignore
+        weight=-0.1,
         params={
-            "action_idx": -3,
-        },
-        )
-    foot_height_l2 = RewTerm(
-        func=hector_mdp.individual_action_l2, # type: ignore
-        # weight=-0.1, 
-        weight=-0.3, 
-        params={
-            "action_idx": -2,
-        },
-        )
-    control_point_l2 = RewTerm(
-        func=hector_mdp.individual_action_l2, # type: ignore
-        # weight=-0.1,
-        weight=-0.3,
-        params={
-            "action_idx": -1,
-        },
-        )
+            "action_name": "mpc_action",
+        }
+    )
+    # stepping_frequency_l2 = RewTerm(
+    #     func=hector_mdp.individual_action_l2, # type: ignore
+    #     # weight=-0.1, 
+    #     weight=-0.3, 
+    #     params={
+    #         "action_idx": -3,
+    #     },
+    #     )
+    # foot_height_l2 = RewTerm(
+    #     func=hector_mdp.individual_action_l2, # type: ignore
+    #     # weight=-0.1, 
+    #     weight=-0.3, 
+    #     params={
+    #         "action_idx": -2,
+    #     },
+    #     )
+    # control_point_l2 = RewTerm(
+    #     func=hector_mdp.individual_action_l2, # type: ignore
+    #     # weight=-0.1,
+    #     weight=-0.3,
+    #     params={
+    #         "action_idx": -1,
+    #     },
+    #     )
     mpc_cost_l2 = RewTerm(
         func=hector_mdp.mpc_cost_l1, # type: ignore
         weight=-1e-4,

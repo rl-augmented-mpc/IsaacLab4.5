@@ -10,7 +10,7 @@ from .observation.observations import (
 )
 from .reward.rewards import (
     leg_body_angle_l2, leg_distance_l2, track_torso_height_exp,
-    individual_action_l2, mpc_cost_l1, 
+    individual_action_l2, mpc_cost_l1, processed_action_l2, 
     stance_foot_position_reward, foot_placement_reward, feet_accel_l2
 )
 from .events.events import reset_camera, reset_root_state_uniform
