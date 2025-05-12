@@ -36,9 +36,9 @@ class MPCActionCfg(ActionTermCfg):
     """Nominal cp1 coefficient of the robot."""
     nominal_cp2_coef: float = 2/3
     """Nominal cp2 coefficient of the robot."""
-    foot_placement_planner: Literal["LIP", "Raibert"] = "Raibert"
+    foot_placement_planner: Literal["LIP", "Raibert", "Heuristic"] = "Raibert"
     """Foot placement planner to be used. Can be either "LIP" or "Raibert"."""
-    friction_cone_coef: float = 0.5
+    friction_cone_coef: float = 1.0
     """Friction cone coefficient of the robot."""
     
 @configclass

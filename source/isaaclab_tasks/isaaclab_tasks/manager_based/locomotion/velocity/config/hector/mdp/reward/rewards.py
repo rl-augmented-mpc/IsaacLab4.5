@@ -139,11 +139,11 @@ def get_ground_roughness_at_landing_point(
     foot_edge_positions = torch.zeros(num_envs, 2, 4, 2, device=foot_position.device)
     foot_edge_positions[:, 0, :, :] = foot_position_2d[:, :1, :].repeat(1, 4, 1)
     foot_edge_positions[:, 1, :, :] = foot_position_2d[:, 1:, :].repeat(1, 4, 1)
-    foot_edge_positions[:, :, 0, 0] -= foot_size_x/2
+    # foot_edge_positions[:, :, 0, 0] -= foot_size_x/2
     foot_edge_positions[:, :, 0, 1] += foot_size_y/2
     foot_edge_positions[:, :, 1, 0] += foot_size_x/2
     foot_edge_positions[:, :, 1, 1] += foot_size_y/2
-    foot_edge_positions[:, :, 2, 0] -= foot_size_x/2
+    # foot_edge_positions[:, :, 2, 0] -= foot_size_x/2
     foot_edge_positions[:, :, 2, 1] -= foot_size_y/2
     foot_edge_positions[:, :, 3, 0] += foot_size_x/2
     foot_edge_positions[:, :, 3, 1] -= foot_size_y/2
@@ -173,6 +173,24 @@ def discrete_terrain_costmap(
 """ 
 rewards
 """
+
+def track_torso_height_exp(
+    env: ManagerBasedRLEnv, 
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), 
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("sensor"), 
+    reference_height: float=0.5, 
+    std:float=0.5) -> torch.Tensor:
+    
+    asset: Articulation = env.scene[asset_cfg.name]
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    
+    contacts = (contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :].norm(dim=2) > 1.0).float()
+    root_pos_z = asset.data.root_pos_w[:, 2].unsqueeze(1)
+    body_pos_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2]
+    height = (root_pos_z - contacts*body_pos_z).max(dim=1).values
+    
+    reward = torch.exp(-torch.square(height - reference_height)/std**2) # exponential reward
+    return reward
 
 def individual_action_l2(env: ManagerBasedRLEnv, action_idx:int, action_name: str = "mpc_action",) -> torch.Tensor:
     """Penalize the actions using L2 squared kernel."""
@@ -214,8 +232,8 @@ def foot_placement_reward(
         resolution,
     )
     
-    reward = torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential reward
-    # reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian reward
+    # reward = torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential reward
+    reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian reward
     # reward = 1-torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential penalty
     # reward = 1-torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian penalty
 
@@ -256,8 +274,8 @@ def stance_foot_position_reward(
         resolution,
     )
     
-    reward = torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential reward
-    # reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian reward
+    # reward = torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential reward
+    reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian reward
     # reward = 1-torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential penalty
     # reward = 1-torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian penalty
 

@@ -9,7 +9,7 @@ from .observation.observations import (
     swing_phase, foot_placement_b, foot_position_b, reference_foot_position_b
 )
 from .reward.rewards import (
-    leg_body_angle_l2, leg_distance_l2,
+    leg_body_angle_l2, leg_distance_l2, track_torso_height_exp,
     individual_action_l2, mpc_cost_l1, 
     stance_foot_position_reward, foot_placement_reward, feet_accel_l2
 )
