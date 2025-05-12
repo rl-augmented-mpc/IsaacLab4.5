@@ -95,25 +95,36 @@ class HECTORRewards(RewardsCfg):
         weight=0.2, 
         params={"command_name": "base_velocity", "std": 0.5}
     )
+    track_height_exp = RewTerm(
+        func=hector_mdp.track_torso_height_exp, 
+        weight=0.2,
+        params={
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
+                "std": 0.1,
+                "reference_height": 0.55,
+                },
+    )
+        
     
     foot_landing = RewTerm(
         func=hector_mdp.stance_foot_position_reward,
-        weight=0.5,
+        weight=0.2,
         params={
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
             "action_name": "mpc_action", 
-            "std": 0.02,
+            "std": 0.05,
         },
     )
     
     foot_placement = RewTerm(
         func=hector_mdp.foot_placement_reward,
-        weight=0.5,
+        weight=0.2,
         params={
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "action_name": "mpc_action", 
-            "std": 0.02,
+            "std": 0.05,
         },
     )
 
@@ -129,7 +140,7 @@ class HECTORRewards(RewardsCfg):
         # weight=-0.1, 
         weight=-0.3, 
         params={
-            "action_idx": 0,
+            "action_idx": -3,
         },
         )
     foot_height_l2 = RewTerm(
@@ -137,7 +148,7 @@ class HECTORRewards(RewardsCfg):
         # weight=-0.1, 
         weight=-0.3, 
         params={
-            "action_idx": 1,
+            "action_idx": -2,
         },
         )
     control_point_l2 = RewTerm(
@@ -145,7 +156,7 @@ class HECTORRewards(RewardsCfg):
         # weight=-0.1,
         weight=-0.3,
         params={
-            "action_idx": 2,
+            "action_idx": -1,
         },
         )
     mpc_cost_l2 = RewTerm(
@@ -323,14 +334,14 @@ class HECTORObservationsCfg:
 class HECTORActionsCfg:
     """Action specifications for the MDP."""
 
-    mpc_action = hector_mdp.MPCActionCfg(
-        asset_name="robot", 
-        joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
-        action_range = (
-            (-0.5, 0.0, -0.5), 
-            (0.5, 0.2, 0.5)
-        )
-    )
+    # mpc_action = hector_mdp.MPCActionCfg(
+    #     asset_name="robot", 
+    #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
+    #     action_range = (
+    #         (-0.5, 0.0, -0.5), 
+    #         (0.5, 0.2, 0.5)
+    #     )
+    # )
     
     # mpc_action = hector_mdp.MPCActionCfgV2(
     #     asset_name="robot", 
@@ -341,14 +352,14 @@ class HECTORActionsCfg:
     #     )
     # )
     
-    # mpc_action = hector_mdp.MPCActionCfgV3(
-    #     asset_name="robot", 
-    #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
-    #     action_range = (
-    #         (-2.0, -2.0, -2.0, -0.2, -1.0, -1.0, -0.5, 0.0, -0.4), 
-    #         (2.0, 2.0, 2.0, 0.2, 1.0, 1.0, 0.5, 0.2, 0.4)
-    #     )
-    # )
+    mpc_action = hector_mdp.MPCActionCfgV3(
+        asset_name="robot", 
+        joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
+        action_range = (
+            (-2.0, -2.0, -4.0, -0.2, -1.0, -1.0, -0.1, -0.1, -0.5, 0.0, -0.5), 
+            (2.0, 2.0, 4.0, 0.2, 1.0, 1.0, 0.1, 0.1, 0.5, 0.2, 0.5)
+        )
+    )
     
 
 @configclass

@@ -88,12 +88,12 @@ params:
     # SAC specific parameters
     num_steps_per_episode: 24
     horizon_length: ${.num_steps_per_episode}
-    init_alpha: 1.0 # initial std (log(std)=0.0)
-    alpha_lr: 2e-4 # actor learning rate
-    actor_lr: 3e-4 # critic learning rate
-    critic_lr: 3e-4 # std network learning rate
-    critic_tau: 5e-3 # GAE parameter
-    batch_size: 576 # num_envs*horizon_length=24*24
+    init_alpha: 0.1 # dual parameter initial value
+    alpha_lr: 1e-4 # dual parameter learning rate
+    actor_lr: 1e-4 # actor network learning rate
+    critic_lr: 1e-4 # critic network learning rate
+    critic_tau: 5e-3 # soft update parameter
+    batch_size: 4096
     learnable_temperature: True
     num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
     replay_buffer_size: 1000000
