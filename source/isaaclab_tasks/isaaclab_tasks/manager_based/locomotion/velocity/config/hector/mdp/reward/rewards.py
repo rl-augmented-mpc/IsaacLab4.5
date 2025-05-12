@@ -198,6 +198,12 @@ def individual_action_l2(env: ManagerBasedRLEnv, action_idx:int, action_name: st
     processed_actions = action_term.processed_actions
     return torch.square(processed_actions[:, action_idx]).view(-1)
 
+def processed_action_l2(env: ManagerBasedRLEnv, action_name: str = "mpc_action",) -> torch.Tensor:
+    """Penalize the actions using L2 squared kernel."""
+    action_term = env.action_manager.get_term(action_name)
+    processed_actions = action_term.processed_actions
+    return torch.sum(torch.square(processed_actions), dim=1).view(-1)
+
 
 def foot_placement_reward(
     env: ManagerBasedRLEnv,
