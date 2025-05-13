@@ -130,8 +130,9 @@ def get_ground_roughness_at_landing_point(
     |    x   |
     3 ------ 4
     """
-    # foot size to consider stepping over 
-    foot_size_x = 0.145
+    # foot size to consider stepping over
+    l_toe = 0.091
+    l_heel = 0.054
     foot_size_y = 0.073
     
     # in cartesian space
@@ -139,13 +140,13 @@ def get_ground_roughness_at_landing_point(
     foot_edge_positions = torch.zeros(num_envs, 2, 4, 2, device=foot_position.device)
     foot_edge_positions[:, 0, :, :] = foot_position_2d[:, :1, :].repeat(1, 4, 1)
     foot_edge_positions[:, 1, :, :] = foot_position_2d[:, 1:, :].repeat(1, 4, 1)
-    # foot_edge_positions[:, :, 0, 0] -= foot_size_x/2
+    foot_edge_positions[:, :, 0, 0] -= l_heel
     foot_edge_positions[:, :, 0, 1] += foot_size_y/2
-    foot_edge_positions[:, :, 1, 0] += foot_size_x/2
+    foot_edge_positions[:, :, 1, 0] += l_toe
     foot_edge_positions[:, :, 1, 1] += foot_size_y/2
-    # foot_edge_positions[:, :, 2, 0] -= foot_size_x/2
+    foot_edge_positions[:, :, 2, 0] -= l_heel
     foot_edge_positions[:, :, 2, 1] -= foot_size_y/2
-    foot_edge_positions[:, :, 3, 0] += foot_size_x/2
+    foot_edge_positions[:, :, 3, 0] += l_toe
     foot_edge_positions[:, :, 3, 1] -= foot_size_y/2
     
     height_at_foot = bilinear_interpolation(
