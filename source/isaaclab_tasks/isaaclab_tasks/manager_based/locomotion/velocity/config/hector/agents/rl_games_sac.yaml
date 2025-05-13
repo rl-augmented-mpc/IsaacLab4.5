@@ -89,9 +89,9 @@ params:
     num_steps_per_episode: 24
     horizon_length: ${.num_steps_per_episode}
     init_alpha: 0.1 # dual parameter initial value
-    alpha_lr: 1e-4 # dual parameter learning rate
-    actor_lr: 1e-4 # actor network learning rate
-    critic_lr: 1e-4 # critic network learning rate
+    alpha_lr: 5e-4 # dual parameter learning rate
+    actor_lr: 5e-4 # actor network learning rate
+    critic_lr: 5e-4 # critic network learning rate
     critic_tau: 5e-3 # soft update parameter
     batch_size: 4096
     learnable_temperature: True
