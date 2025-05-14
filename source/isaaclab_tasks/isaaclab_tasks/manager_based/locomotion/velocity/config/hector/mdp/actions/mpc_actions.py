@@ -102,6 +102,7 @@ class MPCAction(ActionTerm):
         # reference
         self.command = np.zeros((self.num_envs, 3), dtype=np.float32)
         self.reference_height = self.cfg.nominal_height * np.ones(self.num_envs, dtype=np.float32)
+        self.foot_placement_height = np.zeros(self.num_envs, dtype=np.float32)
         
         # markers
         self.foot_placement_visualizer = FootPlacementVisualizer("/Visuals/foot_placement")
@@ -139,12 +140,12 @@ class MPCAction(ActionTerm):
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
-        stepping_frequency = self._processed_actions[:, 0].cpu().numpy()
+        swing_duration = self._processed_actions[:, 0].cpu().numpy()
         swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
         trajectory_control_points = self._processed_actions[:, 2].cpu().numpy()
         
         # form actual control parameters (nominal value + residual)
-        stepping_frequency = self.cfg.nominal_stepping_frequency + stepping_frequency
+        total_swing_duration = self.cfg.single_support_duration + swing_duration
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
         cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
         cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
@@ -153,13 +154,18 @@ class MPCAction(ActionTerm):
         self._get_mpc_state()
         self._get_reference_velocity()
         self._get_reference_height()
+        self._get_footplacement_height()
+        
         for i in range(self.num_envs):
             self.mpc_controller[i].set_swing_parameters(
-                stepping_frequency=stepping_frequency[i], 
+                stepping_frequency=1.0, 
                 foot_height=swing_foot_height[i], 
                 cp1=cp1[i], 
                 cp2=cp2[i], 
-                pf_z=self.reference_height[i]-self.cfg.nominal_height)
+                pf_z=self.foot_placement_height[i])
+            self.mpc_controller[i].update_gait_parameter(
+                np.array([int(self.cfg.double_support_duration/self._env.physics_dt), int(self.cfg.double_support_duration/self._env.physics_dt)]), 
+                np.array([int(total_swing_duration /self._env.physics_dt), int(total_swing_duration / self._env.physics_dt)]),)
             self.mpc_controller[i].set_command(
                 gait_num=2, #1:standing, 2:walking
                 roll_pitch=np.zeros(2, dtype=np.float32),
@@ -169,9 +175,8 @@ class MPCAction(ActionTerm):
         self.visualize_marker()
         
     def _get_reference_velocity(self):
-        ramp_up_duration = 1.0 # seconds
+        ramp_up_duration = 1.2 # seconds
         ramp_up_coef = torch.clip(self.mpc_counter/int(ramp_up_duration/self._env.physics_dt), 0.0, 1.0).unsqueeze(1)
-        # ramp_up_coef = 1.0
         self.command[:, :] = (ramp_up_coef * self._env.command_manager.get_command(self.cfg.command_name)).cpu().numpy()
     
     def _get_reference_height(self):
@@ -183,7 +188,6 @@ class MPCAction(ActionTerm):
         width = int(scan_width/scan_resolution + 1)
         height = int(scan_height/scan_resolution + 1)
         scan_offset = (int(sensor.cfg.offset.pos[0]/scan_resolution), int(sensor.cfg.offset.pos[1]/scan_resolution))
-        # target_pos = (self.foot_placement_b.reshape(self.num_envs, 2, 2) * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
         target_pos = (self.foot_pos_b.reshape(self.num_envs, 2, 3) * (self.gait_contact==1).unsqueeze(2)).sum(dim=1)
         
         # # rough discretization
@@ -232,6 +236,57 @@ class MPCAction(ActionTerm):
         
         ground_level_odometry_frame = self.robot_api._init_pos[:, 2] - self.robot_api.default_root_state[:, 2]
         self.reference_height = self.cfg.nominal_height + (ground_height - ground_level_odometry_frame).cpu().numpy()
+        
+    def _get_footplacement_height(self):
+        sensor= self._env.scene.sensors["height_scanner"]
+        height_map = sensor.data.ray_hits_w[..., 2]
+        
+        scan_width, scan_height = sensor.cfg.pattern_cfg.size
+        scan_resolution = sensor.cfg.pattern_cfg.resolution
+        width = int(scan_width/scan_resolution + 1)
+        height = int(scan_height/scan_resolution + 1)
+        scan_offset = (int(sensor.cfg.offset.pos[0]/scan_resolution), int(sensor.cfg.offset.pos[1]/scan_resolution))
+        target_pos = (self.foot_placement_b.reshape(self.num_envs, 2, 2) * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
+        
+        # bilinear interpolation
+        x_img = target_pos[:, 0] / scan_resolution + (width // 2 - scan_offset[0])
+        y_img = target_pos[:, 1] / scan_resolution + (height // 2 - scan_offset[1])
+
+        # Clamp to valid range before ceil/floor to avoid out-of-bounds
+        x0 = x_img.floor().clamp(0, width - 2)     # [N]
+        x1 = (x0 + 1).clamp(0, width - 1)          # [N]
+        y0 = y_img.floor().clamp(0, height - 2)    # [N]
+        y1 = (y0 + 1).clamp(0, height - 1)         # [N]
+
+        # Calculate weights for interpolation
+        wx = (x_img - x0).unsqueeze(1)             # [N, 1]
+        wy = (y_img - y0).unsqueeze(1)             # [N, 1]
+
+        # Convert to long for indexing
+        x0 = x0.long()
+        x1 = x1.long()
+        y0 = y0.long()
+        y1 = y1.long()
+
+        # Flattened index computation
+        idx00 = y0 * width + x0
+        idx10 = y0 * width + x1
+        idx01 = y1 * width + x0
+        idx11 = y1 * width + x1
+
+        # Gather the four corner heights
+        z00 = height_map[torch.arange(self.num_envs), idx00]
+        z10 = height_map[torch.arange(self.num_envs), idx10]
+        z01 = height_map[torch.arange(self.num_envs), idx01]
+        z11 = height_map[torch.arange(self.num_envs), idx11]
+
+        # Bilinear interpolation
+        z0 = (1 - wx) * z00.unsqueeze(1) + wx * z10.unsqueeze(1)  # along x
+        z1 = (1 - wx) * z01.unsqueeze(1) + wx * z11.unsqueeze(1)  # along x
+        ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1)      # along y
+        
+        ground_level_odometry_frame = self.robot_api._init_pos[:, 2] - self.robot_api.default_root_state[:, 2]
+        self.foot_placement_height = (ground_height - ground_level_odometry_frame).cpu().numpy()
     
     def visualize_marker(self):
         fp = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
@@ -365,68 +420,13 @@ class MPCAction(ActionTerm):
         # reset mpc controller
         for i in env_ids.cpu().numpy(): # type: ignore
             self.mpc_controller[i].reset()
-            self.mpc_controller[i].update_gait_parameter(
+            self.mpc_controller[i].reset_gait_parameter(
                 np.array([int(self.cfg.double_support_duration/self._env.physics_dt), int(self.cfg.double_support_duration/self._env.physics_dt)]), 
                 np.array([int(self.cfg.single_support_duration/self._env.physics_dt), int(self.cfg.single_support_duration/self._env.physics_dt)]),)
         self.mpc_counter[env_ids] = 0
         
-
+        
 class MPCAction2(MPCAction):
-    """
-    This is a subclass of MPCAction that uses the new action space.
-    """
-    
-    """
-    Properties.
-    """
-
-    @property
-    def action_dim(self) -> int:
-        """
-        mpc control parameters:
-        - gait stepping frequency 
-        - swing foot height 
-        - swing trajectory control points
-        """
-        return 3
-    
-    def process_actions(self, actions: torch.Tensor):
-        # store the raw actions
-        self._raw_actions[:] = actions
-        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
-        
-        # split processed actions into individual control parameters
-        sagittal_fp_delta = self._processed_actions[:, 0].cpu().numpy()
-        swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
-        trajectory_control_points = self._processed_actions[:, 2].cpu().numpy()
-        
-        # form actual control parameters (nominal value + residual)
-        stepping_frequency = 1.0 - sagittal_fp_delta/(self.root_lin_vel_b[:, 0]*self._env.physics_dt)
-        swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
-        cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
-        cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
-        
-        # update reference
-        self._get_mpc_state()
-        self._get_reference_velocity()
-        self._get_reference_height()
-        for i in range(self.num_envs):
-            self.mpc_controller[i].set_swing_parameters(
-                stepping_frequency=stepping_frequency[i], 
-                foot_height=swing_foot_height[i], 
-                cp1=cp1[i], 
-                cp2=cp2[i], 
-                pf_z=self.reference_height[i]-self.cfg.nominal_height)
-            self.mpc_controller[i].set_command(
-                gait_num=2, #1:standing, 2:walking
-                roll_pitch=np.zeros(2, dtype=np.float32),
-                twist=self.command[i],
-                height=self.reference_height[i],
-            )
-        self.visualize_marker()
-        
-        
-class MPCAction3(MPCAction):
     """
     This is a subclass of MPCAction that uses the new action space.
     """
@@ -471,11 +471,11 @@ class MPCAction3(MPCAction):
         # footplacement_residual[:, 2] = sagittal_foot_placement[:, 1] * np.cos(self.root_yaw.cpu().numpy())
         # footplacement_residual[:, 3] = sagittal_foot_placement[:, 1] * np.sin(self.root_yaw.cpu().numpy())
         
-        stepping_frequency = self._processed_actions[:, -3].cpu().numpy()
+        swing_duration = self._processed_actions[:, -3].cpu().numpy()
         swing_foot_height = self._processed_actions[:, -2].cpu().numpy()
         trajectory_control_points = self._processed_actions[:, -1].cpu().numpy()
         
-        stepping_frequency = self.cfg.nominal_stepping_frequency + stepping_frequency
+        total_swing_duration = self.cfg.single_support_duration + swing_duration
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
         cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
         cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
@@ -483,15 +483,19 @@ class MPCAction3(MPCAction):
         self._get_mpc_state()
         self._get_reference_velocity()
         self._get_reference_height()
+        self._get_footplacement_height()
         
         for i in range(self.num_envs):
             self.mpc_controller[i].set_srbd_residual(A_residual=A_residual[i], B_residual=B_residual[i])
             self.mpc_controller[i].set_swing_parameters(
-                stepping_frequency=stepping_frequency[i], 
+                stepping_frequency=1.0, 
                 foot_height=swing_foot_height[i], 
                 cp1=cp1[i], 
                 cp2=cp2[i], 
-                pf_z=self.reference_height[i]-self.cfg.nominal_height)
+                pf_z=self.foot_placement_height[i])
+            self.mpc_controller[i].update_gait_parameter(
+                np.array([int(self.cfg.double_support_duration/self._env.physics_dt), int(self.cfg.double_support_duration/self._env.physics_dt)]), 
+                np.array([int(total_swing_duration /self._env.physics_dt), int(total_swing_duration / self._env.physics_dt)]),)
             # self.mpc_controller[i].add_foot_placement_residual(footplacement_residual[i])
             self.mpc_controller[i].set_command(
                 gait_num=2, #1:standing, 2:walking

@@ -87,7 +87,7 @@ class HECTORRewards(RewardsCfg):
     )
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=0.5,
+        weight=0.2,
         params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
@@ -114,19 +114,19 @@ class HECTORRewards(RewardsCfg):
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
             "action_name": "mpc_action", 
-            "std": 0.05,
+            "std": 0.7,
         },
     )
     
-    foot_placement = RewTerm(
-        func=hector_mdp.foot_placement_reward,
-        weight=0.2,
-        params={
-            "sensor_cfg": SceneEntityCfg("height_scanner"),
-            "action_name": "mpc_action", 
-            "std": 0.05,
-        },
-    )
+    # foot_placement = RewTerm(
+    #     func=hector_mdp.foot_placement_reward,
+    #     weight=0.2,
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("height_scanner"),
+    #         "action_name": "mpc_action", 
+    #         "std": 0.7,
+    #     },
+    # )
 
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
@@ -137,7 +137,7 @@ class HECTORRewards(RewardsCfg):
     # -- processed action regularization 
     processed_action_l2 = RewTerm(
         func=hector_mdp.processed_action_l2, # type: ignore
-        weight=-0.1,
+        weight=-0.3,
         params={
             "action_name": "mpc_action",
         }
@@ -315,26 +315,17 @@ class HECTORActionsCfg:
     #     asset_name="robot", 
     #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
     #     action_range = (
-    #         (-0.5, 0.0, -0.5), 
-    #         (0.5, 0.2, 0.5)
+    #         (-0.1, 0.0, -0.6), 
+    #         (0.1, 0.2, 0.6)
     #     )
     # )
     
-    # mpc_action = hector_mdp.MPCActionCfgV2(
-    #     asset_name="robot", 
-    #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
-    #     action_range = (
-    #         (-0.1/80, 0.0, -0.5), 
-    #         (0.1/80, 0.2, 0.5)
-    #     )
-    # )
-    
-    mpc_action = hector_mdp.MPCActionCfgV3(
+    mpc_action = hector_mdp.MPCActionCfgV2(
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            (-4.0, -4.0, -4.0, -0.2, -1.0, -1.0, -0.5, 0.0, -0.6), 
-            (4.0, 4.0, 4.0, 0.2, 1.0, 1.0, 0.5, 0.2, 0.6)
+            (-2.0, -2.0, -4.0, -0.2, -1.0, -1.0, -0.1, 0.0, -0.6), 
+            (2.0, 2.0, 4.0, 0.2, 1.0, 1.0, 0.1, 0.2, 0.6)
         )
     )
     
@@ -352,7 +343,7 @@ class HECTORCommandsCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges( # type: ignore
-            lin_vel_x=(0.4, 0.7), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
+            lin_vel_x=(0.3, 0.6), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
         ),
     )
     
@@ -367,12 +358,12 @@ class HECTORTerminationsCfg:
     # ) # this triggers wrong body names register to contact sensor
     bad_orientation = DoneTerm(
         func=mdp.bad_orientation,  # type: ignore
-        params={"asset_cfg": SceneEntityCfg("robot"), "limit_angle": math.pi/3},
+        params={"asset_cfg": SceneEntityCfg("robot"), "limit_angle": math.pi/6},
         time_out=True,
     )
     terrain_out_of_bounds = DoneTerm(
         func=mdp.terrain_out_of_bounds,
-        params={"asset_cfg": SceneEntityCfg("robot"), "distance_buffer": 1.5},
+        params={"asset_cfg": SceneEntityCfg("robot"), "distance_buffer": 1.0},
         time_out=True,
     )
     
@@ -384,8 +375,8 @@ class HECTOREventCfg(EventCfg):
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.8, 0.8),
-            "dynamic_friction_range": (0.6, 0.6),
+            "static_friction_range": (1.0, 1.0),
+            "dynamic_friction_range": (1.0, 1.0),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
         },
@@ -477,7 +468,7 @@ class HECTORRoughEnvCfgPLAY(HECTORRoughEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
-        self.seed = 77
+        self.seed = 42
         self.scene.terrain = hector_mdp.SteppingStoneTerrain
         self.scene.height_scanner.debug_vis = True
         # self.events.reset_camera = None
