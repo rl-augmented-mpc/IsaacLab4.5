@@ -95,7 +95,7 @@ def reset_camera(
     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
     agent_id = env_ids[0]
     robot_pos = asset.data.root_pos_w[agent_id].cpu().numpy().tolist()
-    camera_delta = [-1.0, -5.0, 2.0]
+    camera_delta = [-1.0, -5.0, 0.5]
     # camera_delta = [0.0, -3.0, 0.5]
     env.viewport_camera_controller.update_view_location(
                 eye=(robot_pos[0]+camera_delta[0], robot_pos[1]+camera_delta[1], -0.55+robot_pos[2]+camera_delta[2]), 

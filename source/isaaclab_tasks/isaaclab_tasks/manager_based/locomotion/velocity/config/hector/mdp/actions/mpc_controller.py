@@ -131,6 +131,16 @@ class MPCController:
             ssp_durations (np.ndarray): single support phase durations (2,)
         """
         self.hc.updateGaitParameter(dsp_durations, ssp_durations)
+    
+    def reset_gait_parameter(self, dsp_durations: np.ndarray, ssp_durations: np.ndarray) -> None:
+        """
+        Update gait parameters.
+
+        Args:
+            dsp_durations (np.ndarray): double support phase durations (2,)
+            ssp_durations (np.ndarray): single support phase durations (2,)
+        """
+        self.hc.resetGaitParameter(dsp_durations, ssp_durations)
 
     def set_swing_parameters(self, stepping_frequency: float, foot_height: float, cp1: float, cp2: float, pf_z: float) -> None:
         """

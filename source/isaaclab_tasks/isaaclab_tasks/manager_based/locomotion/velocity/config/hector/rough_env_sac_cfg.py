@@ -141,7 +141,7 @@ class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
-        self.seed = 77
+        self.seed = 42
         self.scene.terrain = hector_mdp.SteppingStoneTerrain
         self.scene.height_scanner.debug_vis = True
         # self.events.reset_camera = None
