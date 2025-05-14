@@ -165,7 +165,7 @@ class MPCAction(ActionTerm):
                 pf_z=self.foot_placement_height[i])
             self.mpc_controller[i].update_gait_parameter(
                 np.array([int(self.cfg.double_support_duration/self._env.physics_dt), int(self.cfg.double_support_duration/self._env.physics_dt)]), 
-                np.array([int(total_swing_duration /self._env.physics_dt), int(total_swing_duration / self._env.physics_dt)]),)
+                np.array([int(total_swing_duration[i] /self._env.physics_dt), int(total_swing_duration[i] / self._env.physics_dt)]),)
             self.mpc_controller[i].set_command(
                 gait_num=2, #1:standing, 2:walking
                 roll_pitch=np.zeros(2, dtype=np.float32),
@@ -495,7 +495,7 @@ class MPCAction2(MPCAction):
                 pf_z=self.foot_placement_height[i])
             self.mpc_controller[i].update_gait_parameter(
                 np.array([int(self.cfg.double_support_duration/self._env.physics_dt), int(self.cfg.double_support_duration/self._env.physics_dt)]), 
-                np.array([int(total_swing_duration /self._env.physics_dt), int(total_swing_duration / self._env.physics_dt)]),)
+                np.array([int(total_swing_duration[i] /self._env.physics_dt), int(total_swing_duration[i] / self._env.physics_dt)]),)
             # self.mpc_controller[i].add_foot_placement_residual(footplacement_residual[i])
             self.mpc_controller[i].set_command(
                 gait_num=2, #1:standing, 2:walking

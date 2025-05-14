@@ -218,7 +218,7 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
             profile_mode="up_down",
             proportion=0.2, 
             num_box=60,
-            box_height_range=(0.05, 0.05), 
+            box_height_range=(0.03, 0.06), 
             platform_width=10.0, 
             platform_length_range_start=(0.6, 1.0), platform_length_range_end=(0.1, 0.6),
             platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
