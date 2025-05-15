@@ -320,14 +320,23 @@ class HECTORActionsCfg:
     #     )
     # )
     
-    mpc_action = hector_mdp.MPCActionCfgV2(
+    mpc_action = hector_mdp.MPCActionCfgV3(
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            (-2.0, -2.0, -4.0, -0.2, -1.0, -1.0, -0.1, 0.0, -0.6), 
-            (2.0, 2.0, 4.0, 0.2, 1.0, 1.0, 0.1, 0.2, 0.6)
+            (-0.5, 0.0, -0.6), 
+            (0.5, 0.2, 0.6)
         )
     )
+    
+    # mpc_action = hector_mdp.MPCActionCfgV2(
+    #     asset_name="robot", 
+    #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
+    #     action_range = (
+    #         (-2.0, -2.0, -4.0, -0.2, -1.0, -1.0, -0.1, 0.0, -0.6), 
+    #         (2.0, 2.0, 4.0, 0.2, 1.0, 1.0, 0.1, 0.2, 0.6)
+    #     )
+    # )
     
 
 @configclass
@@ -343,7 +352,7 @@ class HECTORCommandsCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges( # type: ignore
-            lin_vel_x=(0.3, 0.6), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
+            lin_vel_x=(0.5, 0.5), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
         ),
     )
     
@@ -363,7 +372,7 @@ class HECTORTerminationsCfg:
     )
     terrain_out_of_bounds = DoneTerm(
         func=mdp.terrain_out_of_bounds,
-        params={"asset_cfg": SceneEntityCfg("robot"), "distance_buffer": 1.0},
+        params={"asset_cfg": SceneEntityCfg("robot"), "distance_buffer": 1.5},
         time_out=True,
     )
     
