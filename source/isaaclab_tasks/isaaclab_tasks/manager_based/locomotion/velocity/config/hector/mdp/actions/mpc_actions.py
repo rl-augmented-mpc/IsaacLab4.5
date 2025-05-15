@@ -67,8 +67,8 @@ class MPCAction(ActionTerm):
         # this means iteration_between_mpc = phase_steps/(10*dt)
         # mpc is updated at same rate as rl policy
         mpc_conf = MPC_Conf(
-            control_dt=env.physics_dt, control_iteration_between_mpc=int(0.2/(10*env.physics_dt)), 
-            horizon_length=10, mpc_decimation=int(env.step_dt//env.physics_dt))
+            control_dt=env.physics_dt, control_iteration_between_mpc=self.cfg.control_iteration_between_mpc, 
+            horizon_length=self.cfg.horizon_length, mpc_decimation=int(env.step_dt//env.physics_dt))
         self.mpc_controller = [MPCController(mpc_conf) for _ in range(self.num_envs)]
         for i in range(self.num_envs):
             self.mpc_controller[i].set_planner(self.cfg.foot_placement_planner)
@@ -140,12 +140,11 @@ class MPCAction(ActionTerm):
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
-        swing_duration = self._processed_actions[:, 0].cpu().numpy()
+        swing_duration = self._processed_actions[:, 0].cpu().numpy() + self.cfg.nominal_swing_duration + np.random.uniform(-0.05, 0.05)
         swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
         trajectory_control_points = self._processed_actions[:, 2].cpu().numpy()
         
         # form actual control parameters (nominal value + residual)
-        total_swing_duration = self.cfg.single_support_duration + swing_duration
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
         cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
         cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
@@ -163,9 +162,7 @@ class MPCAction(ActionTerm):
                 cp1=cp1[i], 
                 cp2=cp2[i], 
                 pf_z=self.foot_placement_height[i])
-            self.mpc_controller[i].update_gait_parameter(
-                np.array([int(self.cfg.double_support_duration/self._env.physics_dt), int(self.cfg.double_support_duration/self._env.physics_dt)]), 
-                np.array([int(total_swing_duration[i] /self._env.physics_dt), int(total_swing_duration[i] / self._env.physics_dt)]),)
+            # self.mpc_controller[i].update_mpc_sampling_time(swing_duration[i]/(self.cfg.horizon_length/2))
             self.mpc_controller[i].set_command(
                 gait_num=2, #1:standing, 2:walking
                 roll_pitch=np.zeros(2, dtype=np.float32),
@@ -421,8 +418,8 @@ class MPCAction(ActionTerm):
         for i in env_ids.cpu().numpy(): # type: ignore
             self.mpc_controller[i].reset()
             self.mpc_controller[i].reset_gait_parameter(
-                np.array([int(self.cfg.double_support_duration/self._env.physics_dt), int(self.cfg.double_support_duration/self._env.physics_dt)]), 
-                np.array([int(self.cfg.single_support_duration/self._env.physics_dt), int(self.cfg.single_support_duration/self._env.physics_dt)]),)
+                np.array([self.cfg.double_support_duration, self.cfg.double_support_duration]), 
+                np.array([self.cfg.single_support_duration, self.cfg.single_support_duration]),)
         self.mpc_counter[env_ids] = 0
         
         
@@ -471,11 +468,10 @@ class MPCAction2(MPCAction):
         # footplacement_residual[:, 2] = sagittal_foot_placement[:, 1] * np.cos(self.root_yaw.cpu().numpy())
         # footplacement_residual[:, 3] = sagittal_foot_placement[:, 1] * np.sin(self.root_yaw.cpu().numpy())
         
-        swing_duration = self._processed_actions[:, -3].cpu().numpy()
+        swing_duration = self._processed_actions[:, -3].cpu().numpy() + self.cfg.nominal_swing_duration #+ np.random.uniform(-0.05, 0.05)
         swing_foot_height = self._processed_actions[:, -2].cpu().numpy()
         trajectory_control_points = self._processed_actions[:, -1].cpu().numpy()
         
-        total_swing_duration = self.cfg.single_support_duration + swing_duration
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
         cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
         cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
@@ -493,10 +489,7 @@ class MPCAction2(MPCAction):
                 cp1=cp1[i], 
                 cp2=cp2[i], 
                 pf_z=self.foot_placement_height[i])
-            self.mpc_controller[i].update_gait_parameter(
-                np.array([int(self.cfg.double_support_duration/self._env.physics_dt), int(self.cfg.double_support_duration/self._env.physics_dt)]), 
-                np.array([int(total_swing_duration[i] /self._env.physics_dt), int(total_swing_duration[i] / self._env.physics_dt)]),)
-            # self.mpc_controller[i].add_foot_placement_residual(footplacement_residual[i])
+            # self.mpc_controller[i].update_mpc_sampling_time(swing_duration[i]/(self.cfg.horizon_length/2))
             self.mpc_controller[i].set_command(
                 gait_num=2, #1:standing, 2:walking
                 roll_pitch=np.zeros(2, dtype=np.float32),
@@ -504,3 +497,71 @@ class MPCAction2(MPCAction):
                 height=self.reference_height[i],
             )
         self.visualize_marker()
+
+class MPCAction3(MPCAction):
+    """
+    This is a subclass of MPCAction that uses the new action space.
+    """
+    
+    """
+    Properties.
+    """
+
+    @property
+    def action_dim(self) -> int:
+        """
+        mpc control parameters:
+        - sampling time
+        - swing foot height 
+        - swing trajectory control points
+        """
+        return 3
+    
+    def process_actions(self, actions: torch.Tensor):
+        # store the raw actions
+        self._raw_actions[:] = actions
+        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
+        
+        # split processed actions into individual control parameters
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, 0].cpu().numpy())
+        swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
+        trajectory_control_points = self._processed_actions[:, 2].cpu().numpy()
+        
+        # form actual control parameters (nominal value + residual)
+        swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
+        cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
+        cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
+        
+        # update reference
+        self._get_mpc_state()
+        self._get_reference_velocity()
+        self._get_reference_height()
+        for i in range(self.num_envs):
+            self.mpc_controller[i].update_sampling_time(sampling_time[i])
+            self.mpc_controller[i].set_swing_parameters(
+                stepping_frequency=self.cfg.nominal_stepping_frequency, 
+                foot_height=swing_foot_height[i], 
+                cp1=cp1[i], 
+                cp2=cp2[i], 
+                pf_z=self.reference_height[i]-self.cfg.nominal_height)
+            self.mpc_controller[i].set_command(
+                gait_num=2, #1:standing, 2:walking
+                roll_pitch=np.zeros(2, dtype=np.float32),
+                twist=self.command[i],
+                height=self.reference_height[i],
+            )
+        self.visualize_marker()
+    
+    def reset(self, env_ids: Sequence[int] | None = None) -> None:
+        # reset default position of robot
+        self.robot_api.reset_default_pose(self.robot_api.root_state_w[env_ids, :7], env_ids) # type: ignore
+        # reset action
+        self._raw_actions[env_ids] = 0.0
+        self._processed_actions[env_ids] = 0.0
+        # reset mpc controller
+        for i in env_ids.cpu().numpy(): # type: ignore
+            self.mpc_controller[i].reset()
+            self.mpc_controller[i].update_gait_parameter(
+                np.array([self.cfg.double_support_duration, self.cfg.double_support_duration]), 
+                np.array([self.cfg.single_support_duration, self.cfg.single_support_duration]),)
+        self.mpc_counter[env_ids] = 0
