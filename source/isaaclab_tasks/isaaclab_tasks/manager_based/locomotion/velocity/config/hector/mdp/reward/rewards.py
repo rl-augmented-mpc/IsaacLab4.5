@@ -159,8 +159,9 @@ def get_ground_roughness_at_landing_point(
     roughness_at_foot = torch.abs(height_at_foot.max(dim=1).values - height_at_foot.min(dim=1).values) # (num_envs, 2)
     roughness_at_foot = (roughness_at_foot * foot_selection).sum(dim=1) # (num_envs, 1)
     num_envs = costmap_2d.shape[0]
-    normalized_roughness_at_foot = roughness_at_foot / (torch.max(costmap_2d.view(num_envs, -1), dim=1).values - torch.min(costmap_2d.view(num_envs, -1), dim=1).values + 1e-6)
-    return normalized_roughness_at_foot
+    return roughness_at_foot
+    # normalized_roughness_at_foot = roughness_at_foot / (torch.max(costmap_2d.view(num_envs, -1), dim=1).values - torch.min(costmap_2d.view(num_envs, -1), dim=1).values + 1e-6)
+    # return normalized_roughness_at_foot
 
 def discrete_terrain_costmap(
     height_map_2d: torch.Tensor,
@@ -241,8 +242,9 @@ def foot_placement_reward(
         resolution,
     )
     
+    mask = (height_map.max(dim=1).values - height_map.min(dim=1).values) > 1e-3
     # reward = torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential reward
-    reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian reward
+    reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) * mask # gaussian reward
     # reward = 1-torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential penalty
     # reward = 1-torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian penalty
 
@@ -283,8 +285,9 @@ def stance_foot_position_reward(
         resolution,
     )
     
+    mask = (height_map.max(dim=1).values - height_map.min(dim=1).values) > 1e-3
     # reward = torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential reward
-    reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian reward
+    reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) * mask # gaussian reward
     # reward = 1-torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential penalty
     # reward = 1-torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian penalty
 

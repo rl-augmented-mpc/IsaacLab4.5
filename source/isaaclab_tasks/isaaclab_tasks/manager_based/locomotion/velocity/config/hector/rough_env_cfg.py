@@ -114,7 +114,7 @@ class HECTORRewards(RewardsCfg):
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
             "action_name": "mpc_action", 
-            "std": 0.7,
+            "std": 0.05,
         },
     )
     
@@ -144,7 +144,7 @@ class HECTORRewards(RewardsCfg):
     )
     mpc_cost_l2 = RewTerm(
         func=hector_mdp.mpc_cost_l1, # type: ignore
-        weight=-1e-4,
+        weight=-1e-3,
         params={
             "action_name": "mpc_action",
         },
@@ -200,13 +200,13 @@ class HECTORRewards(RewardsCfg):
     
     undesired_contacts_knee = RewTerm(
         func=mdp.undesired_contacts, # type: ignore
-        weight=-0.5,
+        weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},
     )
 
     undesired_contacts_toe = RewTerm(
         func=mdp.undesired_contacts, # type: ignore
-        weight=-0.5,
+        weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("toe_contact", body_names=".*_toe_tip"), "threshold": 1.0},
     )
     
