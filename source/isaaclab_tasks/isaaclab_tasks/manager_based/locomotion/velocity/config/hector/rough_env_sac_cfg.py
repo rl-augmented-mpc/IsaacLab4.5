@@ -130,9 +130,10 @@ class HECTORRoughEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
         
         # sim time
-        self.sim.dt = 1/400
-        self.decimation = 4
+        self.sim.dt = 1/500
+        self.decimation = 5
         self.sim.render_interval = 10
+        self.events.reset_camera = None
 
 @configclass
 class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):

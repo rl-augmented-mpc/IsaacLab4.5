@@ -74,6 +74,7 @@ class RobotCore:
     @property
     def root_pos_w(self)->torch.Tensor:
         return self.articulation.data.root_pos_w
+        # return self.articulation.data.root_com_pos_w
     
     @property
     def root_pos_local(self)->torch.Tensor:
@@ -88,6 +89,7 @@ class RobotCore:
     @property
     def root_quat_w(self)->torch.Tensor:
         return self.articulation.data.root_quat_w
+        # return self.articulation.data.root_com_quat_w
     
     @property
     def root_rot_mat_w(self)->torch.Tensor:
@@ -131,11 +133,13 @@ class RobotCore:
     
     @property
     def root_lin_vel_b(self)->torch.Tensor:
-        return self.articulation.data.root_lin_vel_b
+        # return self.articulation.data.root_lin_vel_b
+        return self.articulation.data.root_com_lin_vel_b
     
     @property
     def root_ang_vel_b(self)->torch.Tensor:
-        return self.articulation.data.root_ang_vel_b
+        # return self.articulation.data.root_ang_vel_b
+        return self.articulation.data.root_com_ang_vel_b
     
     """
     joint state

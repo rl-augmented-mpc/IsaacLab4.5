@@ -320,23 +320,14 @@ class HECTORActionsCfg:
     #     )
     # )
     
-    mpc_action = hector_mdp.MPCActionCfgV3(
+    mpc_action = hector_mdp.MPCActionCfgV2(
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            (-0.5, 0.0, -0.6), 
-            (0.5, 0.2, 0.6)
+            (-2.0, -2.0, -4.0, -0.1, -1.0, -1.0, -0.5, 0.0, -0.5), 
+            (2.0, 2.0, 4.0, 0.1, 1.0, 1.0, 0.5, 0.1, 0.5)
         )
     )
-    
-    # mpc_action = hector_mdp.MPCActionCfgV2(
-    #     asset_name="robot", 
-    #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
-    #     action_range = (
-    #         (-2.0, -2.0, -4.0, -0.2, -1.0, -1.0, -0.1, 0.0, -0.6), 
-    #         (2.0, 2.0, 4.0, 0.2, 1.0, 1.0, 0.1, 0.2, 0.6)
-    #     )
-    # )
     
 
 @configclass
@@ -466,8 +457,8 @@ class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
         
         # sim time
-        self.sim.dt = 1/400
-        self.decimation = 4
+        self.sim.dt = 1/500
+        self.decimation = 5
         self.sim.render_interval = 10
 
 @configclass
