@@ -140,7 +140,7 @@ class MPCAction(ActionTerm):
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
-        swing_duration = self._processed_actions[:, 0].cpu().numpy() + self.cfg.nominal_swing_duration + np.random.uniform(-0.05, 0.05)
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, -3].cpu().numpy())
         swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
         trajectory_control_points = self._processed_actions[:, 2].cpu().numpy()
         
@@ -156,6 +156,7 @@ class MPCAction(ActionTerm):
         self._get_footplacement_height()
         
         for i in range(self.num_envs):
+            self.mpc_controller[i].update_sampling_time(sampling_time[i])
             self.mpc_controller[i].set_swing_parameters(
                 stepping_frequency=1.0, 
                 foot_height=swing_foot_height[i], 
