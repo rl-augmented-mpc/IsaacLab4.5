@@ -73,8 +73,8 @@ class RobotCore:
     
     @property
     def root_pos_w(self)->torch.Tensor:
-        return self.articulation.data.root_pos_w
-        # return self.articulation.data.root_com_pos_w
+        # return self.articulation.data.root_pos_w
+        return self.articulation.data.root_com_pos_w
     
     @property
     def root_pos_local(self)->torch.Tensor:
@@ -88,8 +88,8 @@ class RobotCore:
     
     @property
     def root_quat_w(self)->torch.Tensor:
-        return self.articulation.data.root_quat_w
-        # return self.articulation.data.root_com_quat_w
+        # return self.articulation.data.root_quat_w
+        return self.articulation.data.root_com_quat_w
     
     @property
     def root_rot_mat_w(self)->torch.Tensor:

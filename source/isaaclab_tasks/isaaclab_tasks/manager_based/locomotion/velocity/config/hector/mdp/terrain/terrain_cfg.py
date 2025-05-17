@@ -290,7 +290,7 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
     #     project_uvw=True,
     #     texture_scale=(0.25, 0.25),
     # ),
-    max_init_terrain_level=0,
+    max_init_terrain_level=3,
     debug_vis=False,
     disable_colllider=False,
     num_curriculums=4
