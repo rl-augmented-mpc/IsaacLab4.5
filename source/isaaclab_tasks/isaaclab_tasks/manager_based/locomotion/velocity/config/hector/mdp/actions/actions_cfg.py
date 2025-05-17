@@ -30,13 +30,19 @@ class MPCActionCfg(ActionTermCfg):
     """Nominal stepping frequency of the robot."""
     horizon_length: int = 10
     """Horizon length of the robot."""
-    control_iteration_between_mpc: int = 8
+
+
+    ### == construct gait in mpc dt == ###
+    control_iteration_between_mpc: int = 20
     """Control iteration between MPC iterations."""
+    nominal_mpc_dt: float = 0.04
+    """Nominal MPC dt of the robot."""
     double_support_duration: int = 0
     """Double support duration of the robot."""
     single_support_duration: int = 5
     """Single support duration of the robot."""
-    nominal_swing_duration: float = 0.2
+
+
     nominal_cp1_coef: float = 1/3
     """Nominal cp1 coefficient of the robot."""
     nominal_cp2_coef: float = 2/3

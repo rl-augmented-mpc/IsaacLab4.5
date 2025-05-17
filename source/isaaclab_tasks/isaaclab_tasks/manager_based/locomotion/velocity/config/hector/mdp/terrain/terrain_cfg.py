@@ -145,7 +145,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
             profile_mode="random",
             proportion=0.2, 
             num_box=60,
-            box_height_range=(0.05, 0.05), 
+            box_height_range=(0.04, 0.04), 
             platform_width=10.0, 
             # platform_length_range_start=(0.6, 1.0), platform_length_range_end=(0.6, 1.0),
             platform_length_range_start=(0.5, 0.5), platform_length_range_end=(0.5, 0.5),
