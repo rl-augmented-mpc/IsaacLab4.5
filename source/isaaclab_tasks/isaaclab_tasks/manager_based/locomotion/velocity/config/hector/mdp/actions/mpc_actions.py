@@ -418,9 +418,9 @@ class MPCAction(ActionTerm):
 
     def reset(self, env_ids: Sequence[int] | None = None) -> None:
         # reset default position of robot
-        self.robot_api.reset_default_pose(self.robot_api.root_state_w[env_ids, :7], env_ids) # type: ignore
-        # default_pose = torch.cat([self.robot_api.root_pos_w, self.robot_api.root_quat_w], dim=-1)
-        # self.robot_api.reset_default_pose(default_pose[env_ids, :], env_ids) # type: ignore
+        # self.robot_api.reset_default_pose(self.robot_api.root_state_w[env_ids, :7], env_ids) # type: ignore
+        default_pose = torch.cat([self.robot_api.root_pos_w, self.robot_api.root_quat_w], dim=-1)
+        self.robot_api.reset_default_pose(default_pose[env_ids, :], env_ids) # type: ignore
         # reset action
         self._raw_actions[env_ids] = 0.0
         self._processed_actions[env_ids] = 0.0
@@ -522,11 +522,10 @@ class MPCAction3(MPCAction):
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
         self._raw_actions[:] = actions
-        self._raw_actions[:, 0] = 2*torch.rand(self.num_envs, device=self.device) - 1 # randomize sampling time
+        # self._raw_actions[:, 0] = 2*torch.rand(self.num_envs, device=self.device) - 1 # randomize sampling time
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         stepping_frequency = self.cfg.nominal_stepping_frequency + self._processed_actions[:, 0].cpu().numpy()
-        print("stepping_frequency", stepping_frequency)
         swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
         trajectory_control_points = self._processed_actions[:, 2].cpu().numpy()
         
