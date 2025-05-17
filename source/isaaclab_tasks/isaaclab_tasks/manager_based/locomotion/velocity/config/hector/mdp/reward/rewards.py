@@ -196,11 +196,16 @@ def track_torso_height_exp(
     reward = torch.exp(-torch.square(height - reference_height)/std**2) # exponential reward
     return reward
 
-def individual_action_l2(env: ManagerBasedRLEnv, action_idx:int, action_name: str = "mpc_action",) -> torch.Tensor:
+def individual_action_l2(env: ManagerBasedRLEnv, action_idx:int|list[int], action_name: str = "mpc_action",) -> torch.Tensor:
     """Penalize the actions using L2 squared kernel."""
     action_term = env.action_manager.get_term(action_name)
     processed_actions = action_term.processed_actions
-    return torch.square(processed_actions[:, action_idx]).view(-1)
+    picked_action = processed_actions[:, action_idx]
+    if len(picked_action.shape) == 2:
+        value = torch.sum(torch.square(picked_action), dim=1)
+    elif len(picked_action.shape) == 1:
+        value = torch.square(picked_action)
+    return value.view(-1)
 
 def processed_action_l2(env: ManagerBasedRLEnv, action_name: str = "mpc_action",) -> torch.Tensor:
     """Penalize the actions using L2 squared kernel."""

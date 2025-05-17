@@ -135,10 +135,26 @@ class HECTORRewards(RewardsCfg):
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05) # type: ignore
     
     # -- processed action regularization 
+    # processed_action_l2 = RewTerm(
+    #     func=hector_mdp.processed_action_l2, # type: ignore
+    #     weight=-0.2,
+    #     params={
+    #         "action_name": "mpc_action",
+    #     }
+    # )
+    processed_action_accel_l2 = RewTerm(
+        func=hector_mdp.individual_action_l2, # type: ignore
+        weight=-0.01,
+        params={
+            "action_idx": [0, 1, 2, 3, 4, 5],
+            "action_name": "mpc_action",
+        }
+    )
     processed_action_l2 = RewTerm(
-        func=hector_mdp.processed_action_l2, # type: ignore
+        func=hector_mdp.individual_action_l2, # type: ignore
         weight=-0.2,
         params={
+            "action_idx": [6, 7, 8],
             "action_name": "mpc_action",
         }
     )
@@ -325,7 +341,7 @@ class HECTORActionsCfg:
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
             (-2.0, -2.0, -4.0, -0.1, -1.0, -1.0, -0.5, 0.0, -0.6), 
-            (2.0, 2.0, 4.0, 0.1, 1.0, 1.0, 0.5, 0.15, 0.6)
+            (2.0, 2.0, 4.0, 0.1, 1.0, 1.0, 0.5, 0.1, 0.6)
         )
     )
     
@@ -352,7 +368,7 @@ class HECTORCommandsCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges( # type: ignore
-            lin_vel_x=(0.3, 0.7), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
+            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
         ),
     )
     
