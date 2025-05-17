@@ -191,6 +191,7 @@ def track_torso_height_exp(
     contacts = (contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :].norm(dim=2) > 1.0).float()
     root_pos_z = asset.data.root_pos_w[:, 2].unsqueeze(1)
     body_pos_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2]
+    body_pos_z -= 0.042 # ankle joint to sole offset
     height = (root_pos_z - contacts*body_pos_z).max(dim=1).values
     
     reward = torch.exp(-torch.square(height - reference_height)/std**2) # exponential reward
@@ -325,7 +326,6 @@ def mpc_cost_l1(
     action_term = env.action_manager.get_term(action_name)
     mpc_cost = action_term.mpc_cost.clamp(max=1e3) # (num_envs, 1)
     return torch.abs(mpc_cost)
-
 
 """
 feet rewards

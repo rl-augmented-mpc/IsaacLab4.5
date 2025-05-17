@@ -131,7 +131,7 @@ class HECTORRewards(RewardsCfg):
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01) # type: ignore
-    # lin_accel_l2 = RewTerm(func=mdp.body_lin_acc_l2, weight=-3e-4) # type: ignore
+    lin_accel_l2 = RewTerm(func=mdp.body_lin_acc_l2, weight=-5e-4, params={"asset_cfg": SceneEntityCfg("robot", body_names="base")}) # type: ignore
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05) # type: ignore
     
     # -- processed action regularization 
@@ -332,7 +332,7 @@ class HECTORActionsCfg:
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
             (-0.5, 0.0, -0.6), 
-            (0.5, 0.2, 0.6)
+            (0.5, 0.1, 0.6)
         )
     )
     
@@ -350,7 +350,7 @@ class HECTORActionsCfg:
     #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
     #     action_range = (
     #         (-0.5, 0.0, -0.6), 
-    #         (0.5, 0.2, 0.6)
+    #         (0.5, 0.1, 0.6)
     #     )
     # )
     
