@@ -114,7 +114,7 @@ class HECTORRewards(RewardsCfg):
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
             "action_name": "mpc_action", 
-            "std": 0.05,
+            "std": 0.5,
         },
     )
     
@@ -124,27 +124,27 @@ class HECTORRewards(RewardsCfg):
     #     params={
     #         "sensor_cfg": SceneEntityCfg("height_scanner"),
     #         "action_name": "mpc_action", 
-    #         "std": 0.7,
+    #         "std": 0.5,
     #     },
     # )
 
     # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01) # type: ignore
-    lin_accel_l2 = RewTerm(func=mdp.body_lin_acc_l2, weight=-3e-4) # type: ignore
+    # lin_accel_l2 = RewTerm(func=mdp.body_lin_acc_l2, weight=-3e-4) # type: ignore
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05) # type: ignore
     
     # -- processed action regularization 
     processed_action_l2 = RewTerm(
         func=hector_mdp.processed_action_l2, # type: ignore
-        weight=-0.3,
+        weight=-0.2,
         params={
             "action_name": "mpc_action",
         }
     )
     mpc_cost_l2 = RewTerm(
         func=hector_mdp.mpc_cost_l1, # type: ignore
-        weight=-1e-3,
+        weight=-1e-4,
         params={
             "action_name": "mpc_action",
         },
@@ -159,7 +159,7 @@ class HECTORRewards(RewardsCfg):
     dof_acc_l2 = None
     dof_vel_l2 = RewTerm(
         func=mdp.joint_vel_l2,  # type: ignore
-        weight=-2e-4,
+        weight=-1e-3,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])}
     )
 
@@ -200,13 +200,13 @@ class HECTORRewards(RewardsCfg):
     
     undesired_contacts_knee = RewTerm(
         func=mdp.undesired_contacts, # type: ignore
-        weight=-1.0,
+        weight=-5.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},
     )
 
     undesired_contacts_toe = RewTerm(
         func=mdp.undesired_contacts, # type: ignore
-        weight=-1.0,
+        weight=-5.0,
         params={"sensor_cfg": SceneEntityCfg("toe_contact", body_names=".*_toe_tip"), "threshold": 1.0},
     )
     
@@ -324,10 +324,19 @@ class HECTORActionsCfg:
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            (-2.0, -2.0, -4.0, -0.1, -1.0, -1.0, -0.5, 0.0, -0.5), 
-            (2.0, 2.0, 4.0, 0.1, 1.0, 1.0, 0.5, 0.1, 0.5)
+            (-2.0, -2.0, -4.0, -0.1, -1.0, -1.0, -0.5, 0.0, -0.6), 
+            (2.0, 2.0, 4.0, 0.1, 1.0, 1.0, 0.5, 0.15, 0.6)
         )
     )
+    
+    # mpc_action = hector_mdp.MPCActionCfgV3(
+    #     asset_name="robot", 
+    #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
+    #     action_range = (
+    #         (-0.5, 0.0, -0.6), 
+    #         (0.5, 0.2, 0.6)
+    #     )
+    # )
     
 
 @configclass
@@ -343,7 +352,7 @@ class HECTORCommandsCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges( # type: ignore
-            lin_vel_x=(0.3, 0.6), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
+            lin_vel_x=(0.3, 0.7), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
         ),
     )
     
@@ -358,7 +367,7 @@ class HECTORTerminationsCfg:
     # ) # this triggers wrong body names register to contact sensor
     bad_orientation = DoneTerm(
         func=mdp.bad_orientation,  # type: ignore
-        params={"asset_cfg": SceneEntityCfg("robot"), "limit_angle": math.pi/6},
+        params={"asset_cfg": SceneEntityCfg("robot"), "limit_angle": math.pi/10},
         time_out=True,
     )
     terrain_out_of_bounds = DoneTerm(

@@ -42,12 +42,11 @@ def terrain_levels_vel(
     asset: Articulation = env.scene[asset_cfg.name]
     terrain: TerrainImporter = env.scene.terrain
     command = env.command_manager.get_command("base_velocity")
-    # compute the distance the robot walked
-    distance = torch.norm(asset.data.root_pos_w[env_ids, :2] - env.scene.env_origins[env_ids, :2], dim=1)
-    # robots that walked far enough progress to harder terrains
-    move_up = distance > torch.norm(command[env_ids, :2], dim=1) * env.max_episode_length_s * 0.8
-    # robots that walked less than half of their required distance go to simpler terrains
-    move_down = distance < torch.norm(command[env_ids, :2], dim=1) * env.max_episode_length_s * 0.5
+    
+    # robots that walked until maximum episode length progress to harder terrains
+    move_up = env.episode_length_buf[env_ids] == env.max_episode_length
+    # robots that walked less than half of maximum episode length go to easier terrains
+    move_down = env.episode_length_buf[env_ids] < env.max_episode_length*0.5
     move_down *= ~move_up
     # update terrain levels
     terrain.update_env_origins(env_ids, move_up, move_down)

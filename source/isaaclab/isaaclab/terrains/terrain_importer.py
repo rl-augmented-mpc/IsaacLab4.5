@@ -369,7 +369,8 @@ class TerrainImporter:
         # the minimum level is zero
         self.terrain_levels[env_ids] = torch.where(
             self.terrain_levels[env_ids] >= self.max_terrain_level,
-            torch.randint_like(self.terrain_levels[env_ids], self.max_terrain_level),
+            # torch.randint_like(self.terrain_levels[env_ids], self.max_terrain_level),
+            (self.max_terrain_level-1)*torch.ones_like(self.terrain_levels[env_ids]),
             torch.clip(self.terrain_levels[env_ids], 0),
         )
         # update the env origins

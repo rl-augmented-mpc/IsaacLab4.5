@@ -93,7 +93,8 @@ def reset_camera(
     """
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
-    agent_id = env_ids[0]
+    # agent_id = env_ids[0]
+    agent_id = 0
     robot_pos = asset.data.root_pos_w[agent_id].cpu().numpy().tolist()
     camera_delta = [-1.0, -5.0, 0.5]
     # camera_delta = [0.0, -3.0, 0.5]
