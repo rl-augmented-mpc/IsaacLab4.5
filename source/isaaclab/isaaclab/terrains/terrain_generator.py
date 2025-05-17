@@ -268,7 +268,8 @@ class TerrainGenerator:
                 #  the row index is 2 and the number of rows is 10, the nominal difficulty is 0.2.
                 #  We add a small random value to the difficulty to make it between 0.2 and 0.3.
                 lower, upper = self.cfg.difficulty_range
-                difficulty = (sub_row + self.np_rng.uniform()) / self.cfg.num_rows
+                # difficulty = (sub_row + self.np_rng.uniform()) / self.cfg.num_rows
+                difficulty = (sub_row) / self.cfg.num_rows
                 difficulty = lower + (upper - lower) * difficulty
                 # generate terrain
                 mesh, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_indices[sub_col]])
