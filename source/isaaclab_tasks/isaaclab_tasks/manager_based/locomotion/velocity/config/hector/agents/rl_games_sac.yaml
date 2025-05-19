@@ -95,9 +95,9 @@ params:
     critic_tau: 5e-3 # soft update parameter
     learnable_temperature: True
     num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
-    batch_size: 512
-    replay_buffer_size: 50000
-    # replay_buffer_size: 1000000
+    batch_size: 256
+    # replay_buffer_size: 50000
+    replay_buffer_size: 1000000
   
   log:
     logger: wandb
