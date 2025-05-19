@@ -152,7 +152,7 @@ class HECTORRewards(RewardsCfg):
     # )
     processed_action_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-0.2,
+        weight=-0.01,
         params={
             "action_idx": [-3, -2, -1],
             "action_name": "mpc_action",
@@ -216,13 +216,13 @@ class HECTORRewards(RewardsCfg):
     
     undesired_contacts_knee = RewTerm(
         func=mdp.undesired_contacts, # type: ignore
-        weight=-5.0,
+        weight=-2.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},
     )
 
     undesired_contacts_toe = RewTerm(
         func=mdp.undesired_contacts, # type: ignore
-        weight=-5.0,
+        weight=-2.0,
         params={"sensor_cfg": SceneEntityCfg("toe_contact", body_names=".*_toe_tip"), "threshold": 1.0},
     )
     
@@ -368,7 +368,7 @@ class HECTORCommandsCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges( # type: ignore
-            lin_vel_x=(0.3, 0.7), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
+            lin_vel_x=(0.3, 0.6), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.0, 0.0), heading=(-math.pi, math.pi)
         ),
     )
     
