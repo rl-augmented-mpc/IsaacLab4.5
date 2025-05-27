@@ -190,8 +190,8 @@ class MPCAction(ActionTerm):
         
         # # rough discretization
         # body_center_in_image = (width//2 - scan_offset[0], height//2 - scan_offset[1])
-        # col_index = ((target_pos[:, 0]/scan_resolution).long() + body_center_in_image[0]).clamp(0, width-1)
-        # row_index = ((target_pos[:, 1]/scan_resolution).long() + body_center_in_image[1]).clamp(0, height-1)
+        # col_index = ((target_pos[:, 0]/scan_resolution) + body_center_in_image[0]).ceil().clamp(0, width-1)
+        # row_index = ((target_pos[:, 1]/scan_resolution) + body_center_in_image[1]).ceil().clamp(0, height-1)
         # indices = (width*row_index + col_index).long() # flatten index
         # ground_height = height_map[torch.arange(self.num_envs), indices]
         
@@ -255,6 +255,13 @@ class MPCAction(ActionTerm):
         scan_offset = (int(sensor.cfg.offset.pos[0]/scan_resolution), int(sensor.cfg.offset.pos[1]/scan_resolution))
         target_pos = (self.foot_placement_b.reshape(self.num_envs, 2, 2) * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
         
+        # # rough discretization
+        # body_center_in_image = (width//2 - scan_offset[0], height//2 - scan_offset[1])
+        # col_index = ((target_pos[:, 0]/scan_resolution) + body_center_in_image[0]).ceil().clamp(0, width-1)
+        # row_index = ((target_pos[:, 1]/scan_resolution) + body_center_in_image[1]).ceil().clamp(0, height-1)
+        # indices = (width*row_index + col_index).long() # flatten index
+        # ground_height = height_map[torch.arange(self.num_envs), indices]
+        
         # bilinear interpolation
         x_img = target_pos[:, 0] / scan_resolution + (width // 2 - scan_offset[0])
         y_img = target_pos[:, 1] / scan_resolution + (height // 2 - scan_offset[1])
@@ -291,7 +298,6 @@ class MPCAction(ActionTerm):
         z0 = (1 - wx) * z00.unsqueeze(1) + wx * z10.unsqueeze(1)  # along x
         z1 = (1 - wx) * z01.unsqueeze(1) + wx * z11.unsqueeze(1)  # along x
         ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1)      # along y
-        # ground_height = torch.min(torch.stack([z00, z10, z01, z11], dim=1), dim=1).values
         
         ground_level_odometry_frame = self.robot_api._init_pos[:, 2] - self.robot_api.default_root_state[:, 2]
         self.foot_placement_height = np.clip((ground_height - ground_level_odometry_frame).cpu().numpy(), 0.0, None)
@@ -301,7 +307,7 @@ class MPCAction(ActionTerm):
         default_position = self.robot_api._init_pos[:, :3].clone()
         default_position[:, 2] -= self.robot_api.default_root_state[:, 2]
         
-        fp_z = torch.from_numpy(self.reference_height-self.cfg.nominal_height)
+        fp_z = torch.from_numpy(self.foot_placement_height)
         fp[:, 0, :2] = self.foot_placement_w[:, :2]
         fp[:, 1, :2] = self.foot_placement_w[:, 2:]
         fp[:, 0, 2] = fp_z
