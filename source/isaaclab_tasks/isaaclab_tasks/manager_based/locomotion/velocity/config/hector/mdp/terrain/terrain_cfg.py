@@ -131,7 +131,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="generator",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(20.0, 10.0), # size of sub-terrain
+        size=(30.0, 10.0), # size of sub-terrain
         border_width=0.0,
         num_rows=1,
         num_cols=1,
@@ -145,7 +145,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
             profile_mode="random",
             proportion=0.2, 
             num_box=60,
-            box_height_range=(0.08, 0.08), 
+            box_height_range=(0.06, 0.06), 
             platform_width=10.0, 
             # platform_length_range_start=(0.6, 1.0), platform_length_range_end=(0.6, 1.0),
             platform_length_range_start=(0.2, 0.5), platform_length_range_end=(0.2, 0.5),
@@ -207,7 +207,7 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
         size=(30.0, 10.0), # size of sub-terrain
         border_width=0.0,
         num_rows=5,
-        num_cols=1,
+        num_cols=5,
         horizontal_scale=0.1,
         vertical_scale=0.005,
         slope_threshold=0.75,

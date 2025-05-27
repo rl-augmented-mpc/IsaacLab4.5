@@ -86,7 +86,7 @@ params:
     # seq_length: 4
 
     # SAC specific parameters
-    num_steps_per_episode: 24
+    num_steps_per_episode: 36
     horizon_length: ${.num_steps_per_episode}
     init_alpha: 1.0 # dual parameter initial value
     alpha_lr: 3e-4 # dual parameter learning rate
@@ -95,7 +95,7 @@ params:
     critic_tau: 5e-3 # soft update parameter
     learnable_temperature: True
     num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
-    batch_size: 256
+    batch_size: 216
     # replay_buffer_size: 50000
     replay_buffer_size: 1000000
   

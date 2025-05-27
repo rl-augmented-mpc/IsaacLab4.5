@@ -6,8 +6,10 @@
 import math
 
 import isaaclab.sim as sim_utils
+from isaaclab.utils import configclass
+
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
-from isaaclab.envs import ManagerBasedRLEnvCfg
+from isaaclab.markers import VisualizationMarkersCfg
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
@@ -18,9 +20,11 @@ from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
 from isaaclab.terrains import TerrainImporterCfg
-from isaaclab.utils import configclass
-from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
+from isaaclab.envs import ManagerBasedRLEnvCfg
+
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
+from isaaclab_assets import ISAACLAB_ASSETS_DATA_DIR # type: ignore
 
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg, RewardsCfg, EventCfg
@@ -36,10 +40,11 @@ class HECTORSceneCfg(InteractiveSceneCfg):
     """Configuration for the terrain scene with a legged robot."""
 
     # ground terrain
-    # terrain = hector_mdp.CurriculumSteppingStoneTerrain
-    terrain = hector_mdp.BaseTerrain
+    terrain = hector_mdp.CurriculumSteppingStoneTerrain
+    
     # robots
     robot: ArticulationCfg = HECTOR_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    
     # sensors
     height_scanner = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base",
@@ -50,19 +55,58 @@ class HECTORSceneCfg(InteractiveSceneCfg):
         mesh_prim_paths=["/World/ground"],
         update_period=1/10,
     )
+    height_scanner.visualizer_cfg = VisualizationMarkersCfg(
+        prim_path="/Visuals/RayCaster",
+        markers={
+            "hit": sim_utils.SphereCfg(
+                radius=0.01,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
+            ),
+        },
+    )
     contact_forces = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/Robot/.*", 
         # prim_path="{ENV_REGEX_NS}/Robot/.*_toe", 
         history_length=3, 
         track_air_time=True,
         update_period=1/100,
+        debug_vis=True,
         )
+    contact_forces.visualizer_cfg = VisualizationMarkersCfg(
+        prim_path="/Visuals/ContactSensor",
+        markers={
+            "contact": sim_utils.SphereCfg(
+                radius=0.03,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.8)),
+            ),
+            "no_contact": sim_utils.SphereCfg(
+                radius=0.03,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.8)),
+                visible=False,
+            ),
+        },
+    )
     toe_contact = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/Robot/.*_toe_tip",
         history_length=3,
         track_air_time=True,
         update_period=1/100,
         )
+    toe_contact.visualizer_cfg = VisualizationMarkersCfg(
+        prim_path="/Visuals/ContactSensorToe",
+        markers={
+            "contact": sim_utils.SphereCfg(
+                radius=0.03,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.8)),
+            ),
+            "no_contact": sim_utils.SphereCfg(
+                radius=0.03,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.8)),
+                visible=False,
+            ),
+        },
+    )
+    
     # lights
     sky_light = AssetBaseCfg(
         prim_path="/World/skyLight",
@@ -84,7 +128,7 @@ class HECTORRewards(RewardsCfg):
     # -- rewards
     alive = RewTerm(
         func=mdp.is_alive,  # type: ignore
-        weight=0.05,
+        weight=0.1,
     )
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
@@ -117,6 +161,15 @@ class HECTORRewards(RewardsCfg):
             "action_name": "mpc_action", 
             "std": 0.5,
         },
+    )
+    
+    active_action = RewTerm(
+        func=hector_mdp.active_action_reward, # type: ignore
+        weight=0.1,
+        params={
+            "sensor_cfg": SceneEntityCfg("height_scanner"),
+            "action_name": "mpc_action", 
+        }
     )
     
     # foot_placement = RewTerm(
@@ -153,7 +206,7 @@ class HECTORRewards(RewardsCfg):
     # )
     processed_action_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-0.01,
+        weight=-0.3,
         params={
             "action_idx": [-3, -2, -1],
             "action_name": "mpc_action",
@@ -328,14 +381,14 @@ class HECTORObservationsCfg:
 class HECTORActionsCfg:
     """Action specifications for the MDP."""
 
-    # mpc_action = hector_mdp.MPCActionCfg(
-    #     asset_name="robot", 
-    #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
-    #     action_range = (
-    #         (-0.5, 0.0, -0.6), 
-    #         (0.5, 0.1, 0.6)
-    #     )
-    # )
+    mpc_action = hector_mdp.MPCActionCfg(
+        asset_name="robot", 
+        joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
+        action_range = (
+            (-0.3, 0.0, -0.6), 
+            (0.3, 0.15, 0.6)
+        )
+    )
     
     # mpc_action = hector_mdp.MPCActionCfgV2(
     #     asset_name="robot", 
@@ -355,14 +408,14 @@ class HECTORActionsCfg:
     #     )
     # )
     
-    mpc_action = hector_mdp.TorchMPCActionCfg(
-        asset_name="robot", 
-        joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
-        action_range = (
-            (-0.5, 0.0, -0.6), 
-            (0.5, 0.1, 0.6)
-        )
-    )
+    # mpc_action = hector_mdp.TorchMPCActionCfg(
+    #     asset_name="robot", 
+    #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
+    #     action_range = (
+    #         (-0.5, 0.0, -0.6), 
+    #         (0.5, 0.1, 0.6)
+    #     )
+    # )
     
 
 @configclass
@@ -424,7 +477,7 @@ class HECTOREventCfg(EventCfg):
         mode="reset",
         params={
             "pose_range": {
-                "x": (-3.0, 3.0), 
+                "x": (-1.0, 1.0), 
                 "y": (-3.0, 3.0), 
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
