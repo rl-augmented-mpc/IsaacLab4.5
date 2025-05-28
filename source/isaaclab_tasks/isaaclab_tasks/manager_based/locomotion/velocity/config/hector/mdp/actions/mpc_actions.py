@@ -307,20 +307,65 @@ class MPCAction(ActionTerm):
         default_position = self.robot_api._init_pos[:, :3].clone()
         default_position[:, 2] -= self.robot_api.default_root_state[:, 2]
         
-        fp_z = torch.from_numpy(self.foot_placement_height)
+        sensor= self._env.scene.sensors["height_scanner"]
+        height_map = sensor.data.ray_hits_w[..., 2]
+        
+        scan_width, scan_height = sensor.cfg.pattern_cfg.size
+        scan_resolution = sensor.cfg.pattern_cfg.resolution
+        width = int(scan_width/scan_resolution + 1)
+        height = int(scan_height/scan_resolution + 1)
+        scan_offset = (int(sensor.cfg.offset.pos[0]/scan_resolution), int(sensor.cfg.offset.pos[1]/scan_resolution))
+        
+        foot_height = []
+        for foot in range(2):
+            target_pos = self.foot_placement_b.reshape(self.num_envs, 2, 2)[:, foot, :]
+            
+            x_img = target_pos[:, 0] / scan_resolution + (width // 2 - scan_offset[0])
+            y_img = target_pos[:, 1] / scan_resolution + (height // 2 - scan_offset[1])
+
+            # Clamp to valid range before ceil/floor to avoid out-of-bounds
+            x0 = x_img.floor().clamp(0, width - 2)     # [N]
+            x1 = (x0 + 1).clamp(0, width - 1)          # [N]
+            y0 = y_img.floor().clamp(0, height - 2)    # [N]
+            y1 = (y0 + 1).clamp(0, height - 1)         # [N]
+
+            # Calculate weights for interpolation
+            wx = (x_img - x0).unsqueeze(1)             # [N, 1]
+            wy = (y_img - y0).unsqueeze(1)             # [N, 1]
+
+            # Convert to long for indexing
+            x0 = x0.long()
+            x1 = x1.long()
+            y0 = y0.long()
+            y1 = y1.long()
+
+            # Flattened index computation
+            idx00 = y0 * width + x0
+            idx10 = y0 * width + x1
+            idx01 = y1 * width + x0
+            idx11 = y1 * width + x1
+
+            # Gather the four corner heights
+            z00 = height_map[torch.arange(self.num_envs), idx00]
+            z10 = height_map[torch.arange(self.num_envs), idx10]
+            z01 = height_map[torch.arange(self.num_envs), idx01]
+            z11 = height_map[torch.arange(self.num_envs), idx11]
+
+            # Bilinear interpolation
+            z0 = (1 - wx) * z00.unsqueeze(1) + wx * z10.unsqueeze(1)  # along x
+            z1 = (1 - wx) * z01.unsqueeze(1) + wx * z11.unsqueeze(1)  # along x
+            ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1)      # along y
+            foot_height.append(ground_height)
+        
         fp[:, 0, :2] = self.foot_placement_w[:, :2]
         fp[:, 1, :2] = self.foot_placement_w[:, 2:]
-        fp[:, 0, 2] = fp_z
-        fp[:, 1, 2] = fp_z
+        fp[:, 0, 2] = foot_height[0]
+        fp[:, 1, 2] = foot_height[1]
         
         # convert from robot odometry frame to simulation global frame
         world_to_odom_rot = self.robot_api._init_rot
         fp[:, 0, :] = torch.bmm(world_to_odom_rot, fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position
         fp[:, 1, :] = torch.bmm(world_to_odom_rot, fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position
-        
-        # hide foot placement marker when foot is in contact
-        fp[:, 0, 2] -= self.gait_contact[:, 0] * 100.0
-        fp[:, 1, 2] -= self.gait_contact[:, 1] * 100.0
         
         orientation = self.robot_api.root_quat_w.repeat(2, 1)
         self.foot_placement_visualizer.visualize(fp, orientation)

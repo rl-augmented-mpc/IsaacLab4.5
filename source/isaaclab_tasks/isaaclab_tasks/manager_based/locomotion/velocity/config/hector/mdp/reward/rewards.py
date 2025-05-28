@@ -132,8 +132,8 @@ def get_ground_roughness_at_landing_point(
     num_envs = costmap_2d.shape[0]
     
     # foot size to consider stepping over
-    l_toe = 0.091
-    l_heel = 0.054
+    l_toe = 0.091/2
+    l_heel = 0.054/2
     foot_size_y = 0.073
     
     # in cartesian space
@@ -164,8 +164,8 @@ def get_ground_roughness_at_landing_point(
     window = 2
     height, width = costmap_2d.shape[1:3]
     costmap_2d_chunk = costmap_2d[:, height//2-window:height//2+window+1, width//2-window:width//2+window+1].contiguous() # (num_envs, 5, 5)
-    # elevation = torch.abs(torch.max(costmap_2d_chunk.view(num_envs, -1), dim=1).values - torch.min(costmap_2d_chunk.view(num_envs, -1), dim=1).values)
-    elevation = torch.abs(torch.max(costmap_2d.view(num_envs, -1), dim=1).values - torch.min(costmap_2d.view(num_envs, -1), dim=1).values)
+    elevation = torch.abs(torch.max(costmap_2d_chunk.view(num_envs, -1), dim=1).values - torch.min(costmap_2d_chunk.view(num_envs, -1), dim=1).values)
+    # elevation = torch.abs(torch.max(costmap_2d.view(num_envs, -1), dim=1).values - torch.min(costmap_2d.view(num_envs, -1), dim=1).values)
     normalized_roughness_at_foot = roughness_at_foot / (elevation + 1e-6)
     return normalized_roughness_at_foot
 
