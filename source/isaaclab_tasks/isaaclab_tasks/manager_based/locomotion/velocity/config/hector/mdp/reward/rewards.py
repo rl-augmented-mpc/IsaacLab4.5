@@ -27,7 +27,6 @@ if TYPE_CHECKING:
 helper functions 
 """
 
-
 def bilinear_interpolation(
     sensor_offset: tuple,
     foot_position_2d: torch.Tensor, 
@@ -35,23 +34,22 @@ def bilinear_interpolation(
     resolution: float = 0.1,
 ):
     """
-    foot position_2d: (num_envs, num_sample, 2, 2)
+    foot position_2d: (num_envs, 2, N, 2)
     costmap_2d: (num_envs, height, width)
     
+    x is 2D points in float and P1-P4 are the neighboring grid points.
     P1 ----- P2
     |    x   |
     P3 ----- P4
     """
     num_envs = foot_position_2d.shape[0]
-    num_foot_edge = foot_position_2d.shape[2]
     num_foot = foot_position_2d.shape[1]
+    num_foot_edge = foot_position_2d.shape[2]
     height, width = costmap_2d.shape[1:3]
     body_center_in_image_space = (height//2 - int(sensor_offset[1]/resolution), width//2 - int(sensor_offset[0]/resolution))
     
     # in image space
-    # foot position_2d_flat: (num_envs, num_foot_edge*num_foot, 2)
     foot_position_2d_flat = foot_position_2d.clone().reshape(num_envs, -1, 2)
-    
     foot_position_discrete = torch.zeros_like(foot_position_2d_flat)
     foot_position_discrete[:, :, 0] = (body_center_in_image_space[0] + (foot_position_2d_flat[:, :, 1]/resolution)).clamp(0, height-1) # row 
     foot_position_discrete[:, :, 1] = (body_center_in_image_space[1] + (foot_position_2d_flat[:, :, 0]/resolution)).clamp(0, width-1) # col
@@ -108,7 +106,6 @@ def bilinear_interpolation(
     height_at_foot = height_at_foot.reshape(-1, num_foot, num_foot_edge).transpose(1, 2) # (num_envs, num_foot_edge, num_foot)
     
     return height_at_foot
-    
 
 def get_ground_roughness_at_landing_point(
     num_envs: int,
@@ -117,57 +114,40 @@ def get_ground_roughness_at_landing_point(
     foot_selection: torch.Tensor,
     costmap_2d: torch.Tensor,
     resolution: float = 0.1,
+    l_toe: float = 0.091,
+    l_heel: float = 0.054,
+    l_width: float = 0.073,
     ):
     """
     This function returns flatness value which is the difference between the max and min height in a 3x3 grid. 
     So, if robot is stepping on non-flat surface, flatness value results in terrain height value.
-    
-    
-    Foot edge configurations 
-    y↑ → x
-    1 ------ 2
-    |    x   |
-    3 ------ 4
     """
     num_envs = costmap_2d.shape[0]
-    
-    # foot size to consider stepping over
-    l_toe = 0.091/2
-    l_heel = 0.054/2
-    foot_size_y = 0.073
+    device = costmap_2d.device
     
     # in cartesian space
     foot_position_2d = foot_position.clone()[:, :, :2] # foot position wrt body frame
-    foot_edge_positions = torch.zeros(num_envs, 2, 4, 2, device=foot_position.device)
-    foot_edge_positions[:, 0, :, :] = foot_position_2d[:, :1, :].repeat(1, 4, 1)
-    foot_edge_positions[:, 1, :, :] = foot_position_2d[:, 1:, :].repeat(1, 4, 1)
-    foot_edge_positions[:, :, 0, 0] -= l_heel
-    foot_edge_positions[:, :, 0, 1] += foot_size_y/2
-    foot_edge_positions[:, :, 1, 0] += l_toe
-    foot_edge_positions[:, :, 1, 1] += foot_size_y/2
-    foot_edge_positions[:, :, 2, 0] -= l_heel
-    foot_edge_positions[:, :, 2, 1] -= foot_size_y/2
-    foot_edge_positions[:, :, 3, 0] += l_toe
-    foot_edge_positions[:, :, 3, 1] -= foot_size_y/2
+    num_samples = 4
+    X = torch.linspace(-l_heel, l_toe, num_samples, device=device)
+    Y = torch.linspace(-l_width/2, l_width/2, num_samples, device=device)
+    XX, YY = torch.meshgrid(X, Y, indexing='ij') # (num_samples, num_samples)
+    foot_sample_points = torch.stack((XX, YY), dim=2).view(num_samples*num_samples, 2).unsqueeze(0).unsqueeze(1).repeat(num_envs, 2, 1, 1) # (num_envs, 2, N, 2)
+    foot_sample_points[:, 0, :, :] += foot_position_2d[:, 0, None, :]
+    foot_sample_points[:, 1, :, :] += foot_position_2d[:, 1, None, :]
     
     height_at_foot = bilinear_interpolation(
         sensor_offset=sensor_offset,
-        foot_position_2d=foot_edge_positions, 
+        foot_position_2d=foot_sample_points, 
         costmap_2d=costmap_2d, 
         resolution=resolution
-    ) # (num_envs, 4, 2)
+    ) # (num_envs, num_samples, 2)
     
     roughness_at_foot = torch.abs(height_at_foot.max(dim=1).values - height_at_foot.min(dim=1).values) # (num_envs, 2)
-    roughness_at_foot = (roughness_at_foot * foot_selection).sum(dim=1) # (num_envs, 1)
-    roughness_at_foot = roughness_at_foot * (roughness_at_foot > 1e-3).float() # filter numerical noise
+    roughness_at_foot = (roughness_at_foot * foot_selection).max(dim=1).values # (num_envs,) get worst case roughness
+    roughness_at_foot = roughness_at_foot * (roughness_at_foot > 1e-3).float() # filter small value to be 0
+    std = (torch.std(height_at_foot, dim=1) * foot_selection).max(dim=1).values # (num_envs,)
     
-    window = 2
-    height, width = costmap_2d.shape[1:3]
-    costmap_2d_chunk = costmap_2d[:, height//2-window:height//2+window+1, width//2-window:width//2+window+1].contiguous() # (num_envs, 5, 5)
-    elevation = torch.abs(torch.max(costmap_2d_chunk.view(num_envs, -1), dim=1).values - torch.min(costmap_2d_chunk.view(num_envs, -1), dim=1).values)
-    # elevation = torch.abs(torch.max(costmap_2d.view(num_envs, -1), dim=1).values - torch.min(costmap_2d.view(num_envs, -1), dim=1).values)
-    normalized_roughness_at_foot = roughness_at_foot / (elevation + 1e-6)
-    return normalized_roughness_at_foot
+    return roughness_at_foot, std
 
 def discrete_terrain_costmap(
     height_map_2d: torch.Tensor,
@@ -249,7 +229,9 @@ def foot_placement_reward(
     env: ManagerBasedRLEnv,
     sensor_cfg: SceneEntityCfg = SceneEntityCfg("ray_caster"),
     action_name: str = "mpc_action",
-    std: float = 0.5,
+    l_toe: float = 0.091,
+    l_heel: float = 0.054,
+    l_width: float = 0.073,
 ):
     raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
     height_map = raycaster.data.ray_hits_w[..., 2]  - raycaster.data.pos_w[:, 2].unsqueeze(1)
@@ -259,7 +241,6 @@ def foot_placement_reward(
     width, height = int(grid_x/resolution + 1), int(grid_y/resolution + 1)
     sensor_offset = (raycaster.cfg.offset.pos[0], raycaster.cfg.offset.pos[1])
     heightmap_2d = height_map.view(-1, height, width)
-    # costmap_2d = discrete_terrain_costmap(heightmap_2d)
     
     action_term = env.action_manager.get_term(action_name)
     
@@ -268,7 +249,7 @@ def foot_placement_reward(
     foot_position_b = action_term.foot_placement_b.reshape(-1, 2, 2)
     
     # retrieves ground flatness where stance foot position is projected onto height map.
-    ground_flatness_at_foot = get_ground_roughness_at_landing_point(
+    roughness_at_foot, std = get_ground_roughness_at_landing_point(
         env.num_envs,
         sensor_offset,
         foot_position_b,
@@ -276,15 +257,19 @@ def foot_placement_reward(
         # costmap_2d, # costmap
         heightmap_2d, # heightmap
         resolution,
+        l_toe,
+        l_heel,
+        l_width,
     )
     
-    mask = (height_map.max(dim=1).values - height_map.min(dim=1).values) > 1e-3
+    # mask = (height_map.max(dim=1).values - height_map.min(dim=1).values) > 1e-3
     
     # reward = torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential reward
-    reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) * mask # gaussian reward
+    reward = torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6)) # gaussian reward
     # reward = 1-torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential penalty
     # reward = 1-torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian penalty
-
+    # print(reward)
+    
     return reward
 
 def stance_foot_position_reward(
@@ -292,7 +277,9 @@ def stance_foot_position_reward(
     sensor_cfg: SceneEntityCfg = SceneEntityCfg("ray_caster"),
     contact_sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
     action_name: str = "mpc_action",
-    std: float = 0.5,
+    l_toe: float = 0.091,
+    l_heel: float = 0.054,
+    l_width: float = 0.073,
 ):
     raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
     contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
@@ -303,7 +290,6 @@ def stance_foot_position_reward(
     width, height = int(grid_x/resolution + 1), int(grid_y/resolution + 1)
     sensor_offset = (raycaster.cfg.offset.pos[0], raycaster.cfg.offset.pos[1])
     heightmap_2d = height_map.view(-1, height, width)
-    # costmap_2d = discrete_terrain_costmap(heightmap_2d)
     
     action_term = env.action_manager.get_term(action_name)
     
@@ -312,20 +298,22 @@ def stance_foot_position_reward(
     foot_position_b = action_term.foot_pos_b.reshape(-1, 2, 3)
     
     # retrieves ground flatness where stance foot position is projected onto height map.
-    ground_flatness_at_foot = get_ground_roughness_at_landing_point(
+    roughness_at_foot, std = get_ground_roughness_at_landing_point(
         env.num_envs,
         sensor_offset,
         foot_position_b,
         foot_selection,
-        # costmap_2d, # costmap
         heightmap_2d, # heightmap
         resolution,
+        l_toe,
+        l_heel,
+        l_width,
     )
     
-    mask = (height_map.max(dim=1).values - height_map.min(dim=1).values) > 1e-3
+    # mask = (height_map.max(dim=1).values - height_map.min(dim=1).values) > 1e-3
     
     # reward = torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential reward
-    reward = torch.exp(-torch.square(ground_flatness_at_foot)/std**2) * mask # gaussian reward
+    reward = torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6)) # gaussian reward
     # reward = 1-torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential penalty
     # reward = 1-torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian penalty
     # print(reward)

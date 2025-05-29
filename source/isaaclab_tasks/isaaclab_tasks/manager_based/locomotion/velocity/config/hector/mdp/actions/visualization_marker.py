@@ -127,14 +127,52 @@ class FootPlacementVisualizer:
         self.markers_cfg = VisualizationMarkersCfg(
             prim_path=prim_path,
             markers={
-                "left_fps": sim_utils.CuboidCfg(
-                size=(self.foot_size_x, self.foot_size_y, 0.01),
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.5), opacity=1.0),
-                ),
-                "right_fps": sim_utils.CuboidCfg(
-                size=(self.foot_size_x, self.foot_size_y, 0.01),
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.8), opacity=1.0),
-                ),
+                "left_fps":
+                sim_utils.UsdFileCfg(
+                usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/props/left_foot_print.usd",
+                scale=(1.0, 1.0, 1.0),
+                ), 
+                "right_fps":
+                sim_utils.UsdFileCfg(
+                usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/props/right_foot_print.usd",
+                scale=(1.0, 1.0, 1.0),
+                ), 
+            }
+        )
+        self.marker = VisualizationMarkers(self.markers_cfg)
+    
+    def visualize(self, fps:torch.Tensor, orientation:torch.Tensor):
+        """_summary_
+
+        Args:
+            reibert_fps (torch.Tensor): (num_envs, 2, 3)
+            augmented_fps (torch.Tensor): (num_envs, 2, 3)
+        """
+        positions = fps.clone()
+        num_envs = positions.shape[0]
+        indices = torch.arange(self.marker.num_prototypes, device=positions.device).reshape(1, -1).repeat(num_envs, 1) # (num_envs, 4)
+        positions = positions.reshape(-1, 3) # (num_envs*2, 3)
+        indices = indices.reshape(-1)
+        self.marker.visualize(translations=positions, orientations=orientation, marker_indices=indices)
+
+class SlackedFootPlacementVisualizer:
+    def __init__(self, prim_path):
+        self.prim_path = prim_path
+        self.foot_size_x = 0.145
+        self.foot_size_y = 0.073
+        self.markers_cfg = VisualizationMarkersCfg(
+            prim_path=prim_path,
+            markers={
+                "left_fps":
+                sim_utils.UsdFileCfg(
+                usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/props/left_foot_print_margin.usd",
+                scale=(1.0, 1.0, 1.0),
+                ), 
+                "right_fps":
+                sim_utils.UsdFileCfg(
+                usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/props/right_foot_print_margin.usd",
+                scale=(1.0, 1.0, 1.0),
+                ), 
             }
         )
         self.marker = VisualizationMarkers(self.markers_cfg)

@@ -166,69 +166,97 @@ if __name__ == "__main__":
     cmap = plt.get_cmap('jet')  # Or 'terrain', 'plasma', etc.
     norm = mcolors.Normalize(vmin=0.0, vmax=0.1)
     
-    fig, ax = plt.subplots(2, 1, figsize=(10, 10))
+    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
     
     for i in range(0, width):
         for j in range(0, height):
             color = cmap(norm(height_map_2d[0, height-1-j, i]))
-            ax[0].scatter(i, j, color=color, s=20)
+            ax.scatter(i, j, color=color, s=20)
     
     # plt scatter assume origin lower left corner. 
     # we treat all indices aligned with image coordiante which is upper left corner.
     
-    ax[0].scatter(foot_discrete[0, :, 0, 1].cpu().numpy(), 
+    ax.scatter(foot_discrete[0, :, 0, 1].cpu().numpy(), 
                 height-foot_discrete[0, :, 0, 0].cpu().numpy(), 
                 color=cmap(norm(height_at_foot[0, :, 0].cpu().numpy())), 
                 ) # left  
-    ax[0].scatter(foot_discrete[0, :, 1, 1].cpu().numpy(), 
+    ax.scatter(foot_discrete[0, :, 1, 1].cpu().numpy(), 
                 height-foot_discrete[0, :, 1, 0].cpu().numpy(), 
                 color=cmap(norm(height_at_foot[0, :, 1].cpu().numpy())), 
                 ) # right
-    ax[0].plot(foot_discrete[0, :, 0, 1].cpu().numpy()[[0, 1, 3, 2, 0]], 
+    ax.plot(foot_discrete[0, :, 0, 1].cpu().numpy()[[0, 1, 3, 2, 0]], 
             height-foot_discrete[0, :, 0, 0].cpu().numpy()[[0, 1, 3, 2, 0]], 
             c="k")
-    ax[0].plot(foot_discrete[0, :, 1, 1].cpu().numpy()[[0, 1, 3, 2, 0]],
+    ax.plot(foot_discrete[0, :, 1, 1].cpu().numpy()[[0, 1, 3, 2, 0]],
             height-foot_discrete[0, :, 1, 0].cpu().numpy()[[0, 1, 3, 2, 0]],
             c="k")
-    ax[0].set_title("raw height map")
+    ax.set_title("raw height map")
     # plt.axis('equal')
     
     
-    # ======== cost map ==============
-    roughness_at_foot, foot_discrete, height_at_foot = get_ground_roughness_at_landing_point(
-        num_envs=num_envs,
-        foot_position=foot_position.reshape(num_envs, -1),
-        foot_contact=foot_contact,
-        costmap_2d=costmap_2d,
-        resolution=resolution,
-    )
+    # fig, ax = plt.subplots(2, 1, figsize=(10, 10))
     
-    for i in range(0, width):
-        for j in range(0, height):
-            color = cmap(norm(costmap_2d[0, height-1-j, i]))
-            ax[1].scatter(i, j, color=color, s=20)
+    # for i in range(0, width):
+    #     for j in range(0, height):
+    #         color = cmap(norm(height_map_2d[0, height-1-j, i]))
+    #         ax[0].scatter(i, j, color=color, s=20)
     
-    # plt scatter assume origin lower left corner. 
-    # we treat all indices aligned with image coordiante which is upper left corner.
+    # # plt scatter assume origin lower left corner. 
+    # # we treat all indices aligned with image coordiante which is upper left corner.
     
-    ax[1].scatter(foot_discrete[0, :, 0, 1].cpu().numpy(), 
-                height-foot_discrete[0, :, 0, 0].cpu().numpy(), 
-                color=cmap(norm(height_at_foot[0, :, 0].cpu().numpy())), 
-                ) # left  
-    ax[1].scatter(foot_discrete[0, :, 1, 1].cpu().numpy(), 
-                height-foot_discrete[0, :, 1, 0].cpu().numpy(), 
-                color=cmap(norm(height_at_foot[0, :, 1].cpu().numpy())), 
-                ) # right
-    ax[1].plot(foot_discrete[0, :, 0, 1].cpu().numpy()[[0, 1, 3, 2, 0]], 
-            height-foot_discrete[0, :, 0, 0].cpu().numpy()[[0, 1, 3, 2, 0]], 
-            c="k")
-    ax[1].plot(foot_discrete[0, :, 1, 1].cpu().numpy()[[0, 1, 3, 2, 0]],
-            height-foot_discrete[0, :, 1, 0].cpu().numpy()[[0, 1, 3, 2, 0]],
-            c="k")
-    ax[1].set_title("cost map")
+    # ax[0].scatter(foot_discrete[0, :, 0, 1].cpu().numpy(), 
+    #             height-foot_discrete[0, :, 0, 0].cpu().numpy(), 
+    #             color=cmap(norm(height_at_foot[0, :, 0].cpu().numpy())), 
+    #             ) # left  
+    # ax[0].scatter(foot_discrete[0, :, 1, 1].cpu().numpy(), 
+    #             height-foot_discrete[0, :, 1, 0].cpu().numpy(), 
+    #             color=cmap(norm(height_at_foot[0, :, 1].cpu().numpy())), 
+    #             ) # right
+    # ax[0].plot(foot_discrete[0, :, 0, 1].cpu().numpy()[[0, 1, 3, 2, 0]], 
+    #         height-foot_discrete[0, :, 0, 0].cpu().numpy()[[0, 1, 3, 2, 0]], 
+    #         c="k")
+    # ax[0].plot(foot_discrete[0, :, 1, 1].cpu().numpy()[[0, 1, 3, 2, 0]],
+    #         height-foot_discrete[0, :, 1, 0].cpu().numpy()[[0, 1, 3, 2, 0]],
+    #         c="k")
+    # ax[0].set_title("raw height map")
+    # # plt.axis('equal')
     
-    sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
-    fig.colorbar(sm, ax=ax, label='cost')
+    
+    # # ======== cost map ==============
+    # roughness_at_foot, foot_discrete, height_at_foot = get_ground_roughness_at_landing_point(
+    #     num_envs=num_envs,
+    #     foot_position=foot_position.reshape(num_envs, -1),
+    #     foot_contact=foot_contact,
+    #     costmap_2d=costmap_2d,
+    #     resolution=resolution,
+    # )
+    
+    # for i in range(0, width):
+    #     for j in range(0, height):
+    #         color = cmap(norm(costmap_2d[0, height-1-j, i]))
+    #         ax[1].scatter(i, j, color=color, s=20)
+    
+    # # plt scatter assume origin lower left corner. 
+    # # we treat all indices aligned with image coordiante which is upper left corner.
+    
+    # ax[1].scatter(foot_discrete[0, :, 0, 1].cpu().numpy(), 
+    #             height-foot_discrete[0, :, 0, 0].cpu().numpy(), 
+    #             color=cmap(norm(height_at_foot[0, :, 0].cpu().numpy())), 
+    #             ) # left  
+    # ax[1].scatter(foot_discrete[0, :, 1, 1].cpu().numpy(), 
+    #             height-foot_discrete[0, :, 1, 0].cpu().numpy(), 
+    #             color=cmap(norm(height_at_foot[0, :, 1].cpu().numpy())), 
+    #             ) # right
+    # ax[1].plot(foot_discrete[0, :, 0, 1].cpu().numpy()[[0, 1, 3, 2, 0]], 
+    #         height-foot_discrete[0, :, 0, 0].cpu().numpy()[[0, 1, 3, 2, 0]], 
+    #         c="k")
+    # ax[1].plot(foot_discrete[0, :, 1, 1].cpu().numpy()[[0, 1, 3, 2, 0]],
+    #         height-foot_discrete[0, :, 1, 0].cpu().numpy()[[0, 1, 3, 2, 0]],
+    #         c="k")
+    # ax[1].set_title("cost map")
+    
+    # sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+    # fig.colorbar(sm, ax=ax, label='cost')
     
     plt.show()
     

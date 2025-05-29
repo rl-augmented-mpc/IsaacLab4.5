@@ -27,7 +27,7 @@ from . import actions_cfg
 
 from .robot_helper import RobotCore
 from .mpc_controller import MPC_Conf, MPCController
-from .visualization_marker import FootPlacementVisualizer
+from .visualization_marker import FootPlacementVisualizer, SlackedFootPlacementVisualizer
 
 
 class MPCAction(ActionTerm):
@@ -106,6 +106,7 @@ class MPCAction(ActionTerm):
         
         # markers
         self.foot_placement_visualizer = FootPlacementVisualizer("/Visuals/foot_placement")
+        self.slacked_foot_placement_visualizer = SlackedFootPlacementVisualizer("/Visuals/slacked_foot_placement")
     
     """
     Properties.
@@ -369,6 +370,7 @@ class MPCAction(ActionTerm):
         
         orientation = self.robot_api.root_quat_w.repeat(2, 1)
         self.foot_placement_visualizer.visualize(fp, orientation)
+        self.slacked_foot_placement_visualizer.visualize(fp, orientation)
 
     def apply_actions(self):
         # obtain state
