@@ -281,7 +281,6 @@ class RobotCore:
             foot_depth (torch.Tensor): Foot penetration depth (num_envs, num_contact_points, 3)
         """
         foot_pos = self.body_pos_w[:, self.foot_body_id, :]
-        foot_pos[:, :, 2] =- 0.04
         return foot_pos
     
     @property
@@ -292,7 +291,8 @@ class RobotCore:
             foot_depth (torch.Tensor): Foot penetration depth (num_envs, num_contact_points, 3, 3)
         """
         foot_pos = self.foot_pos.clone()
-        foot_pos[:, :, :2] -= self._init_pos[:, None, :2]
+        foot_pos[:, :, :3] -= self._init_pos[:, None, :3]
+        foot_pos[:, :, 2] += self.default_root_state[:, 2]
         rot_mat = self._init_rot.clone().unsqueeze(1).repeat(1, self.total_contact_point, 1, 1).view(-1, 3, 3)
         return torch.bmm(rot_mat.transpose(1,2), foot_pos.view(-1, 3, 1)).view(-1, self.total_contact_point, 3)
     
@@ -304,7 +304,7 @@ class RobotCore:
             foot_depth (torch.Tensor): Foot penetration depth (num_envs, num_contact_points, 3, 3)
         """
         foot_pos = self.foot_pos.clone()
-        foot_pos[:, :, :2] -= self.root_pos_w[:, None, :2]
+        foot_pos[:, :, :3] -= self.root_pos_w[:, None, :3]
         rot_mat = self.root_rot_mat_w.clone().unsqueeze(1).repeat(1, self.total_contact_point, 1, 1).view(-1, 3, 3)
         return torch.bmm(rot_mat.transpose(1,2), foot_pos.view(-1, 3, 1)).view(-1, self.total_contact_point, 3)
     
