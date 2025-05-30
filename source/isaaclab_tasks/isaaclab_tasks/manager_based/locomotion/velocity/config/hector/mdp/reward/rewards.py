@@ -232,6 +232,7 @@ def foot_placement_reward(
     l_toe: float = 0.091,
     l_heel: float = 0.054,
     l_width: float = 0.073,
+    std: float = 0.5, 
 ):
     raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
     height_map = raycaster.data.ray_hits_w[..., 2]  - raycaster.data.pos_w[:, 2].unsqueeze(1)
@@ -249,7 +250,7 @@ def foot_placement_reward(
     foot_position_b = action_term.foot_placement_b.reshape(-1, 2, 2)
     
     # retrieves ground flatness where stance foot position is projected onto height map.
-    roughness_at_foot, std = get_ground_roughness_at_landing_point(
+    roughness_at_foot, _ = get_ground_roughness_at_landing_point(
         env.num_envs,
         sensor_offset,
         foot_position_b,
@@ -280,6 +281,7 @@ def stance_foot_position_reward(
     l_toe: float = 0.091,
     l_heel: float = 0.054,
     l_width: float = 0.073,
+    std: float = 0.5, 
 ):
     raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
     contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
@@ -298,7 +300,7 @@ def stance_foot_position_reward(
     foot_position_b = action_term.foot_pos_b.reshape(-1, 2, 3)
     
     # retrieves ground flatness where stance foot position is projected onto height map.
-    roughness_at_foot, std = get_ground_roughness_at_landing_point(
+    roughness_at_foot, _ = get_ground_roughness_at_landing_point(
         env.num_envs,
         sensor_offset,
         foot_position_b,
