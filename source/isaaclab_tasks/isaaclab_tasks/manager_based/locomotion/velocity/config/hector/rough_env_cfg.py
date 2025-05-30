@@ -147,7 +147,7 @@ class HECTORRewards(RewardsCfg):
         weight=0.2,
         params={
                 "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
-                "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*_sole"),
                 "std": 0.1,
                 "reference_height": 0.55,
                 },
@@ -262,7 +262,7 @@ class HECTORRewards(RewardsCfg):
     # penalty for stepping stone
     leg_body_angle_l2 = RewTerm(
         func=hector_mdp.leg_body_angle_l2, 
-        weight=-0.2,
+        weight=-0.5,
         params={"action_name": "mpc_action"}
     )
     leg_body_distance_l2 = RewTerm(

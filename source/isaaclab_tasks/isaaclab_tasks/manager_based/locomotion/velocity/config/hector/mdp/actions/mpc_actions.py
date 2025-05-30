@@ -45,7 +45,9 @@ class MPCAction(ActionTerm):
         # initialize the action term
         super().__init__(cfg, env)
         # create robot helper object
-        self.robot_api = RobotCore(self._asset, self.num_envs, torch.tensor([19, 20], device=self.device, dtype=torch.long))
+        body_names = self._asset.data.body_names
+        foot_idx = [i for i in range(len(body_names)) if body_names[i] in ["L_sole", "R_sole"]]
+        self.robot_api = RobotCore(self._asset, self.num_envs, torch.tensor(foot_idx, device=self.device, dtype=torch.long))
 
         # resolve the joints over which the action term is applied
         self._joint_ids, self._joint_names = self._asset.find_joints(self.cfg.joint_names, preserve_order=True)
@@ -138,7 +140,7 @@ class MPCAction(ActionTerm):
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
         self._raw_actions[:] = actions
-        print(f"raw actions: {self._raw_actions}")
+        # print(f"raw actions: {self._raw_actions}")
         # self._raw_actions[:, 0] = 2*torch.rand(self.num_envs, device=self.device) - 1 # randomize gait frequency
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
@@ -461,6 +463,20 @@ class MPCAction(ActionTerm):
         
         # compute mpc cost
         self.mpc_cost = torch.from_numpy(np.array(mpc_cost)).to(self.device).view(self.num_envs).to(torch.float32)
+        
+        swing_foot_pos_b = (self.foot_pos_b.reshape(self.num_envs, 2, 3) * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
+        swing_foot_ref_pos_b = (self.ref_foot_pos_b.reshape(self.num_envs, 2, 3) * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
+        # swing_foot_pos_gt = (self.robot_api.foot_pos_b * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
+        swing_foot_pos_gt = (self.robot_api.foot_pos_local * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
+        
+        # swing_foot_pos_b = self.foot_pos_b.reshape(self.num_envs, 2, 3)
+        # swing_foot_ref_pos_b = self.ref_foot_pos_b.reshape(self.num_envs, 2, 3)
+        # swing_foot_pos_gt = self.robot_api.foot_pos_b
+        
+        # print("swing foot ref pos", swing_foot_ref_pos_b)
+        # print("swing foot pos", swing_foot_pos_b)
+        # print("swing foot pos gt", swing_foot_pos_gt)
+        # print("swing leg ", 1-self.gait_contact)
     
     def _add_joint_offset(self, joint_pos:torch.Tensor) -> torch.Tensor:
         joint_pos[:, 2] += torch.pi/4
