@@ -9,7 +9,7 @@ class RobotCore:
         self.num_envs = num_envs
         self.foot_body_id = foot_body_id
         self.total_contact_point = len(foot_body_id)
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # type: ignore
         self._init_pos = torch.zeros((num_envs, 3), device=device)
         self._init_rot = torch.eye(3, device=device).unsqueeze(0).repeat(num_envs, 1, 1)
         
@@ -73,8 +73,8 @@ class RobotCore:
     
     @property
     def root_pos_w(self)->torch.Tensor:
-        # return self.articulation.data.root_pos_w
-        return self.articulation.data.root_com_pos_w
+        return self.articulation.data.root_pos_w
+        # return self.articulation.data.root_com_pos_w
     
     @property
     def root_pos_local(self)->torch.Tensor:
@@ -88,8 +88,8 @@ class RobotCore:
     
     @property
     def root_quat_w(self)->torch.Tensor:
-        # return self.articulation.data.root_quat_w
-        return self.articulation.data.root_com_quat_w
+        return self.articulation.data.root_quat_w
+        # return self.articulation.data.root_com_quat_w
     
     @property
     def root_rot_mat_w(self)->torch.Tensor:
@@ -133,13 +133,13 @@ class RobotCore:
     
     @property
     def root_lin_vel_b(self)->torch.Tensor:
-        # return self.articulation.data.root_lin_vel_b
-        return self.articulation.data.root_com_lin_vel_b
+        return self.articulation.data.root_lin_vel_b
+        # return self.articulation.data.root_com_lin_vel_b
     
     @property
     def root_ang_vel_b(self)->torch.Tensor:
-        # return self.articulation.data.root_ang_vel_b
-        return self.articulation.data.root_com_ang_vel_b
+        return self.articulation.data.root_ang_vel_b
+        # return self.articulation.data.root_com_ang_vel_b
     
     """
     joint state

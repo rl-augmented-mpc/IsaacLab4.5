@@ -18,7 +18,7 @@ from isaaclab.envs import ManagerBasedEnv
 from . import mpc_actions_cfg
 from .robot_helper import RobotCore
 from .mpc_controller import MPC_Conf, MPCController
-from isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp.marker import FootPlacementVisualizer, SlackedFootPlacementVisualizer
+from isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp.marker import FootPlacementVisualizer, SlackedFootPlacementVisualizer, PositionTrajectoryVisualizer
 
 class MPCAction(ActionTerm):
 
@@ -90,6 +90,9 @@ class MPCAction(ActionTerm):
         self.leg_angle = torch.zeros(self.num_envs, 4, device=self.device)
         self.mpc_counter = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
         self.mpc_cost = torch.zeros(self.num_envs, device=self.device)
+        self.position_trajectory = torch.zeros(self.num_envs, 10, 3, device=self.device, dtype=torch.float32) # trajectory of the foot placement in world frame
+        self.orientation_trajectory = torch.zeros(self.num_envs, 10, 3, device=self.device, dtype=torch.float32) # trajectory of the foot placement in world frame
+        self.foot_position_trajectory = torch.zeros(self.num_envs, 10, 3, device=self.device, dtype=torch.float32) # trajectory of the foot placement in body frame
         
         # reference
         self.command = np.zeros((self.num_envs, 3), dtype=np.float32)
@@ -99,6 +102,7 @@ class MPCAction(ActionTerm):
         # markers
         self.foot_placement_visualizer = FootPlacementVisualizer("/Visuals/foot_placement")
         self.slacked_foot_placement_visualizer = SlackedFootPlacementVisualizer("/Visuals/slacked_foot_placement")
+        self.position_trajectory_visualizer = PositionTrajectoryVisualizer("/Visuals/position_trajectory")
     
     """
     Properties.
@@ -361,9 +365,15 @@ class MPCAction(ActionTerm):
         fp[:, 0, :] = torch.bmm(world_to_odom_rot, fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position
         fp[:, 1, :] = torch.bmm(world_to_odom_rot, fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position
         
+        position_traj_world = self.position_trajectory.clone()
+        for i in range(10):
+            position_traj_world[:, i, :] = (world_to_odom_rot @ position_traj_world[:, i, :].unsqueeze(-1)).squeeze(-1) + default_position
+        
         orientation = self.robot_api.root_quat_w.repeat(2, 1)
         self.foot_placement_visualizer.visualize(fp, orientation)
         self.slacked_foot_placement_visualizer.visualize(fp, orientation)
+        self.position_trajectory_visualizer.visualize(position_traj_world)
+        
 
     def apply_actions(self):
         # obtain state
@@ -418,6 +428,10 @@ class MPCAction(ActionTerm):
         foot_ref_pos_b = []
         mpc_cost = []
         
+        position_traj = []
+        orientation_traj = []
+        foot_position_traj = []
+        
         for i in range(len(self.mpc_controller)):
             grw_accel.append(self.mpc_controller[i].accel_gyro(self.root_rot_mat[i].cpu().numpy()))
             grw.append(self.mpc_controller[i].grfm)
@@ -427,6 +441,10 @@ class MPCAction(ActionTerm):
             foot_pos_b.append(self.mpc_controller[i].foot_pos_b)
             foot_ref_pos_b.append(self.mpc_controller[i].ref_foot_pos_b)
             mpc_cost.append(self.mpc_controller[i].mpc_cost)
+            pos_traj, ori_traj, foot_traj = self.mpc_controller[i].reference_trajectory
+            position_traj.append(pos_traj)
+            orientation_traj.append(ori_traj)
+            foot_position_traj.append(foot_traj)
         
         self.grw_accel = torch.from_numpy(np.array(grw_accel)).to(self.device).view(self.num_envs, 6).to(torch.float32)
         self.grw = torch.from_numpy(np.array(grw)).to(self.device).view(self.num_envs, 12).to(torch.float32)
@@ -435,6 +453,9 @@ class MPCAction(ActionTerm):
         self.foot_placement_w = torch.from_numpy(np.array(foot_placement_w)).to(self.device).view(self.num_envs, 4).to(torch.float32)
         self.foot_pos_b = torch.from_numpy(np.array(foot_pos_b)).to(self.device).view(self.num_envs, 6).to(torch.float32)
         self.ref_foot_pos_b = torch.from_numpy(np.array(foot_ref_pos_b)).to(self.device).view(self.num_envs, 6).to(torch.float32)
+        self.position_trajectory = torch.from_numpy(np.array(position_traj)).to(self.device).view(self.num_envs, 10, 3).to(torch.float32)
+        self.orientation_trajectory = torch.from_numpy(np.array(orientation_traj)).to(self.device).view(self.num_envs, 10, 3).to(torch.float32)
+        self.foot_position_trajectory = torch.from_numpy(np.array(foot_position_traj)).to(self.device).view(self.num_envs, 10, 3).to(torch.float32)
 
         # transform foot placement to body frame
         self.foot_placement_b = torch.zeros((self.num_envs, 4), device=self.device)
@@ -467,9 +488,9 @@ class MPCAction(ActionTerm):
 
     def reset(self, env_ids: Sequence[int] | None = None) -> None:
         # reset default position of robot
-        # self.robot_api.reset_default_pose(self.robot_api.root_state_w[env_ids, :7], env_ids) # type: ignore
-        default_pose = torch.cat([self.robot_api.root_pos_w, self.robot_api.root_quat_w], dim=-1)
-        self.robot_api.reset_default_pose(default_pose[env_ids, :], env_ids) # type: ignore
+        self.robot_api.reset_default_pose(self.robot_api.root_state_w[env_ids, :7], env_ids) # type: ignore
+        # default_pose = torch.cat([self.robot_api.root_pos_w, self.robot_api.root_quat_w], dim=-1)
+        # self.robot_api.reset_default_pose(default_pose[env_ids, :], env_ids) # type: ignore
         # reset action
         self._raw_actions[env_ids] = 0.0
         self._processed_actions[env_ids] = 0.0
