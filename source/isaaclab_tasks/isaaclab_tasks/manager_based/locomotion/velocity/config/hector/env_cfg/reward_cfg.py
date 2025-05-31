@@ -73,7 +73,7 @@ class HECTORRewards(RewardsCfg):
         params={
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "action_name": "mpc_action",
-            "std": 0.05, 
+            "std": 0.03, 
         },
     )
     
@@ -86,7 +86,7 @@ class HECTORRewards(RewardsCfg):
             "l_toe": 0.091+0.02,
             "l_heel": 0.054+0.02,
             "l_width": 0.073+0.04,
-            "std": 0.05, 
+            "std": 0.03, 
         },
     )
 
