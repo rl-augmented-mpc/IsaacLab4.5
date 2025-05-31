@@ -22,17 +22,17 @@ class HECTORRewards(RewardsCfg):
     # )
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=0.2,
+        weight=0.05,
         params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_world_exp, 
-        weight=0.2, 
+        weight=0.05, 
         params={"command_name": "base_velocity", "std": 0.5}
     )
     track_height_exp = RewTerm(
         func=hector_mdp.track_torso_height_exp, 
-        weight=0.2,
+        weight=0.05,
         params={
                 "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
                 "asset_cfg": SceneEntityCfg("robot", body_names=".*_sole"),
@@ -55,7 +55,7 @@ class HECTORRewards(RewardsCfg):
     
     slacked_foot_landing = RewTerm(
         func=hector_mdp.stance_foot_position_reward,
-        weight=0.1,
+        weight=0.3,
         params={
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
@@ -79,7 +79,7 @@ class HECTORRewards(RewardsCfg):
     
     slacked_foot_placement = RewTerm(
         func=hector_mdp.foot_placement_reward,
-        weight=0.1,
+        weight=0.3,
         params={
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "action_name": "mpc_action",
