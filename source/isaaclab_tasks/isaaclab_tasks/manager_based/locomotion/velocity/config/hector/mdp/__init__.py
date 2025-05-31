@@ -1,4 +1,4 @@
-from .actions.actions_cfg import MPCActionCfg, MPCActionCfgV2, MPCActionCfgV3, TorchMPCActionCfg
+from .actions.mpc_actions_cfg import MPCActionCfg, MPCActionCfgV2, MPCActionCfgV3, TorchMPCActionCfg
 from .terrain.terrain_cfg import (
     SteppingStoneTerrain, CurriculumSteppingStoneTerrain, RandomOrientationCubeTerrain,
     PyramidHfTerrain, FractalTerrain, BaseTerrain
@@ -15,3 +15,4 @@ from .reward.rewards import (
 )
 from .events.events import reset_camera, reset_root_state_uniform
 from .curriculums.curriculums import terrain_levels_vel
+from .termination.termination import root_height_below_minimum_adaptive

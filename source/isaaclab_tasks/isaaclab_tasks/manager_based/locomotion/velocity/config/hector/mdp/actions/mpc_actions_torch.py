@@ -10,28 +10,22 @@ import torch
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-import omni.log
-from pxr import UsdPhysics
-
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 import isaaclab.utils.math as math_utils
 import isaaclab.utils.string as string_utils
 from isaaclab.assets.articulation import Articulation
 from isaaclab.managers.action_manager import ActionTerm
-from isaaclab.sensors import ContactSensor, ContactSensorCfg, FrameTransformer, FrameTransformerCfg
-from isaaclab.sim.utils import find_matching_prims
-from isaaclab.managers import SceneEntityCfg
 from isaaclab.envs import ManagerBasedEnv
 
 from hector_pytorch import MPCController, MPCConf, ControllerConf
-from . import actions_cfg
+from . import mpc_actions_cfg
 from .robot_helper import RobotCore
-from .visualization_marker import FootPlacementVisualizer
+from isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp.marker import FootPlacementVisualizer, SlackedFootPlacementVisualizer
 
 
 class TorchMPCAction(ActionTerm):
 
-    cfg: actions_cfg.MPCActionCfg
+    cfg: mpc_actions_cfg.MPCActionCfg
     """The configuration of the action term."""
     _asset: Articulation
     """The articulation asset on which the action term is applied."""
@@ -40,7 +34,7 @@ class TorchMPCAction(ActionTerm):
     _clip: torch.Tensor
     """The clip applied to the input action."""
     
-    def __init__(self, cfg: actions_cfg.MPCActionCfg, env: ManagerBasedEnv):
+    def __init__(self, cfg: mpc_actions_cfg.MPCActionCfg, env: ManagerBasedEnv):
         # initialize the action term
         super().__init__(cfg, env)
         # create robot helper object

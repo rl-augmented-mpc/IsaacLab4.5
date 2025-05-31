@@ -142,10 +142,14 @@ def get_ground_roughness_at_landing_point(
         resolution=resolution
     ) # (num_envs, num_samples, 2)
     
+    # roughness_at_foot = torch.abs(height_at_foot.max(dim=1).values - height_at_foot.min(dim=1).values) # (num_envs, 2)
+    # roughness_at_foot = (roughness_at_foot * foot_selection).max(dim=1).values # (num_envs,) get worst case roughness
+    # roughness_at_foot = roughness_at_foot * (roughness_at_foot > 1e-3).float() # filter small value to be 0
+    # std = (torch.std(height_at_foot, dim=1) * foot_selection).max(dim=1).values # (num_envs,)
+    
     roughness_at_foot = torch.abs(height_at_foot.max(dim=1).values - height_at_foot.min(dim=1).values) # (num_envs, 2)
-    roughness_at_foot = (roughness_at_foot * foot_selection).max(dim=1).values # (num_envs,) get worst case roughness
     roughness_at_foot = roughness_at_foot * (roughness_at_foot > 1e-3).float() # filter small value to be 0
-    std = (torch.std(height_at_foot, dim=1) * foot_selection).max(dim=1).values # (num_envs,)
+    std = torch.std(height_at_foot, dim=1) # (num_envs, 2)
     
     return roughness_at_foot, std
 
@@ -254,7 +258,6 @@ def foot_placement_reward(
         sensor_offset,
         foot_position_b,
         foot_selection,
-        # costmap_2d, # costmap
         heightmap_2d, # heightmap
         resolution,
         l_toe,
@@ -262,12 +265,8 @@ def foot_placement_reward(
         l_width,
     )
     
-    # mask = (height_map.max(dim=1).values - height_map.min(dim=1).values) > 1e-3
-    
-    # reward = torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential reward
-    reward = torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6)) # gaussian reward
-    # reward = 1-torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential penalty
-    # reward = 1-torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian penalty
+    # reward = (foot_selection * torch.exp(-torch.abs(ground_flatness_at_foot)/std)).sum(dim=1) # exponential reward
+    reward = (foot_selection * torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6))).sum(dim=1) # gaussian reward
     # print(reward)
     
     return reward
@@ -311,12 +310,8 @@ def stance_foot_position_reward(
         l_width,
     )
     
-    # mask = (height_map.max(dim=1).values - height_map.min(dim=1).values) > 1e-3
-    
-    # reward = torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential reward
-    reward = torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6)) # gaussian reward
-    # reward = 1-torch.exp(-torch.abs(ground_flatness_at_foot)/std) # exponential penalty
-    # reward = 1-torch.exp(-torch.square(ground_flatness_at_foot)/std**2) # gaussian penalty
+    # reward = (foot_selection * torch.exp(-torch.abs(ground_flatness_at_foot)/std)).sum(dim=1) # exponential reward
+    reward = (foot_selection * torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6))).sum(dim=1) # gaussian reward
     # print(reward)
 
     return reward
