@@ -10,29 +10,19 @@ import torch
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-import omni.log
-from pxr import UsdPhysics
-
-import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
-import isaaclab.utils.math as math_utils
-import isaaclab.utils.string as string_utils
 from isaaclab.assets.articulation import Articulation
 from isaaclab.managers.action_manager import ActionTerm
-from isaaclab.sensors import ContactSensor, ContactSensorCfg, FrameTransformer, FrameTransformerCfg
-from isaaclab.sim.utils import find_matching_prims
-from isaaclab.managers import SceneEntityCfg
-
 from isaaclab.envs import ManagerBasedEnv
-from . import actions_cfg
 
+
+from . import mpc_actions_cfg
 from .robot_helper import RobotCore
 from .mpc_controller import MPC_Conf, MPCController
-from .visualization_marker import FootPlacementVisualizer, SlackedFootPlacementVisualizer
-
+from isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp.marker import FootPlacementVisualizer, SlackedFootPlacementVisualizer
 
 class MPCAction(ActionTerm):
 
-    cfg: actions_cfg.MPCActionCfg
+    cfg: mpc_actions_cfg.MPCActionCfg
     """The configuration of the action term."""
     _asset: Articulation
     """The articulation asset on which the action term is applied."""
@@ -41,7 +31,7 @@ class MPCAction(ActionTerm):
     _clip: torch.Tensor
     """The clip applied to the input action."""
     
-    def __init__(self, cfg: actions_cfg.MPCActionCfg, env: ManagerBasedEnv):
+    def __init__(self, cfg: mpc_actions_cfg.MPCActionCfg, env: ManagerBasedEnv):
         # initialize the action term
         super().__init__(cfg, env)
         # create robot helper object
@@ -463,20 +453,6 @@ class MPCAction(ActionTerm):
         
         # compute mpc cost
         self.mpc_cost = torch.from_numpy(np.array(mpc_cost)).to(self.device).view(self.num_envs).to(torch.float32)
-        
-        swing_foot_pos_b = (self.foot_pos_b.reshape(self.num_envs, 2, 3) * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
-        swing_foot_ref_pos_b = (self.ref_foot_pos_b.reshape(self.num_envs, 2, 3) * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
-        # swing_foot_pos_gt = (self.robot_api.foot_pos_b * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
-        swing_foot_pos_gt = (self.robot_api.foot_pos_local * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
-        
-        # swing_foot_pos_b = self.foot_pos_b.reshape(self.num_envs, 2, 3)
-        # swing_foot_ref_pos_b = self.ref_foot_pos_b.reshape(self.num_envs, 2, 3)
-        # swing_foot_pos_gt = self.robot_api.foot_pos_b
-        
-        # print("swing foot ref pos", swing_foot_ref_pos_b)
-        # print("swing foot pos", swing_foot_pos_b)
-        # print("swing foot pos gt", swing_foot_pos_gt)
-        # print("swing leg ", 1-self.gait_contact)
     
     def _add_joint_offset(self, joint_pos:torch.Tensor) -> torch.Tensor:
         joint_pos[:, 2] += torch.pi/4
