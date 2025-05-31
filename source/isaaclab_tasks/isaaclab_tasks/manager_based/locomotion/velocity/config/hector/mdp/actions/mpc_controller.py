@@ -1,4 +1,4 @@
-from multiprocessing.shared_memory import SharedMemory
+from typing import Tuple
 from dataclasses import dataclass
 import numpy as np
 
@@ -259,3 +259,10 @@ class MPCController:
     @property
     def mpc_cost(self) -> float:
         return float(self.hc.getCost())
+    
+    @property
+    def reference_trajectory(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        position_traj = self.hc.getReferencePositionTrajectory().astype(np.float32)
+        orientation_traj = self.hc.getReferenceOrientationTrajectory().astype(np.float32)
+        foot_traj = self.hc.getReferenceFootPositionTrajectory().astype(np.float32)
+        return position_traj, orientation_traj, foot_traj
