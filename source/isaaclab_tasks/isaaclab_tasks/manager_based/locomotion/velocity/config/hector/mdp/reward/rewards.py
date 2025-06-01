@@ -302,7 +302,9 @@ def stance_foot_position_reward(
     action_term = env.action_manager.get_term(action_name)
     
     # if using actual landing location 
-    foot_selection = (contact_sensor.data.net_forces_w[:, contact_sensor_cfg.body_ids, :].norm(dim=2) > 1.0).float()
+    contact = contact_sensor.data.net_forces_w[:, contact_sensor_cfg.body_ids, :].norm(dim=2) > 1.0
+    # foot_selection = contact * (1 - action_term.gait_contact)
+    foot_selection = contact
     foot_position_b = action_term.foot_pos_b.reshape(-1, 2, 3)
     
     # retrieves ground flatness where stance foot position is projected onto height map.
