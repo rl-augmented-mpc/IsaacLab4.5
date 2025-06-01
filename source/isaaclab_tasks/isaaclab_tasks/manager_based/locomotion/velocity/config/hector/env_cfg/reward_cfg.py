@@ -22,17 +22,17 @@ class HECTORRewards(RewardsCfg):
     # )
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=0.05,
+        weight=0.1,
         params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_world_exp, 
-        weight=0.05, 
+        weight=0.1, 
         params={"command_name": "base_velocity", "std": 0.5}
     )
     track_height_exp = RewTerm(
         func=hector_mdp.track_torso_height_exp, 
-        weight=0.05,
+        weight=0.1,
         params={
                 "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
                 "asset_cfg": SceneEntityCfg("robot", body_names=".*_sole"),
@@ -92,6 +92,7 @@ class HECTORRewards(RewardsCfg):
 
     # -- penalties
     termnation = RewTerm(func=mdp.is_terminated, weight=-200.0) # type: ignore
+    negative_lin_vel_l2 = RewTerm(func=hector_mdp.negative_lin_vel_l2, weight=-0.1)
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01) # type: ignore
     lin_accel_l2 = RewTerm(func=mdp.body_lin_acc_l2, weight=-5e-4, params={"asset_cfg": SceneEntityCfg("robot", body_names="base")}) # type: ignore
@@ -126,7 +127,7 @@ class HECTORRewards(RewardsCfg):
     # -- energy penalty
     processed_action_l2 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-0.4,
+        weight=-0.5,
         params={
             "action_idx": [-3, -2, -1],
             "action_name": "mpc_action",
@@ -146,7 +147,7 @@ class HECTORRewards(RewardsCfg):
     # body-leg angle penalties
     leg_body_angle_l2 = RewTerm(
         func=hector_mdp.leg_body_angle_l2, 
-        weight=-0.5,
+        weight=-0.2,
         params={"action_name": "mpc_action"}
     )
     leg_body_distance_l2 = RewTerm(

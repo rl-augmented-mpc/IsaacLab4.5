@@ -26,7 +26,7 @@ class PPOHECTORObservationsCfg:
             func=hector_mdp.base_pos_z, # type: ignore
             params={
                 "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
-                "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*_sole"),
                 },
             # noise=Unoise(n_min=-0.1, n_max=0.1)
             )

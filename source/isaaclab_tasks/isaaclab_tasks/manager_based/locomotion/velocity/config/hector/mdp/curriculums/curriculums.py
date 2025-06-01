@@ -23,8 +23,8 @@ if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
 
-def terrain_levels_vel(
-    env: ManagerBasedRLEnv, env_ids: Sequence[int], asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+def terrain_levels_episode(
+    env: ManagerBasedRLEnv, env_ids: Sequence[int]
 ) -> torch.Tensor:
     """Curriculum based on the distance the robot walked when commanded to move at a desired velocity.
 
@@ -39,10 +39,7 @@ def terrain_levels_vel(
         The mean terrain level for the given environment ids.
     """
     # extract the used quantities (to enable type-hinting)
-    asset: Articulation = env.scene[asset_cfg.name]
     terrain: TerrainImporter = env.scene.terrain
-    command = env.command_manager.get_command("base_velocity")
-    
     # robots that walked until maximum episode length progress to harder terrains
     move_up = env.episode_length_buf[env_ids] == env.max_episode_length
     # robots that walked less than half of maximum episode length go to easier terrains
