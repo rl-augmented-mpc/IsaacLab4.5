@@ -186,6 +186,14 @@ def track_torso_height_exp(
     reward = torch.exp(-torch.square(height - reference_height)/std**2) # exponential reward
     return reward
 
+def negative_lin_vel_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Penalize negative forward velocity using L2 squared kernel."""
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    vel_x = asset.data.root_lin_vel_b[:, 0]
+    reward = torch.square(vel_x) * (vel_x < 0).float()  # penalize only if moving backwards
+    return reward
+
 def individual_action_l2(env: ManagerBasedRLEnv, action_idx:int|list[int], action_name: str = "mpc_action",) -> torch.Tensor:
     """Penalize the actions using L2 squared kernel."""
     action_term = env.action_manager.get_term(action_name)

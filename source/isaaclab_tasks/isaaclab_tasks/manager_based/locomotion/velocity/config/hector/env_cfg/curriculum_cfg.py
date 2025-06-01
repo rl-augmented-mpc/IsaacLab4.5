@@ -12,4 +12,4 @@ import isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp as hec
 class HECTORCurriculumCfg:
     """Curriculum terms for the MDP."""
 
-    terrain_levels = CurrTerm(func=hector_mdp.terrain_levels_vel)
+    terrain_levels = CurrTerm(func=hector_mdp.terrain_levels_episode)

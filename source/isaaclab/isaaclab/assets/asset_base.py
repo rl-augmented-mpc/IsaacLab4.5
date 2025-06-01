@@ -74,12 +74,21 @@ class AssetBase(ABC):
         asset_path_is_regex = re.match(r"^[a-zA-Z0-9/_]+$", asset_path) is None
         # spawn the asset
         if self.cfg.spawn is not None and not asset_path_is_regex:
-            self.cfg.spawn.func(
-                self.cfg.prim_path,
-                self.cfg.spawn,
-                translation=self.cfg.init_state.pos,
-                orientation=self.cfg.init_state.rot,
-            )
+            if type(self.cfg.spawn) is sim_utils.ManyAssetSpawnerCfg:
+                self.cfg.spawn.func(
+                    self.cfg.prim_path,
+                    self.cfg.spawn,
+                    translation=self.cfg.init_state.pos,
+                    orientation=self.cfg.init_state.rot,
+                    scale=self.cfg.init_state.scale,
+                )
+            else:
+                self.cfg.spawn.func(
+                    self.cfg.prim_path,
+                    self.cfg.spawn,
+                    translation=self.cfg.init_state.pos,
+                    orientation=self.cfg.init_state.rot,
+                )
         # check that spawn was successful
         matching_prims = sim_utils.find_matching_prims(self.cfg.prim_path)
         if len(matching_prims) == 0:

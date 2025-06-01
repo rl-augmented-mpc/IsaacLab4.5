@@ -375,6 +375,14 @@ class TerrainImporter:
         )
         # update the env origins
         self.env_origins[env_ids] = self.terrain_origins[self.terrain_levels[env_ids], self.terrain_types[env_ids]]
+    
+    def update_env_type(self, env_ids: torch.Tensor):
+        if self.terrain_origins is None:
+            return
+        _, num_cols = self.terrain_origins.shape[:2]
+        self.terrain_types[env_ids] = torch.randint(0, num_cols, (len(env_ids),), device=self.device).to(torch.long)
+        # update the env origins
+        self.env_origins[env_ids] = self.terrain_origins[self.terrain_levels[env_ids], self.terrain_types[env_ids]]
 
     """
     Internal helpers.

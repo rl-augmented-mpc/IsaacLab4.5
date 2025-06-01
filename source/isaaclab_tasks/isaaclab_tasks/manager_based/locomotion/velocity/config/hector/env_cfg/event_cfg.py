@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import math
 from isaaclab.utils import configclass
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import SceneEntityCfg
@@ -32,6 +33,12 @@ class HECTOREventCfg(EventCfg):
     # reset
     base_external_force_torque = None
     
+    # reset terrain type
+    reset_terrain_type = EventTerm(
+        func=hector_mdp.reset_terrain_type, # type: ignore
+        mode="reset",
+    )
+    
     # random initial noise added to default state defined in articulation cfg
     reset_base = EventTerm(
         func=hector_mdp.reset_root_state_uniform, # type: ignore
@@ -44,7 +51,7 @@ class HECTOREventCfg(EventCfg):
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),
                 "yaw": (-0.0, 0.0),
-                # "yaw": (-math.pi/9, math.pi/9),
+                # "yaw": (math.pi/2, math.pi/2),
                 },
             "velocity_range": {
                 "x": (-0.0, 0.0),
@@ -77,3 +84,15 @@ class HECTOREventCfg(EventCfg):
             "asset_cfg": SceneEntityCfg("robot"),
         },
     )
+    
+    # # reset particle mass
+    # reset_particle_mass = EventTerm(
+    #     func=hector_mdp.reset_particle_mass, # type: ignore
+    #     mode="reset",
+    #     params={
+    #         "mass_range": {
+    #             "x": (1.0, 3.0)
+    #             },
+    #         "asset_cfg": SceneEntityCfg("gravel"),
+    #     },
+    # )

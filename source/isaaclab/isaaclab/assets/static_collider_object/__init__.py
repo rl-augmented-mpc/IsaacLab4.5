@@ -1,0 +1,2 @@
+from .static_collider_object_cfg import StaticColliderObjectCfg
+from .static_collider_object import StaticColliderObject

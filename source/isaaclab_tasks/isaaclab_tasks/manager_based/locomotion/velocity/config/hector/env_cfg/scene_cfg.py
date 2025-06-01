@@ -28,6 +28,10 @@ class HECTORSceneCfg(InteractiveSceneCfg):
 
     # terrain
     terrain = hector_mdp.CurriculumSteppingStoneTerrain
+    # terrain = hector_mdp.BaseTerrain
+    
+    # gravel 
+    # gravel = hector_mdp.GravelTerrain
     
     # --robots
     robot: ArticulationCfg = HECTOR_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")

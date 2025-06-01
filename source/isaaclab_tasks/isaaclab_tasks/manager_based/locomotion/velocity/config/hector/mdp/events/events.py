@@ -24,7 +24,7 @@ from pxr import Gf, Sdf, UsdGeom, Vt
 import isaaclab.sim as sim_utils
 import isaaclab.utils.math as math_utils
 from isaaclab.actuators import ImplicitActuator
-from isaaclab.assets import Articulation, DeformableObject, RigidObject
+from isaaclab.assets import Articulation, DeformableObject, RigidObject, StaticColliderObject
 from isaaclab.managers import EventTermCfg, ManagerTermBase, SceneEntityCfg
 from isaaclab.terrains import TerrainImporter
 
@@ -53,6 +53,8 @@ def reset_root_state_uniform(
     """
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
+    # get terrain 
+    terrain: TerrainImporter = env.scene.terrain
     # get default root state
     root_states = asset.data.default_root_state[env_ids].clone()
 
@@ -60,7 +62,7 @@ def reset_root_state_uniform(
     range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z"]]
     ranges = torch.tensor(range_list, device=asset.device)
     rand_samples = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), 3), device=asset.device)
-    positions = root_states[:, 0:3] + env.scene.env_origins[env_ids] + rand_samples[:, 0:3]
+    positions = root_states[:, 0:3] + terrain.env_origins[env_ids] + rand_samples[:, 0:3]
     
     # orientations
     range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["roll", "pitch", "yaw"]]
@@ -101,3 +103,53 @@ def reset_camera(
     env.viewport_camera_controller.update_view_location(
                 eye=(robot_pos[0]+camera_delta[0], robot_pos[1]+camera_delta[1], -0.55+robot_pos[2]+camera_delta[2]), 
                 lookat=(robot_pos[0]+camera_delta[0], robot_pos[1], -0.55+robot_pos[2])) # type: ignore
+
+
+def reset_particle_mass(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    mass_range: dict[str, tuple[float, float]],
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("gravel"),
+):
+    """Reset the asset root state to a random position and velocity uniformly within the given ranges.
+
+    This function randomizes the root position and velocity of the asset.
+
+    * It samples the root position from the given ranges and adds them to the default root position, before setting
+      them into the physics simulation.
+    * It samples the root orientation from the given ranges and sets them into the physics simulation.
+    * It samples the root velocity from the given ranges and sets them into the physics simulation.
+
+    The function takes a dictionary of pose and velocity ranges for each axis and rotation. The keys of the
+    dictionary are ``x``, ``y``, ``z``, ``roll``, ``pitch``, and ``yaw``. The values are tuples of the form
+    ``(min, max)``. If the dictionary does not contain a key, the position or velocity is set to zero for that axis.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: StaticColliderObject = env.scene[asset_cfg.name]
+    num_instances = asset.num_instances
+    
+    mass_list = [mass_range.get(key, (0.0, 0.0)) for key in ["x"]]
+    ranges = torch.tensor(mass_list, device=asset.device)
+    rand_samples = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), num_instances), device=asset.device)
+    mass = rand_samples.cpu()
+    instance_id = torch.arange(num_instances*len(env_ids), device=asset.device).cpu()
+    asset.write_mass_to_sim(mass, instance_id)
+    
+    
+def reset_terrain_type(
+    env: ManagerBasedEnv, env_ids: torch.Tensor
+) -> None:
+    """Curriculum based on the distance the robot walked when commanded to move at a desired velocity.
+
+    This term is used to increase the difficulty of the terrain when the robot walks far enough and decrease the
+    difficulty when the robot walks less than half of the distance required by the commanded velocity.
+
+    .. note::
+        It is only possible to use this term with the terrain type ``generator``. For further information
+        on different terrain types, check the :class:`isaaclab.terrains.TerrainImporter` class.
+
+    Returns:
+        The mean terrain level for the given environment ids.
+    """
+    terrain: TerrainImporter = env.scene.terrain
+    terrain.update_env_type(env_ids)
