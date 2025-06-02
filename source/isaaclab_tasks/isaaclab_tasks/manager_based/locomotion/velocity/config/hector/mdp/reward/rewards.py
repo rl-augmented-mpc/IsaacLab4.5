@@ -326,6 +326,98 @@ def stance_foot_position_reward(
 
     return reward
 
+"""
+penalties
+"""
+
+def foot_placement_penalty(
+    env: ManagerBasedRLEnv,
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("ray_caster"),
+    action_name: str = "mpc_action",
+    l_toe: float = 0.091,
+    l_heel: float = 0.054,
+    l_width: float = 0.073,
+    std: float = 0.5, 
+):
+    raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
+    height_map = raycaster.data.ray_hits_w[..., 2]  - raycaster.data.pos_w[:, 2].unsqueeze(1)
+    
+    resolution = raycaster.cfg.pattern_cfg.resolution
+    grid_x, grid_y = raycaster.cfg.pattern_cfg.size
+    width, height = int(grid_x/resolution + 1), int(grid_y/resolution + 1)
+    sensor_offset = (raycaster.cfg.offset.pos[0], raycaster.cfg.offset.pos[1])
+    heightmap_2d = height_map.view(-1, height, width)
+    
+    action_term = env.action_manager.get_term(action_name)
+    
+    # if using foot placement 
+    foot_selection = 1-action_term.gait_contact
+    foot_position_b = action_term.foot_placement_b.reshape(-1, 2, 2)
+    
+    # retrieves ground flatness where stance foot position is projected onto height map.
+    roughness_at_foot, _ = get_ground_roughness_at_landing_point(
+        env.num_envs,
+        sensor_offset,
+        foot_position_b,
+        foot_selection,
+        heightmap_2d, # heightmap
+        resolution,
+        l_toe,
+        l_heel,
+        l_width,
+    )
+    
+    # penalty = (foot_selection * (1 - torch.exp(-torch.abs(roughness_at_foot)/std))).max(dim=1).values # exponential reward
+    penalty = (foot_selection * (1 - torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6)))).max(dim=1).values # gaussian reward
+    
+    return penalty
+
+def stance_foot_position_penalty(
+    env: ManagerBasedRLEnv,
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("ray_caster"),
+    contact_sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
+    action_name: str = "mpc_action",
+    l_toe: float = 0.091,
+    l_heel: float = 0.054,
+    l_width: float = 0.073,
+    std: float = 0.5, 
+):
+    raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
+    contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
+    height_map = raycaster.data.ray_hits_w[..., 2]  - raycaster.data.pos_w[:, 2].unsqueeze(1)
+    
+    resolution = raycaster.cfg.pattern_cfg.resolution
+    grid_x, grid_y = raycaster.cfg.pattern_cfg.size
+    width, height = int(grid_x/resolution + 1), int(grid_y/resolution + 1)
+    sensor_offset = (raycaster.cfg.offset.pos[0], raycaster.cfg.offset.pos[1])
+    heightmap_2d = height_map.view(-1, height, width)
+    
+    action_term = env.action_manager.get_term(action_name)
+    
+    # if using actual landing location 
+    contact = contact_sensor.data.net_forces_w[:, contact_sensor_cfg.body_ids, :].norm(dim=2) > 1.0
+    # foot_selection = contact * (1 - action_term.gait_contact)
+    foot_selection = contact
+    foot_position_b = action_term.foot_pos_b.reshape(-1, 2, 3)
+    
+    # retrieves ground flatness where stance foot position is projected onto height map.
+    roughness_at_foot, _ = get_ground_roughness_at_landing_point(
+        env.num_envs,
+        sensor_offset,
+        foot_position_b,
+        foot_selection,
+        heightmap_2d, # heightmap
+        resolution,
+        l_toe,
+        l_heel,
+        l_width,
+    )
+    
+    # penalty = (foot_selection * (1 - torch.exp(-torch.abs(roughness_at_foot)/std))).max(dim=1).values # exponential
+    penalty = (foot_selection * (1 - torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6)))).max(dim=1).values # gaussian
+    # print(penalty)
+
+    return penalty
 
 def leg_body_angle_l2(
     env: ManagerBasedRLEnv,
@@ -354,9 +446,6 @@ def mpc_cost_l1(
     mpc_cost = action_term.mpc_cost.clamp(max=1e3) # (num_envs, 1)
     return torch.abs(mpc_cost)
 
-"""
-feet rewards
-"""
 
 def feet_accel_l2(env, sensor_cfg: SceneEntityCfg, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize feet acceleration.

@@ -86,12 +86,15 @@ def height_scan(env: ManagerBasedEnv, sensor_cfg: SceneEntityCfg, reshape_as_ima
     """
     # extract the used quantities (to enable type-hinting)
     sensor: RayCaster = env.scene.sensors[sensor_cfg.name]
+    # data = sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.ray_hits_w[..., 2]
+    # print(sensor.data.ray_hits_w[..., 2])
     height_scan_b = (sensor.data.ray_hits_w[..., 2]  - sensor.data.pos_w[:, 2].unsqueeze(1)).clamp(-1.0, 0.0)
     if reshape_as_image:
         resolution = sensor.cfg.pattern_cfg.resolution
         grid_x, grid_y = sensor.cfg.pattern_cfg.size
         width, height = int(grid_x/resolution + 1), int(grid_y/resolution + 1)
         height_scan_b = height_scan_b.reshape(-1, 1, height, width).clamp(-1.0, 0.0)
+    # print("height scan min, max:", height_scan_b.min(dim=1).values, height_scan_b.max(dim=1).values)
     return height_scan_b
 
 
