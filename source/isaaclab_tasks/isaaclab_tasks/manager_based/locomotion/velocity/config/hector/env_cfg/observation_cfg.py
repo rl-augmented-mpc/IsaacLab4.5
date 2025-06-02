@@ -175,13 +175,23 @@ class SACHECTORObservationsCfg:
         actions = ObsTerm(func=mdp.last_action) # type: ignore
         
         height_scan = ObsTerm(
-            func=hector_mdp.height_scan, # type: ignore
+            func=mdp.height_scan, # type: ignore
             params={
                 "sensor_cfg": SceneEntityCfg("height_scanner"),
+                "offset": 0.55,
                 },
             # noise=Unoise(n_min=-0.1, n_max=0.1),
             clip=(-1.0, 1.0),
         )
+        
+        # height_scan = ObsTerm(
+        #     func=hector_mdp.height_scan, # type: ignore
+        #     params={
+        #         "sensor_cfg": SceneEntityCfg("height_scanner"),
+        #         },
+        #     # noise=Unoise(n_min=-0.1, n_max=0.1),
+        #     clip=(-1.0, 1.0),
+        # )
 
         def __post_init__(self):
             self.enable_corruption = True
