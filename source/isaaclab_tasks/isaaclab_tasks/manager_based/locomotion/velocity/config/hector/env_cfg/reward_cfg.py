@@ -181,7 +181,7 @@ class HECTORRewards(RewardsCfg):
     # -- foot placement penalties
     foot_landing = RewTerm(
         func=hector_mdp.stance_foot_position_penalty,
-        weight=0.1,
+        weight=-0.1,
         params={
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
@@ -192,7 +192,7 @@ class HECTORRewards(RewardsCfg):
     
     slacked_foot_landing = RewTerm(
         func=hector_mdp.stance_foot_position_penalty,
-        weight=0.3,
+        weight=-0.3,
         params={
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
@@ -206,7 +206,7 @@ class HECTORRewards(RewardsCfg):
     
     foot_placement = RewTerm(
         func=hector_mdp.foot_placement_penalty,
-        weight=0.1,
+        weight=-0.1,
         params={
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "action_name": "mpc_action",
@@ -216,7 +216,7 @@ class HECTORRewards(RewardsCfg):
     
     slacked_foot_placement = RewTerm(
         func=hector_mdp.foot_placement_penalty,
-        weight=0.3,
+        weight=-0.3,
         params={
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "action_name": "mpc_action",
