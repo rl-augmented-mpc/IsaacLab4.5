@@ -46,7 +46,7 @@ class HECTOREventCfg(EventCfg):
         params={
             "pose_range": {
                 "x": (-0.5, 0.5), 
-                "y": (-4.0, 4.0), 
+                "y": (-5.0, -5.0), 
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),

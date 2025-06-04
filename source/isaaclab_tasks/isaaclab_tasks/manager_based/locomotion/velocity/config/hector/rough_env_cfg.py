@@ -15,7 +15,7 @@ from .env_cfg import (
     HECTORCurriculumCfg,
     HECTOREventCfg,
     PPOHECTORObservationsCfg,
-    HECTORRewards,
+    HECTORRewardsCfg,
     HECTORTerminationsCfg,
     HECTORSceneCfg,
 )
@@ -24,7 +24,7 @@ from .env_cfg import (
 @configclass
 class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     scene: HECTORSceneCfg = HECTORSceneCfg(num_envs=4096, env_spacing=2.5)
-    rewards: HECTORRewards = HECTORRewards()
+    rewards: HECTORRewardsCfg = HECTORRewardsCfg()
     actions: HECTORActionsCfg = HECTORActionsCfg()
     commands: HECTORCommandsCfg = HECTORCommandsCfg()
     observations: PPOHECTORObservationsCfg = PPOHECTORObservationsCfg()

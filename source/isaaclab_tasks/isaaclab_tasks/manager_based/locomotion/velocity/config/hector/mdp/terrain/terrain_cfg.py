@@ -126,7 +126,48 @@ FrictionPatchTerrain = TerrainImporterCfg(
 """
 stepping stone terrain.
 """
-# for inference
+
+InferenceSteppingStoneTerrain = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="generator",
+    terrain_generator= terrain_gen.TerrainGeneratorCfg(
+        size=(40.0, 15.0), # size of sub-terrain
+        border_width=0.0,
+        num_rows=1,
+        num_cols=10,
+        horizontal_scale=0.1,
+        vertical_scale=0.005,
+        slope_threshold=0.75,
+        use_cache=False,
+        curriculum=True,
+        sub_terrains={
+            "terrain1": terrain_gen.StairTerrainCfg(
+            profile_mode="random",
+            proportion=0.2, 
+            num_box=60,
+            box_height_range=(0.08, 0.08), 
+            platform_width=15.0, 
+            platform_length_range_start=(0.5, 0.8), platform_length_range_end=(0.5, 0.8),
+            platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
+            border_size=0.0, 
+            height_noise_range=(-0.00, 0.00), 
+            center_area_size=1.5,
+            ),
+        },
+    ),
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=2.0,
+        dynamic_friction=2.0,
+    ),
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    debug_vis=False,
+    disable_colllider=False,
+    num_curriculums=1,
+)
+
 SteppingStoneTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="generator",
@@ -142,7 +183,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
         curriculum=True,
         sub_terrains={
             "terrain1": terrain_gen.StairTerrainCfg(
-            profile_mode="up_down",
+            profile_mode="random",
             proportion=0.2, 
             num_box=60,
             box_height_range=(0.08, 0.08), 
@@ -155,34 +196,34 @@ SteppingStoneTerrain = TerrainImporterCfg(
             height_noise_range=(-0.00, 0.00), 
             center_area_size=1.5,
             ),
-            "terrain2": terrain_gen.StairTerrainCfg(
-            profile_mode="up",
-            proportion=0.2, 
-            num_box=60,
-            box_height_range=(0.08, 0.08), 
-            platform_width=15.0, 
-            platform_length_range_start=(0.5, 0.8), platform_length_range_end=(0.5, 0.8),
-            # platform_length_range_start=(0.2, 0.8), platform_length_range_end=(0.2, 0.8),
-            # platform_length_range_start=(0.15, 0.25), platform_length_range_end=(0.15, 0.25),
-            platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
-            border_size=0.0, 
-            height_noise_range=(-0.00, 0.00), 
-            center_area_size=1.5,
-            ),
-            "terrain3": terrain_gen.StairTerrainCfg(
-            profile_mode="down",
-            proportion=0.2, 
-            num_box=60,
-            box_height_range=(0.08, 0.08), 
-            platform_width=15.0, 
-            platform_length_range_start=(0.5, 0.8), platform_length_range_end=(0.5, 0.8),
-            # platform_length_range_start=(0.2, 0.8), platform_length_range_end=(0.2, 0.8),
-            # platform_length_range_start=(0.15, 0.25), platform_length_range_end=(0.15, 0.25),
-            platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
-            border_size=0.0, 
-            height_noise_range=(-0.00, 0.00), 
-            center_area_size=1.5,
-            ),
+            # "terrain2": terrain_gen.StairTerrainCfg(
+            # profile_mode="up",
+            # proportion=0.2, 
+            # num_box=60,
+            # box_height_range=(0.08, 0.08), 
+            # platform_width=15.0, 
+            # platform_length_range_start=(0.5, 0.8), platform_length_range_end=(0.5, 0.8),
+            # # platform_length_range_start=(0.2, 0.8), platform_length_range_end=(0.2, 0.8),
+            # # platform_length_range_start=(0.15, 0.25), platform_length_range_end=(0.15, 0.25),
+            # platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
+            # border_size=0.0, 
+            # height_noise_range=(-0.00, 0.00), 
+            # center_area_size=1.5,
+            # ),
+            # "terrain3": terrain_gen.StairTerrainCfg(
+            # profile_mode="down",
+            # proportion=0.2, 
+            # num_box=60,
+            # box_height_range=(0.08, 0.08), 
+            # platform_width=15.0, 
+            # platform_length_range_start=(0.5, 0.8), platform_length_range_end=(0.5, 0.8),
+            # # platform_length_range_start=(0.2, 0.8), platform_length_range_end=(0.2, 0.8),
+            # # platform_length_range_start=(0.15, 0.25), platform_length_range_end=(0.15, 0.25),
+            # platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
+            # border_size=0.0, 
+            # height_noise_range=(-0.00, 0.00), 
+            # center_area_size=1.5,
+            # ),
             
             # "terrain1": terrain_gen.TiledMeshBoxTerrainCfg(
             # proportion=0.2, box_height_range=(0.1, 0.1), platform_width=20.0, platform_length=0.5, num_box=30,
@@ -245,34 +286,6 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
         sub_terrains={
             "terrain1": terrain_gen.StairTerrainCfg(
             profile_mode="random",
-            proportion=0.2, 
-            num_box=100,
-            box_height_range=(0.00, 0.08), 
-            platform_width=15.0, 
-            # platform_length_range_start=(0.5, 1.0), platform_length_range_end=(0.4, 0.8),
-            platform_length_range_start=(0.5, 1.0), platform_length_range_end=(0.2, 0.8),
-            platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
-            border_size=0.0, 
-            height_noise_range=(-0.00, 0.00), 
-            center_area_size=1.5,
-            ),
-            
-            "terrain2": terrain_gen.StairTerrainCfg(
-            profile_mode="up",
-            proportion=0.2, 
-            num_box=100,
-            box_height_range=(0.00, 0.08), 
-            platform_width=15.0, 
-            # platform_length_range_start=(0.5, 1.0), platform_length_range_end=(0.4, 0.8),
-            platform_length_range_start=(0.5, 1.0), platform_length_range_end=(0.2, 0.8),
-            platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
-            border_size=0.0, 
-            height_noise_range=(-0.00, 0.00), 
-            center_area_size=1.5,
-            ),
-            
-            "terrain3": terrain_gen.StairTerrainCfg(
-            profile_mode="down",
             proportion=0.2, 
             num_box=100,
             box_height_range=(0.00, 0.08), 
