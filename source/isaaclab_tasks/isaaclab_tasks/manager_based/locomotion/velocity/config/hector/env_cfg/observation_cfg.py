@@ -199,3 +199,185 @@ class SACHECTORObservationsCfg:
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
+
+
+
+@configclass
+class AssymetricSACHECTORObservationsCfg:
+    """Observation specifications for the MDP."""
+
+    @configclass
+    class PolicyCfg(ObsGroup):
+        """Observations for policy group."""
+
+        # observation terms (order preserved)
+        base_pos_z = ObsTerm(
+            func=hector_mdp.base_pos_z, # type: ignore
+            params={
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
+                },
+            # noise=Unoise(n_min=-0.1, n_max=0.1)
+            )
+        base_lin_vel = ObsTerm(
+            func=mdp.base_lin_vel, # type: ignore
+            # noise=Unoise(n_min=-0.1, n_max=0.1)
+            )
+        base_ang_vel = ObsTerm(
+            func=mdp.base_ang_vel, # type: ignore
+            # noise=Unoise(n_min=-0.2, n_max=0.2)
+            )
+        projected_gravity = ObsTerm(
+            func=mdp.projected_gravity, # type: ignore
+            # noise=Unoise(n_min=-0.05, n_max=0.05),
+        )
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
+        
+        joint_pos = ObsTerm(
+            func=hector_mdp.joint_pos, 
+            params={"joint_names": ['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint']}, 
+            # noise=Unoise(n_min=-0.01, n_max=0.01),
+            )
+        joint_vel = ObsTerm(
+            func=hector_mdp.joint_vel, 
+            params={"joint_names": ['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint']}, 
+            # noise=Unoise(n_min=-1.5, n_max=1.5),
+            )
+        joint_torque = ObsTerm(
+            func=hector_mdp.joint_torque, 
+            params={"joint_names": ['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint']}, 
+            # noise=Unoise(n_min=-1.5, n_max=1.5),
+            )
+        
+        swing_phase = ObsTerm(
+            func=hector_mdp.swing_phase, 
+            params={"action_name": "mpc_action"}
+        )
+        foot_placement_b = ObsTerm(
+            func=hector_mdp.foot_placement_b,
+            params={"action_name": "mpc_action"}
+        )
+        foot_position_b = ObsTerm(
+            func=hector_mdp.foot_position_b,
+            params={"action_name": "mpc_action"}
+        )
+        reference_foot_position_b = ObsTerm(
+            func=hector_mdp.reference_foot_position_b,
+            params={"action_name": "mpc_action"}
+        )
+        
+        
+        actions = ObsTerm(func=mdp.last_action) # type: ignore
+        
+        height_scan = ObsTerm(
+            func=mdp.height_scan, # type: ignore
+            params={
+                "sensor_cfg": SceneEntityCfg("height_scanner"),
+                "offset": 0.55,
+                },
+            # noise=Unoise(n_min=-0.1, n_max=0.1),
+            clip=(-1.0, 1.0),
+        )
+        
+        # height_scan = ObsTerm(
+        #     func=hector_mdp.height_scan, # type: ignore
+        #     params={
+        #         "sensor_cfg": SceneEntityCfg("height_scanner"),
+        #         },
+        #     # noise=Unoise(n_min=-0.1, n_max=0.1),
+        #     clip=(-1.0, 1.0),
+        # )
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+    
+    @configclass
+    class CriticCfg(ObsGroup):
+        """Observations for policy group."""
+
+        # observation terms (order preserved)
+        base_pos_z = ObsTerm(
+            func=hector_mdp.base_pos_z, # type: ignore
+            params={
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
+                },
+            # noise=Unoise(n_min=-0.1, n_max=0.1)
+            )
+        base_lin_vel = ObsTerm(
+            func=mdp.base_lin_vel, # type: ignore
+            # noise=Unoise(n_min=-0.1, n_max=0.1)
+            )
+        base_ang_vel = ObsTerm(
+            func=mdp.base_ang_vel, # type: ignore
+            # noise=Unoise(n_min=-0.2, n_max=0.2)
+            )
+        projected_gravity = ObsTerm(
+            func=mdp.projected_gravity, # type: ignore
+            # noise=Unoise(n_min=-0.05, n_max=0.05),
+        )
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
+        
+        joint_pos = ObsTerm(
+            func=hector_mdp.joint_pos, 
+            params={"joint_names": ['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint']}, 
+            # noise=Unoise(n_min=-0.01, n_max=0.01),
+            )
+        joint_vel = ObsTerm(
+            func=hector_mdp.joint_vel, 
+            params={"joint_names": ['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint']}, 
+            # noise=Unoise(n_min=-1.5, n_max=1.5),
+            )
+        joint_torque = ObsTerm(
+            func=hector_mdp.joint_torque, 
+            params={"joint_names": ['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint']}, 
+            # noise=Unoise(n_min=-1.5, n_max=1.5),
+            )
+        
+        swing_phase = ObsTerm(
+            func=hector_mdp.swing_phase, 
+            params={"action_name": "mpc_action"}
+        )
+        foot_placement_b = ObsTerm(
+            func=hector_mdp.foot_placement_b,
+            params={"action_name": "mpc_action"}
+        )
+        foot_position_b = ObsTerm(
+            func=hector_mdp.foot_position_b,
+            params={"action_name": "mpc_action"}
+        )
+        reference_foot_position_b = ObsTerm(
+            func=hector_mdp.reference_foot_position_b,
+            params={"action_name": "mpc_action"}
+        )
+        
+        
+        actions = ObsTerm(func=mdp.last_action) # type: ignore
+        
+        # height_scan = ObsTerm(
+        #     func=mdp.height_scan, # type: ignore
+        #     params={
+        #         "sensor_cfg": SceneEntityCfg("height_scanner"),
+        #         "offset": 0.55,
+        #         },
+        #     # noise=Unoise(n_min=-0.1, n_max=0.1),
+        #     clip=(-1.0, 1.0),
+        # )
+        
+        height_scan = ObsTerm(
+            func=hector_mdp.height_scan, # type: ignore
+            params={
+                "sensor_cfg": SceneEntityCfg("height_scanner_fine"),
+                },
+            # noise=Unoise(n_min=-0.1, n_max=0.1),
+            clip=(-1.0, 1.0),
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
+    # observation groups
+    policy: PolicyCfg = PolicyCfg()
+    critic: CriticCfg = CriticCfg()

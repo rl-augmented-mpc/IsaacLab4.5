@@ -28,7 +28,6 @@ class HECTORSceneCfg(InteractiveSceneCfg):
 
     # terrain
     terrain = hector_mdp.CurriculumSteppingStoneTerrain
-    # terrain = hector_mdp.BaseTerrain
     
     # gravel 
     # gravel = hector_mdp.GravelTerrain
@@ -56,10 +55,70 @@ class HECTORSceneCfg(InteractiveSceneCfg):
         },
     )
     
+    height_scanner_fine = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.0)),
+        attach_yaw_only=True,
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=[1.0, 1.0]),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+        update_period=1/10,
+    )
+    height_scanner_fine.visualizer_cfg = VisualizationMarkersCfg(
+        prim_path="/Visuals/RayCasterFine",
+        markers={
+            "hit": sim_utils.SphereCfg(
+                radius=0.01,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
+            ),
+        },
+    )
+    
+    
+    # height_scanner_L_foot = RayCasterCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/L_toe",
+    #     offset=RayCasterCfg.OffsetCfg(pos=(0.04, 0.0, 0.0)),
+    #     attach_yaw_only=True,
+    #     pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14+0.04, 0.07]),
+    #     debug_vis=False,
+    #     mesh_prim_paths=["/World/ground"],
+    #     update_period=1/100,
+    # )
+    # height_scanner_L_foot.visualizer_cfg = VisualizationMarkersCfg(
+    #     prim_path="/Visuals/RayCasterLFoot",
+    #     markers={
+    #         "hit": sim_utils.SphereCfg(
+    #             radius=0.01,
+    #             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
+    #         ),
+    #     },
+    # )
+    
+    # height_scanner_R_foot = RayCasterCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/R_toe",
+    #     offset=RayCasterCfg.OffsetCfg(pos=(0.04, 0.0, 0.0)),
+    #     attach_yaw_only=True,
+    #     pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14+0.04, 0.07]),
+    #     debug_vis=False,
+    #     mesh_prim_paths=["/World/ground"],
+    #     update_period=1/100,
+    # )
+    # height_scanner_R_foot.visualizer_cfg = VisualizationMarkersCfg(
+    #     prim_path="/Visuals/RayCasterRFoot",
+    #     markers={
+    #         "hit": sim_utils.SphereCfg(
+    #             radius=0.01,
+    #             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
+    #         ),
+    #     },
+    # )
+    
+    
     contact_forces = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/Robot/.*", 
         history_length=3, 
-        track_air_time=True,
+        # track_air_time=True,
+        track_air_time=False,
         update_period=1/100,
         debug_vis=True,
         )
@@ -81,7 +140,8 @@ class HECTORSceneCfg(InteractiveSceneCfg):
     toe_contact = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/Robot/.*_toe_tip",
         history_length=3,
-        track_air_time=True,
+        # track_air_time=True,
+        track_air_time=False,
         update_period=1/100,
         )
     toe_contact.visualizer_cfg = VisualizationMarkersCfg(

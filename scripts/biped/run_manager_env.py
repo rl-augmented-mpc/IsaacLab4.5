@@ -46,7 +46,7 @@ import torch
 
 from isaaclab_tasks.utils import parse_env_cfg
 from isaaclab.utils.dict import print_dict
-from logger import BenchmarkLogger
+from logger import BenchmarkLogger, DictBenchmarkLogger
 
 
 def main():
@@ -85,7 +85,14 @@ def main():
     
     if args_cli.log:
         max_episode_length = int(env_cfg.episode_length_s/(env_cfg.decimation*env_cfg.sim.dt))
-        logger = BenchmarkLogger(log_dir, name, num_envs=args_cli.num_envs, max_trials=args_cli.max_trials, max_episode_length=max_episode_length)
+        # logger = BenchmarkLogger(log_dir, name, num_envs=args_cli.num_envs, max_trials=args_cli.max_trials, max_episode_length=max_episode_length)
+        logger = DictBenchmarkLogger(
+            log_dir, name, 
+            num_envs=args_cli.num_envs, 
+            max_trials=args_cli.max_trials, 
+            max_episode_length=max_episode_length, 
+            log_item=["state", "obs", "raw_action", "action", "reward"])
+        
     max_trials = args_cli.max_trials
     episode_length_log = [0]*args_cli.num_envs
     episode_counter = [0]*args_cli.num_envs
@@ -103,15 +110,21 @@ def main():
             obs = obs["policy"]
             processed_actions = env.unwrapped.action_manager.get_term("mpc_action").processed_actions # type: ignore
             state = env.unwrapped.action_manager.get_term("mpc_action").state # type: ignore
+            
+            reward_items = ["foot_landing"] # add reward term you want to log here
+            reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
+            foot_landing_penalty = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
         
         if args_cli.log:
-            logger.log(
-                    state=state.cpu().numpy(), # type: ignore
-                    obs=obs.cpu().numpy(),
-                    raw_action=action.cpu().numpy(), # type: ignore  # noqa: F821
-                    action=processed_actions.cpu().numpy(),
-                    done=dones.cpu().numpy(),  # type: ignore
-                    )
+            item_dict = {
+                "state": state.cpu().numpy(),  # type: ignore
+                "obs": obs.cpu().numpy(),
+                "raw_action": action.cpu().numpy(),  # type: ignore
+                "action": processed_actions.cpu().numpy(),
+                "reward": foot_landing_penalty.cpu().numpy(),  # type: ignore
+            }
+            logger.log(item_dict)
+        
         # Incremenet episode length 
         for i  in range(args_cli.num_envs):
             episode_length_log[i] += 1

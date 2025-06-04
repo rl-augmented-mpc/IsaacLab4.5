@@ -111,7 +111,6 @@ def get_ground_roughness_at_landing_point(
     num_envs: int,
     sensor_offset: tuple, 
     foot_position: torch.Tensor,
-    foot_selection: torch.Tensor,
     costmap_2d: torch.Tensor,
     resolution: float = 0.1,
     l_toe: float = 0.091,
@@ -244,9 +243,10 @@ def foot_placement_reward(
     l_heel: float = 0.054,
     l_width: float = 0.073,
     std: float = 0.5, 
+    offset: float = 0.55,
 ):
     raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
-    height_map = raycaster.data.ray_hits_w[..., 2]  - raycaster.data.pos_w[:, 2].unsqueeze(1)
+    height_map = raycaster.data.pos_w[:, 2].unsqueeze(1) - raycaster.data.ray_hits_w[..., 2] - offset
     
     resolution = raycaster.cfg.pattern_cfg.resolution
     grid_x, grid_y = raycaster.cfg.pattern_cfg.size
@@ -265,7 +265,6 @@ def foot_placement_reward(
         env.num_envs,
         sensor_offset,
         foot_position_b,
-        foot_selection,
         heightmap_2d, # heightmap
         resolution,
         l_toe,
@@ -288,10 +287,11 @@ def stance_foot_position_reward(
     l_heel: float = 0.054,
     l_width: float = 0.073,
     std: float = 0.5, 
+    offset: float = 0.55,
 ):
     raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
     contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
-    height_map = raycaster.data.ray_hits_w[..., 2]  - raycaster.data.pos_w[:, 2].unsqueeze(1)
+    height_map = raycaster.data.pos_w[:, 2].unsqueeze(1) - raycaster.data.ray_hits_w[..., 2] - offset
     
     resolution = raycaster.cfg.pattern_cfg.resolution
     grid_x, grid_y = raycaster.cfg.pattern_cfg.size
@@ -312,7 +312,6 @@ def stance_foot_position_reward(
         env.num_envs,
         sensor_offset,
         foot_position_b,
-        foot_selection,
         heightmap_2d, # heightmap
         resolution,
         l_toe,
@@ -338,13 +337,14 @@ def foot_placement_penalty(
     l_heel: float = 0.054,
     l_width: float = 0.073,
     std: float = 0.5, 
+    offset: float = 0.55,
 ):
     raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
-    height_map = raycaster.data.ray_hits_w[..., 2]  - raycaster.data.pos_w[:, 2].unsqueeze(1)
+    height_map = raycaster.data.pos_w[:, 2].unsqueeze(1) - raycaster.data.ray_hits_w[..., 2] - offset
     
     resolution = raycaster.cfg.pattern_cfg.resolution
     grid_x, grid_y = raycaster.cfg.pattern_cfg.size
-    width, height = int(grid_x/resolution + 1), int(grid_y/resolution + 1)
+    width, height = int(round(grid_x/resolution, 4)) + 1, int(round(grid_y/resolution, 4)) + 1
     sensor_offset = (raycaster.cfg.offset.pos[0], raycaster.cfg.offset.pos[1])
     heightmap_2d = height_map.view(-1, height, width)
     
@@ -359,7 +359,6 @@ def foot_placement_penalty(
         env.num_envs,
         sensor_offset,
         foot_position_b,
-        foot_selection,
         heightmap_2d, # heightmap
         resolution,
         l_toe,
@@ -381,23 +380,22 @@ def stance_foot_position_penalty(
     l_heel: float = 0.054,
     l_width: float = 0.073,
     std: float = 0.5, 
+    offset: float = 0.55,
 ):
     raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
     contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
-    height_map = raycaster.data.ray_hits_w[..., 2]  - raycaster.data.pos_w[:, 2].unsqueeze(1)
+    height_map = raycaster.data.pos_w[:, 2].unsqueeze(1) - raycaster.data.ray_hits_w[..., 2] - offset
     
     resolution = raycaster.cfg.pattern_cfg.resolution
     grid_x, grid_y = raycaster.cfg.pattern_cfg.size
-    width, height = int(grid_x/resolution + 1), int(grid_y/resolution + 1)
+    width, height = int(round(grid_x/resolution, 4)) + 1, int(round(grid_y/resolution, 4)) + 1
     sensor_offset = (raycaster.cfg.offset.pos[0], raycaster.cfg.offset.pos[1])
     heightmap_2d = height_map.view(-1, height, width)
     
     action_term = env.action_manager.get_term(action_name)
     
-    # if using actual landing location 
-    contact = contact_sensor.data.net_forces_w[:, contact_sensor_cfg.body_ids, :].norm(dim=2) > 1.0
-    # foot_selection = contact * (1 - action_term.gait_contact)
-    foot_selection = contact
+    # contact = contact_sensor.data.net_forces_w[:, contact_sensor_cfg.body_ids, :].norm(dim=2) > 1.0
+    first_contact = (contact_sensor.data.net_forces_w_history[:, :, contact_sensor_cfg.body_ids, :].norm(dim=3) > 1.0).sum(dim=1).float() == 1.0 # (num_envs, num_body_ids)
     foot_position_b = action_term.foot_pos_b.reshape(-1, 2, 3)
     
     # retrieves ground flatness where stance foot position is projected onto height map.
@@ -405,7 +403,6 @@ def stance_foot_position_penalty(
         env.num_envs,
         sensor_offset,
         foot_position_b,
-        foot_selection,
         heightmap_2d, # heightmap
         resolution,
         l_toe,
@@ -413,10 +410,32 @@ def stance_foot_position_penalty(
         l_width,
     )
     
-    # penalty = (foot_selection * (1 - torch.exp(-torch.abs(roughness_at_foot)/std))).max(dim=1).values # exponential
-    penalty = (foot_selection * (1 - torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6)))).max(dim=1).values # gaussian
-    # print(penalty)
+    # penalty = (first_contact * (1 - torch.exp(-torch.abs(roughness_at_foot)/std))).max(dim=1).values # exponential
+    penalty = (first_contact * (1 - torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6)))).max(dim=1).values # gaussian
 
+    return penalty
+
+def swing_foot_landing_penalty(
+    env: ManagerBasedRLEnv,
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("ray_caster"),
+    contact_sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
+    offset: float = 0.55,
+    std: float = 0.5, 
+):
+    """
+    Get foot-centric heightmap and compute roughness of neighboring terrain using max-min height difference.
+    """
+    raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
+    contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
+    
+    height_map = raycaster.data.pos_w[:, 2].unsqueeze(1) - raycaster.data.ray_hits_w[..., 2] - offset
+    # contact = contact_sensor.data.net_forces_w[:, contact_sensor_cfg.body_ids, :].norm(dim=2) > 1.0
+    # first_contact = contact_sensor.compute_first_contact(env.step_dt)[:, contact_sensor_cfg.body_ids] # this method does not capture correct contact mode...
+    first_contact = (contact_sensor.data.net_forces_w_history[:, :, contact_sensor_cfg.body_ids, :].norm(dim=3) > 1.0).sum(dim=1).float() == 1.0 # (num_envs, num_body_ids)
+    
+    roughness_at_foot = height_map.max(dim=1).values - height_map.min(dim=1).values # (num_envs, )
+    penalty = first_contact.squeeze(-1) * (1 - torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6))) # gaussian
+    
     return penalty
 
 def leg_body_angle_l2(

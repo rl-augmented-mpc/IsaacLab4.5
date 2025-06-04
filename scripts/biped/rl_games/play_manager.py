@@ -18,6 +18,7 @@ parser.add_argument("--video_length", type=int, default=200, help="Length of the
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
+parser.add_argument("--video_speed", type=float, default=1.0, help="Speed of the recorded video.")
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--checkpoint", type=str, default=None, help="Path to model checkpoint.")
@@ -73,7 +74,7 @@ from isaaclab_rl.rl_games import RlGamesGpuEnv, RlGamesVecEnvWrapper
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import get_checkpoint_path, load_cfg_from_registry, parse_env_cfg
 
-from logger import BenchmarkLogger
+from logger import DictBenchmarkLogger
 
 # PLACEHOLDER: Extension template (do not remove this comment)
 
@@ -123,7 +124,7 @@ def main():
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
     # slow down recording speed
-    env.metadata["render_fps"] = 100/2 # 0.5x speed
+    env.metadata["render_fps"] = int((1/env.unwrapped.step_dt) * args_cli.video_speed)  # type: ignore
 
     # convert to single-agent instance if required by the RL algorithm
     if isinstance(env.unwrapped, DirectMARLEnv):
@@ -146,7 +147,12 @@ def main():
     
     if args_cli.log:
         max_episode_length = int(env_cfg.episode_length_s/(env_cfg.decimation*env_cfg.sim.dt))
-        logger = BenchmarkLogger(log_dir, name, num_envs=args_cli.num_envs, max_trials=args_cli.max_trials, max_episode_length=max_episode_length)
+        logger = DictBenchmarkLogger(
+            log_dir, name, 
+            num_envs=args_cli.num_envs, 
+            max_trials=args_cli.max_trials, 
+            max_episode_length=max_episode_length, 
+            log_item=["state", "obs", "raw_action", "action", "reward"])
         
     # wrap around environment for rl-games
     env = RlGamesVecEnvWrapper(env, rl_device, clip_obs, clip_actions)
@@ -205,6 +211,11 @@ def main():
             processed_actions = env.unwrapped.action_manager.get_term("mpc_action").processed_actions # type: ignore
             state = env.unwrapped.action_manager.get_term("mpc_action").state # type: ignore
             
+            # reward_items = ["foot_landing_penalty_left", "foot_landing_penalty_right"] # add reward term you want to log here
+            reward_items = ["foot_landing"] # add reward term you want to log here
+            reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
+            foot_landing_penalty = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
+            
             # perform operations for terminated episodes
             if len(dones) > 0:
                 # reset rnn state for terminated episodes
@@ -213,13 +224,14 @@ def main():
                         s[:, dones, :] = 0.0
         
         if args_cli.log:
-            logger.log(
-                    state=state.cpu().numpy(), # type: ignore
-                    obs=obs.cpu().numpy(), # type: ignore
-                    raw_action=action.cpu().numpy(),
-                    action=processed_actions.cpu().numpy(), # type: ignore
-                    done=dones.cpu().numpy(), 
-                    )
+            item_dict = {
+                "state": state.cpu().numpy(),  # type: ignore
+                "obs": obs.cpu().numpy(), # type: ignore
+                "raw_action": action.cpu().numpy(),  # type: ignore
+                "action": processed_actions.cpu().numpy(),
+                "reward": foot_landing_penalty.cpu().numpy(),  # type: ignore
+            }
+            logger.log(item_dict)
         # Incremenet episode length 
         for i  in range(args_cli.num_envs):
             episode_length_log[i] += 1
