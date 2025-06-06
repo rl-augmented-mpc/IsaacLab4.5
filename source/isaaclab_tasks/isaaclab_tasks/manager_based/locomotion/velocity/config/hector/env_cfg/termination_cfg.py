@@ -37,22 +37,22 @@ class HECTORTerminationsCfg:
         time_out=True,
     )
     
-    bad_contact_left = DoneTerm(
-        func=hector_mdp.bad_foot_contact,  # type: ignore
-        params={
-            "sensor_cfg": SceneEntityCfg("height_scanner_L_foot"),
-            "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="L_toe"),
-            "offset": 0.55,
-        },
-        time_out=True,
-    )
+    # bad_contact_left = DoneTerm(
+    #     func=hector_mdp.bad_foot_contact,  # type: ignore
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("height_scanner_L_foot"),
+    #         "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="L_toe"),
+    #         "offset": 0.55,
+    #     },
+    #     time_out=True,
+    # )
     
-    bad_contact_right = DoneTerm(
-        func=hector_mdp.bad_foot_contact,  # type: ignore
-        params={
-            "sensor_cfg": SceneEntityCfg("height_scanner_R_foot"),
-            "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="R_toe"),
-            "offset": 0.55,
-        },
-        time_out=True,
-    )
+    # bad_contact_right = DoneTerm(
+    #     func=hector_mdp.bad_foot_contact,  # type: ignore
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("height_scanner_R_foot"),
+    #         "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="R_toe"),
+    #         "offset": 0.55,
+    #     },
+    #     time_out=True,
+    # )
