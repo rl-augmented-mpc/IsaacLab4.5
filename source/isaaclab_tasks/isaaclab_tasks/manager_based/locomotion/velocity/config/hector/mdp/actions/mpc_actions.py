@@ -106,7 +106,7 @@ class MPCAction(ActionTerm):
         
         # command
         self.original_command = self._env.command_manager.get_command(self.cfg.command_name)
-        self.sampling_time = self.cfg.nominal_mpc_dt * np.ones(self.num_envs, dtype=np.float32) # sampling time for each environment
+        # self.sampling_time = self.cfg.nominal_mpc_dt * np.ones(self.num_envs, dtype=np.float32) # sampling time for each environment
     
     """
     Properties.
@@ -200,7 +200,7 @@ class MPCAction(ActionTerm):
         self.command[:, :] = command.cpu().numpy()
         # update command manager
         self._env.command_manager._terms[self.cfg.command_name].vel_command_b = command
-        self.sampling_time[roughness.cpu().numpy() < -1e-2] = self.cfg.nominal_mpc_dt * 1.5 # double the sampling time for rough terrain
+        # self.sampling_time[roughness.cpu().numpy() < -1e-2] = self.cfg.nominal_mpc_dt * 1.5 # double the sampling time for rough terrain
         
     
     def _get_reference_height(self):
@@ -525,7 +525,7 @@ class MPCAction(ActionTerm):
         
         self._env.command_manager._terms[self.cfg.command_name]._resample_command(env_ids) # type: ignore
         self.original_command[env_ids, :] = self._env.command_manager.get_command(self.cfg.command_name)[env_ids, :]
-        self.sampling_time[env_ids] = self.cfg.nominal_mpc_dt
+        # self.sampling_time[env_ids] = self.cfg.nominal_mpc_dt
         
         # reset mpc controller
         for i in env_ids.cpu().numpy(): # type: ignore
