@@ -22,4 +22,4 @@ from .reward.rewards import (
 )
 from .events.events import reset_camera, reset_root_state_uniform, reset_particle_mass, reset_terrain_type
 from .curriculums.curriculums import terrain_levels_episode
-from .termination.termination import root_height_below_minimum_adaptive
+from .termination.termination import root_height_below_minimum_adaptive, bad_foot_contact

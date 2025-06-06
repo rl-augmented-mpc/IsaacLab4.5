@@ -75,43 +75,47 @@ class HECTORSceneCfg(InteractiveSceneCfg):
     )
     
     
-    # height_scanner_L_foot = RayCasterCfg(
-    #     prim_path="{ENV_REGEX_NS}/Robot/L_toe",
-    #     offset=RayCasterCfg.OffsetCfg(pos=(0.04, 0.0, 0.0)),
-    #     attach_yaw_only=True,
-    #     pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14+0.04, 0.07]),
-    #     debug_vis=False,
-    #     mesh_prim_paths=["/World/ground"],
-    #     update_period=1/100,
-    # )
-    # height_scanner_L_foot.visualizer_cfg = VisualizationMarkersCfg(
-    #     prim_path="/Visuals/RayCasterLFoot",
-    #     markers={
-    #         "hit": sim_utils.SphereCfg(
-    #             radius=0.01,
-    #             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
-    #         ),
-    #     },
-    # )
+    height_scanner_L_foot = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/L_toe",
+        # offset=RayCasterCfg.OffsetCfg(pos=(0.04, 0.0, 0.0)),
+        offset=RayCasterCfg.OffsetCfg(pos=(0.02, 0.0, 0.0)),
+        attach_yaw_only=True,
+        # pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14+0.04, 0.07]),
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.15, 0.07]),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+        update_period=1/100,
+    )
+    height_scanner_L_foot.visualizer_cfg = VisualizationMarkersCfg(
+        prim_path="/Visuals/RayCasterLFoot",
+        markers={
+            "hit": sim_utils.SphereCfg(
+                radius=0.01,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
+            ),
+        },
+    )
     
-    # height_scanner_R_foot = RayCasterCfg(
-    #     prim_path="{ENV_REGEX_NS}/Robot/R_toe",
-    #     offset=RayCasterCfg.OffsetCfg(pos=(0.04, 0.0, 0.0)),
-    #     attach_yaw_only=True,
-    #     pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14+0.04, 0.07]),
-    #     debug_vis=False,
-    #     mesh_prim_paths=["/World/ground"],
-    #     update_period=1/100,
-    # )
-    # height_scanner_R_foot.visualizer_cfg = VisualizationMarkersCfg(
-    #     prim_path="/Visuals/RayCasterRFoot",
-    #     markers={
-    #         "hit": sim_utils.SphereCfg(
-    #             radius=0.01,
-    #             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
-    #         ),
-    #     },
-    # )
+    height_scanner_R_foot = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/R_toe",
+        # offset=RayCasterCfg.OffsetCfg(pos=(0.04, 0.0, 0.0)),
+        offset=RayCasterCfg.OffsetCfg(pos=(0.02, 0.0, 0.0)),
+        attach_yaw_only=True,
+        # pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14+0.04, 0.07]),
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.15, 0.07]),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground"],
+        update_period=1/100,
+    )
+    height_scanner_R_foot.visualizer_cfg = VisualizationMarkersCfg(
+        prim_path="/Visuals/RayCasterRFoot",
+        markers={
+            "hit": sim_utils.SphereCfg(
+                radius=0.01,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
+            ),
+        },
+    )
     
     
     contact_forces = ContactSensorCfg(

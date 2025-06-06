@@ -14,8 +14,8 @@ from .env_cfg import (
     HECTORCurriculumCfg,
     HECTOREventCfg,
     SACHECTORObservationsCfg,
-    HECTORRewardsCfg,
-    # HECTORRewards2Cfg,
+    # HECTORRewardsCfg,
+    HECTORRewards2Cfg,
     HECTORTerminationsCfg,
     HECTORSceneCfg,
 )
@@ -23,8 +23,8 @@ from .env_cfg import (
 @configclass
 class HECTORRoughEnvSACCfg(LocomotionVelocityRoughEnvCfg):
     scene: HECTORSceneCfg = HECTORSceneCfg(num_envs=4096, env_spacing=2.5)
-    rewards: HECTORRewardsCfg = HECTORRewardsCfg()
-    # rewards: HECTORRewards2Cfg = HECTORRewards2Cfg()
+    # rewards: HECTORRewardsCfg = HECTORRewardsCfg()
+    rewards: HECTORRewards2Cfg = HECTORRewards2Cfg()
     actions: HECTORActionsCfg = HECTORActionsCfg()
     commands: HECTORCommandsCfg = HECTORCommandsCfg()
     observations: SACHECTORObservationsCfg = SACHECTORObservationsCfg()
@@ -54,5 +54,5 @@ class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
         self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         self.scene.height_scanner.debug_vis = True
         # self.events.reset_camera = None
-        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)
         self.curriculum.terrain_levels = None
