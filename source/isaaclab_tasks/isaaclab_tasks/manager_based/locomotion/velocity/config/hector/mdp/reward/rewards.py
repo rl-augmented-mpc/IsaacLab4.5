@@ -185,31 +185,6 @@ def track_torso_height_exp(
     reward = torch.exp(-torch.square(height - reference_height)/std**2) # exponential reward
     return reward
 
-def negative_lin_vel_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
-    """Penalize negative forward velocity using L2 squared kernel."""
-    # extract the used quantities (to enable type-hinting)
-    asset: RigidObject = env.scene[asset_cfg.name]
-    vel_x = asset.data.root_lin_vel_b[:, 0]
-    reward = torch.square(vel_x) * (vel_x < 0).float()  # penalize only if moving backwards
-    return reward
-
-def individual_action_l2(env: ManagerBasedRLEnv, action_idx:int|list[int], action_name: str = "mpc_action",) -> torch.Tensor:
-    """Penalize the actions using L2 squared kernel."""
-    action_term = env.action_manager.get_term(action_name)
-    processed_actions = action_term.processed_actions
-    picked_action = processed_actions[:, action_idx]
-    if len(picked_action.shape) == 2:
-        value = torch.sum(torch.square(picked_action), dim=1)
-    elif len(picked_action.shape) == 1:
-        value = torch.square(picked_action)
-    return value.view(-1)
-
-def processed_action_l2(env: ManagerBasedRLEnv, action_name: str = "mpc_action",) -> torch.Tensor:
-    """Penalize the actions using L2 squared kernel."""
-    action_term = env.action_manager.get_term(action_name)
-    processed_actions = action_term.processed_actions
-    return torch.sum(torch.square(processed_actions), dim=1).view(-1)
-
 def active_action_reward(
     env: ManagerBasedRLEnv,
     sensor_cfg: SceneEntityCfg = SceneEntityCfg("ray_caster"),
@@ -437,6 +412,55 @@ def swing_foot_landing_penalty(
     penalty = first_contact.squeeze(-1) * (1 - torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6))) # gaussian
     
     return penalty
+
+def negative_lin_vel_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Penalize negative forward velocity using L2 squared kernel."""
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    vel_x = asset.data.root_lin_vel_b[:, 0]
+    reward = torch.square(vel_x) * (vel_x < 0).float()  # penalize only if moving backwards
+    return reward
+
+def individual_action_l2(env: ManagerBasedRLEnv, action_idx:int|list[int], action_name: str = "mpc_action",) -> torch.Tensor:
+    """Penalize the actions using L2 squared kernel."""
+    action_term = env.action_manager.get_term(action_name)
+    processed_actions = action_term.processed_actions
+    picked_action = processed_actions[:, action_idx]
+    if len(picked_action.shape) == 2:
+        value = torch.sum(torch.square(picked_action), dim=1)
+    elif len(picked_action.shape) == 1:
+        value = torch.square(picked_action)
+    return value.view(-1)
+
+def processed_action_l2(env: ManagerBasedRLEnv, action_name: str = "mpc_action",) -> torch.Tensor:
+    """Penalize the actions using L2 squared kernel."""
+    action_term = env.action_manager.get_term(action_name)
+    processed_actions = action_term.processed_actions
+    return torch.sum(torch.square(processed_actions), dim=1).view(-1)
+
+def rough_terrain_processed_action_l2(
+    env: ManagerBasedRLEnv, 
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("ray_caster"),
+    action_name: str = "mpc_action",
+    offset: float=0.55,) -> torch.Tensor:
+    """Penalize the actions using L2 squared kernel."""
+    
+    raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
+    action_term = env.action_manager.get_term(action_name)
+    
+    height_map = raycaster.data.pos_w[:, 2].unsqueeze(1) - raycaster.data.ray_hits_w[..., 2] - offset
+    num_envs = height_map.shape[0]
+    resolution = raycaster.cfg.pattern_cfg.resolution
+    grid_x, grid_y = raycaster.cfg.pattern_cfg.size
+    width, height = int(round(grid_x/resolution, 4)) + 1, int(round(grid_y/resolution, 4)) + 1
+    window_size = 0.2
+    window = int(window_size/resolution)
+    height_map_patch = height_map.reshape(-1, height, width)[:, height//2-window:height//2+window, width//2-window:width//2+window].reshape(num_envs, -1)
+    roughness = height_map_patch.max(dim=1).values - height_map.min(dim=1).values # (num_envs, )
+    
+    processed_actions = action_term.processed_actions
+    energy_penalty = torch.sum(torch.square(processed_actions), dim=1).view(-1) * (roughness < 1e-2) # on flat terrain, penalize energy
+    return energy_penalty
 
 def leg_body_angle_l2(
     env: ManagerBasedRLEnv,

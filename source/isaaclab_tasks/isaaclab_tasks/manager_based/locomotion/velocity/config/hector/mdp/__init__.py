@@ -18,7 +18,7 @@ from .reward.rewards import (
     individual_action_l2, mpc_cost_l1, processed_action_l2, 
     stance_foot_position_reward, foot_placement_reward, feet_accel_l2, active_action_reward,
     stance_foot_position_penalty, foot_placement_penalty, 
-    swing_foot_landing_penalty
+    swing_foot_landing_penalty, rough_terrain_processed_action_l2
 )
 from .events.events import reset_camera, reset_root_state_uniform, reset_particle_mass, reset_terrain_type
 from .curriculums.curriculums import terrain_levels_episode
