@@ -103,6 +103,10 @@ class MPCAction(ActionTerm):
         self.foot_placement_visualizer = FootPlacementVisualizer("/Visuals/foot_placement")
         self.slacked_foot_placement_visualizer = SlackedFootPlacementVisualizer("/Visuals/slacked_foot_placement")
         self.position_trajectory_visualizer = PositionTrajectoryVisualizer("/Visuals/position_trajectory")
+        
+        # command
+        self.original_command = self._env.command_manager.get_command(self.cfg.command_name)
+        self.sampling_time = self.cfg.nominal_mpc_dt * np.ones(self.num_envs, dtype=np.float32) # sampling time for each environment
     
     """
     Properties.
@@ -155,6 +159,7 @@ class MPCAction(ActionTerm):
         self._get_footplacement_height()
         
         for i in range(self.num_envs):
+            # self.mpc_controller[i].update_sampling_time(self.sampling_time[i])
             self.mpc_controller[i].update_sampling_time(sampling_time[i])
             self.mpc_controller[i].set_swing_parameters(
                 stepping_frequency=1.0, 
@@ -173,10 +178,33 @@ class MPCAction(ActionTerm):
     def _get_reference_velocity(self):
         ramp_up_duration = 1.2 # seconds
         ramp_up_coef = torch.clip(self.mpc_counter/int(ramp_up_duration/self._env.physics_dt), 0.0, 1.0).unsqueeze(1)
-        self.command[:, :] = (ramp_up_coef * self._env.command_manager.get_command(self.cfg.command_name)).cpu().numpy()
+        
+        sensor= self._env.scene.sensors["height_scanner_fine"]
+        # height_map = sensor.data.ray_hits_w[..., 2]
+        height_map = sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.ray_hits_w[..., 2] - 0.55
+        
+        scan_width, scan_height = sensor.cfg.pattern_cfg.size
+        scan_resolution = sensor.cfg.pattern_cfg.resolution
+        width = int(scan_width/scan_resolution + 1)
+        height = int(scan_height/scan_resolution + 1)
+        height_map = height_map.reshape(self.num_envs, width, height)
+        
+        window = 4
+        height_map_patch = height_map[:, width//2-window:width//2+window+1, height//2-window:height//2+window+1].reshape(self.num_envs, -1)
+        # roughness = height_map_patch.max(dim=1).values - height_map_patch.min(dim=1).values
+        roughness = height_map_patch[:, -1] - height_map_patch[:, 0] # roughness in the last column of the height map
+        
+        # update command
+        command = ramp_up_coef * self.original_command
+        command[roughness < -1e-2, :] *= 1.0
+        self.command[:, :] = command.cpu().numpy()
+        # update command manager
+        self._env.command_manager._terms[self.cfg.command_name].vel_command_b = command
+        self.sampling_time[roughness.cpu().numpy() < -1e-2] = self.cfg.nominal_mpc_dt * 1.5 # double the sampling time for rough terrain
+        
     
     def _get_reference_height(self):
-        sensor= self._env.scene.sensors["height_scanner"]
+        sensor= self._env.scene.sensors["height_scanner_fine"]
         height_map = sensor.data.ray_hits_w[..., 2]
         
         scan_width, scan_height = sensor.cfg.pattern_cfg.size
@@ -243,7 +271,7 @@ class MPCAction(ActionTerm):
         # self.reference_height = self.cfg.nominal_height + (ground_height - ground_level_odometry_frame).cpu().numpy() + offset.cpu().numpy()
         
     def _get_footplacement_height(self):
-        sensor= self._env.scene.sensors["height_scanner"]
+        sensor= self._env.scene.sensors["height_scanner_fine"]
         height_map = sensor.data.ray_hits_w[..., 2]
         
         scan_width, scan_height = sensor.cfg.pattern_cfg.size
@@ -494,6 +522,11 @@ class MPCAction(ActionTerm):
         # reset action
         self._raw_actions[env_ids] = 0.0
         self._processed_actions[env_ids] = 0.0
+        
+        self._env.command_manager._terms[self.cfg.command_name]._resample_command(env_ids) # type: ignore
+        self.original_command[env_ids, :] = self._env.command_manager.get_command(self.cfg.command_name)[env_ids, :]
+        self.sampling_time[env_ids] = self.cfg.nominal_mpc_dt
+        
         # reset mpc controller
         for i in env_ids.cpu().numpy(): # type: ignore
             self.mpc_controller[i].reset()

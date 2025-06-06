@@ -42,3 +42,34 @@ def root_height_below_minimum_adaptive(
     )
     
     return asset.data.root_pos_w[:, 2] - min_foot_height < minimum_height
+
+
+def bad_foot_contact(
+    env: ManagerBasedRLEnv,
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("ray_caster"),
+    contact_sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
+    offset: float = 0.55,
+) -> torch.Tensor:
+    """Terminate when the foot contacts with the ground."""
+    raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
+    contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
+    
+    height_map = raycaster.data.pos_w[:, 2].unsqueeze(1) - raycaster.data.ray_hits_w[..., 2] - offset
+    contact = contact_sensor.data.net_forces_w[:, contact_sensor_cfg.body_ids, :].norm(dim=2) > 1.0 # contact
+    # contact = (contact_sensor.data.net_forces_w_history[:, :, contact_sensor_cfg.body_ids, :].norm(dim=3) > 1.0).sum(dim=1).float() == 1.0 # first contact
+    
+    elevation = height_map.max(dim=1).values - height_map.min(dim=1).values  # (num_envs, num_rays)
+    roughness = height_map - height_map[:, 0] # (num_envs, num_rays)
+    roughness = torch.abs(roughness).mean(dim=1)
+    
+    ratio = 0.3
+    threshold_up = elevation * ratio
+    threshold_down = elevation * (1 - ratio)
+    bad_contact = (elevation > 1e-3) * contact.squeeze(-1)
+    
+    going_up = (height_map[:, -1] - height_map[:, 0] <  -1e-3) * contact.squeeze(-1)
+    going_down = (height_map[:, -1] - height_map[:, 0] > 1e-3) * contact.squeeze(-1)
+    bad_contact[going_up] = roughness[going_up] < threshold_up[going_up]
+    bad_contact[going_down] = roughness[going_down] > threshold_down[going_down]
+    
+    return bad_contact
