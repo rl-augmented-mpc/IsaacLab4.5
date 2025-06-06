@@ -59,7 +59,7 @@ def bad_foot_contact(
     # contact = (contact_sensor.data.net_forces_w_history[:, :, contact_sensor_cfg.body_ids, :].norm(dim=3) > 1.0).sum(dim=1).float() == 1.0 # first contact
     
     elevation = height_map.max(dim=1).values - height_map.min(dim=1).values  # (num_envs, num_rays)
-    roughness = height_map - height_map[:, 0] # (num_envs, num_rays)
+    roughness = height_map - height_map[:, 0].unsqueeze(1) # (num_envs, num_rays)
     roughness = torch.abs(roughness).mean(dim=1)
     
     ratio = 0.3
