@@ -15,8 +15,8 @@ class HECTORActionsCfg:
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            (-0.6, 0.0, -0.6), 
-            (0.6, 0.1, 0.6)
+            (-0.6, 0.0, -0.4), 
+            (0.6, 0.1, 0.4)
         )
     )
     
