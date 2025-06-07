@@ -156,8 +156,6 @@ class MPCAction(ActionTerm):
         self._get_reference_height()
         self._get_footplacement_height()
         
-        # sampling_time[self.roughness < 1e-2] = self.cfg.nominal_mpc_dt
-        
         for i in range(self.num_envs):
             # self.mpc_controller[i].update_sampling_time(self.sampling_time[i])
             self.mpc_controller[i].update_sampling_time(sampling_time[i])
@@ -193,16 +191,15 @@ class MPCAction(ActionTerm):
         height_map_patch = height_map[:, width//2:width//2+window+1, height//2:height//2+window+1].reshape(self.num_envs, -1)
         # roughness = height_map_patch.max(dim=1).values - height_map_patch.min(dim=1).values
         roughness = height_map_patch[:, -1] - height_map_patch[:, 0] # roughness in the last column of the height map
-        self.roughness = roughness.cpu().numpy()
         
         # update command
         command = ramp_up_coef * self.original_command
-        command[roughness < -1e-2, :] *= 1.0
+        # command[roughness > 1e-2, :] *= 0.5 # going down
+        # command[roughness < -1e-2, :] *= 1.0 # going up
         self.command[:, :] = command.cpu().numpy()
         
         # update command manager
         self._env.command_manager._terms[self.cfg.command_name].vel_command_b = command
-        # self.sampling_time[roughness.cpu().numpy() < -1e-2] = self.cfg.nominal_mpc_dt * 1.5 # double the sampling time for rough terrain
         
     
     def _get_reference_height(self):
