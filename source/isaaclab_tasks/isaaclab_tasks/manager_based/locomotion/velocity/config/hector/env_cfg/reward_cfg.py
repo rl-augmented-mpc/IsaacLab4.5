@@ -313,7 +313,7 @@ class HECTORRewards2Cfg(RewardsCfg):
     )
     processed_action_l2_0 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-2.0,
+        weight=-1.5,
         params={
             "action_idx": [-3],
             "action_name": "mpc_action",
