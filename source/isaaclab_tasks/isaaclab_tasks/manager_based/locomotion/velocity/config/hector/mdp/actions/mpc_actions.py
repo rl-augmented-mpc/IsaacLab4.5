@@ -177,20 +177,20 @@ class MPCAction(ActionTerm):
         ramp_up_duration = 1.2 # seconds
         ramp_up_coef = torch.clip(self.mpc_counter/int(ramp_up_duration/self._env.physics_dt), 0.0, 1.0).unsqueeze(1)
         
-        sensor= self._env.scene.sensors["height_scanner_fine"]
-        # height_map = sensor.data.ray_hits_w[..., 2]
-        height_map = sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.ray_hits_w[..., 2] - 0.55
+        # sensor= self._env.scene.sensors["height_scanner_fine"]
+        # # height_map = sensor.data.ray_hits_w[..., 2]
+        # height_map = sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.ray_hits_w[..., 2] - 0.55
         
-        scan_width, scan_height = sensor.cfg.pattern_cfg.size
-        scan_resolution = sensor.cfg.pattern_cfg.resolution
-        width = int(scan_width/scan_resolution + 1)
-        height = int(scan_height/scan_resolution + 1)
-        height_map = height_map.reshape(self.num_envs, width, height)
+        # scan_width, scan_height = sensor.cfg.pattern_cfg.size
+        # scan_resolution = sensor.cfg.pattern_cfg.resolution
+        # width = int(scan_width/scan_resolution + 1)
+        # height = int(scan_height/scan_resolution + 1)
+        # height_map = height_map.reshape(self.num_envs, width, height)
         
-        window = int(0.2/scan_resolution)
-        height_map_patch = height_map[:, width//2:width//2+window+1, height//2:height//2+window+1].reshape(self.num_envs, -1)
-        # roughness = height_map_patch.max(dim=1).values - height_map_patch.min(dim=1).values
-        roughness = height_map_patch[:, -1] - height_map_patch[:, 0] # roughness in the last column of the height map
+        # window = int(0.2/scan_resolution)
+        # height_map_patch = height_map[:, width//2:width//2+window+1, height//2:height//2+window+1].reshape(self.num_envs, -1)
+        # # roughness = height_map_patch.max(dim=1).values - height_map_patch.min(dim=1).values
+        # roughness = height_map_patch[:, -1] - height_map_patch[:, 0] # roughness in the last column of the height map
         
         # update command
         command = ramp_up_coef * self.original_command
