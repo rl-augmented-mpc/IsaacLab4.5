@@ -262,44 +262,59 @@ class HECTORRewards2Cfg(RewardsCfg):
     )
 
     # -- penalties
-    termnation = RewTerm(func=mdp.is_terminated, weight=-200.0) # type: ignore
+    termination = RewTerm(func=mdp.is_terminated, weight=-200.0) # type: ignore
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01) # type: ignore
     lin_accel_l2 = RewTerm(func=mdp.body_lin_acc_l2, weight=-5e-4, params={"asset_cfg": SceneEntityCfg("robot", body_names="base")}) # type: ignore
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.05) # type: ignore
+    action_rate_l2 = RewTerm(
+        func=mdp.action_rate_l2, # type: ignore
+        weight=-0.05, 
+        # weight=-0.01, 
+        ) 
     
     # -- joint penalties
-    dof_torques_l2 = RewTerm(
-        func=mdp.joint_torques_l2,  # type: ignore
-        weight=-1.0e-5, 
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])}
-        )
     dof_vel_l2 = RewTerm(
         func=mdp.joint_vel_l2,  # type: ignore
         weight=-2.5e-4,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])}
     )
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7) # type: ignore
+    # dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7) # type: ignore
+    dof_acc_l2 = None
+    dof_torques_l2 = RewTerm(
+        func=mdp.joint_torques_l2,  # type: ignore
+        weight=-1.0e-5, 
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])}
+        )
     
     # Penalize ankle joint limits
-    dof_pos_limits = RewTerm(
-        func=mdp.joint_pos_limits, # type: ignore
-        weight=-0.1,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_toe_joint"])},
-    )
-    # Penalize deviation from default of the joints that are not essential for locomotion
-    joint_deviation = RewTerm(
-        func=mdp.joint_deviation_l1, # type: ignore
-        weight=-0.01,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_toe_joint"])},
-    )
+    # dof_pos_limits = RewTerm(
+    #     func=mdp.joint_pos_limits, # type: ignore
+    #     weight=-0.1,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_toe_joint"])},
+    # )
+    # # Penalize deviation from default of the joints that are not essential for locomotion
+    # joint_deviation = RewTerm(
+    #     func=mdp.joint_deviation_l1, # type: ignore
+    #     weight=-0.01,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_toe_joint"])},
+    # )
+    dof_pos_limits = None
+    joint_deviation = None
     
     # -- energy penalty
-    # processed_action_l2 = RewTerm(
+    # processed_action_l2_12 = RewTerm(
     #     func=hector_mdp.individual_action_l2, # type: ignore
     #     weight=-0.5,
     #     params={
-    #         "action_idx": [-3, -2, -1],
+    #         "action_idx": [-2, -1],
+    #         "action_name": "mpc_action",
+    #     }
+    # )
+    # processed_action_l2_0 = RewTerm(
+    #     func=hector_mdp.individual_action_l2, # type: ignore
+    #     weight=-1.5,
+    #     params={
+    #         "action_idx": [-3],
     #         "action_name": "mpc_action",
     #     }
     # )
@@ -307,15 +322,15 @@ class HECTORRewards2Cfg(RewardsCfg):
         func=hector_mdp.individual_action_l2, # type: ignore
         weight=-0.5,
         params={
-            "action_idx": [-2, -1],
+            "action_idx": [-2],
             "action_name": "mpc_action",
         }
     )
     processed_action_l2_0 = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-1.5,
+        weight=-2.0,
         params={
-            "action_idx": [-3],
+            "action_idx": [-1, -3],
             "action_name": "mpc_action",
         }
     )
@@ -329,19 +344,20 @@ class HECTORRewards2Cfg(RewardsCfg):
     # )
     
     # -- foot penalties
-    feet_slide = RewTerm(
-        func=mdp.feet_slide,
-        weight=-0.2,
-        params={
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
-        },
-    )
+    # feet_slide = RewTerm(
+    #     func=mdp.feet_slide,
+    #     weight=-0.2,
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
+    #     },
+    # )
     
     # body-leg angle penalties
     leg_body_angle_l2 = RewTerm(
         func=hector_mdp.leg_body_angle_l2, 
-        weight=-0.2,
+        # weight=-0.2,
+        weight=-1.0,
         params={"action_name": "mpc_action"}
     )
     leg_body_distance_l2 = RewTerm(

@@ -178,7 +178,7 @@ class SACHECTORObservationsCfg:
             func=mdp.height_scan, # type: ignore
             params={
                 "sensor_cfg": SceneEntityCfg("height_scanner"),
-                "offset": 0.55,
+                "offset": 0.56,
                 },
             # noise=Unoise(n_min=-0.1, n_max=0.1),
             clip=(-1.0, 1.0),
@@ -359,7 +359,7 @@ class AssymetricSACHECTORObservationsCfg:
         #     func=mdp.height_scan, # type: ignore
         #     params={
         #         "sensor_cfg": SceneEntityCfg("height_scanner"),
-        #         "offset": 0.55,
+        #         "offset": 0.56,
         #         },
         #     # noise=Unoise(n_min=-0.1, n_max=0.1),
         #     clip=(-1.0, 1.0),

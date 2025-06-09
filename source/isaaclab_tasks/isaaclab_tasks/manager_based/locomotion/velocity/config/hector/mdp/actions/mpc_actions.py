@@ -524,14 +524,15 @@ class MPCAction(ActionTerm):
         
         self._env.command_manager._terms[self.cfg.command_name]._resample_command(env_ids) # type: ignore
         self.original_command[env_ids, :] = self._env.command_manager.get_command(self.cfg.command_name)[env_ids, :]
-        # self.sampling_time[env_ids] = self.cfg.nominal_mpc_dt
         
         # reset mpc controller
+        self._get_state()
         for i in env_ids.cpu().numpy(): # type: ignore
             self.mpc_controller[i].reset()
             self.mpc_controller[i].update_gait_parameter(
                 np.array([self.cfg.double_support_duration, self.cfg.double_support_duration]), 
                 np.array([self.cfg.single_support_duration, self.cfg.single_support_duration]),)
+            self.mpc_controller[i].update_state(self.state[i].cpu().numpy())
         self.mpc_counter[env_ids] = 0
 
 class MPCAction2(MPCAction):
