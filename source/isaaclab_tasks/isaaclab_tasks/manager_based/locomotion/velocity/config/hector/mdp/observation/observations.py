@@ -112,6 +112,17 @@ def swing_phase(env: ManagerBasedEnv, action_name: str = "mpc_action")-> torch.T
     swing_phase = action_term.swing_phase
     return swing_phase
 
+def foot_position_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:
+    """Foot position of the robot.
+
+    The foot position is defined as the position of the foot in the world frame.
+    """
+    # extract the used quantities (to enable type-hinting)
+    action_term = env.action_manager.get_term(action_name)
+    # foot_position_b = action_term.foot_pos_b # from mpc controller
+    foot_position_b = action_term.robot_api.foot_pos_b.reshape(-1, 6) # from simulation
+    return foot_position_b
+
 def foot_placement_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:
     """Foot placement of the robot.
 
@@ -121,16 +132,6 @@ def foot_placement_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> t
     action_term = env.action_manager.get_term(action_name)
     foot_placement_b = action_term.foot_placement_b
     return foot_placement_b
-
-def foot_position_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:
-    """Foot position of the robot.
-
-    The foot position is defined as the position of the foot in the world frame.
-    """
-    # extract the used quantities (to enable type-hinting)
-    action_term = env.action_manager.get_term(action_name)
-    foot_position_b = action_term.foot_pos_b
-    return foot_position_b
 
 def reference_foot_position_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:
     """Reference foot position of the robot.

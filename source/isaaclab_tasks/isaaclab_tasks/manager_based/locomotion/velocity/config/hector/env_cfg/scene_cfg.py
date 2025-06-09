@@ -39,9 +39,7 @@ class HECTORSceneCfg(InteractiveSceneCfg):
     height_scanner = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.0)),
-        # offset=RayCasterCfg.OffsetCfg(pos=(0.5, 0.0, 0.0)),
         attach_yaw_only=True,
-        # pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.0, 1.0]),
         pattern_cfg=patterns.GridPatternCfg(resolution=0.05, size=[1.0, 1.0]),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
@@ -79,11 +77,11 @@ class HECTORSceneCfg(InteractiveSceneCfg):
     
     height_scanner_L_foot = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/L_toe",
-        offset=RayCasterCfg.OffsetCfg(pos=(0.04, 0.0, 0.0)),
-        # offset=RayCasterCfg.OffsetCfg(pos=(0.02, 0.0, 0.0)),
+        # offset=RayCasterCfg.OffsetCfg(pos=(0.04, 0.0, 0.0)),
+        offset=RayCasterCfg.OffsetCfg(pos=(0.02, 0.0, 0.0)),
         attach_yaw_only=True,
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14+0.04, 0.07]),
-        # pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.15, 0.07]),
+        # pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14+0.04, 0.07]),
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14, 0.07]),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
         update_period=1/100,
@@ -100,11 +98,11 @@ class HECTORSceneCfg(InteractiveSceneCfg):
     
     height_scanner_R_foot = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/R_toe",
-        offset=RayCasterCfg.OffsetCfg(pos=(0.04, 0.0, 0.0)),
-        # offset=RayCasterCfg.OffsetCfg(pos=(0.02, 0.0, 0.0)),
+        # offset=RayCasterCfg.OffsetCfg(pos=(0.04, 0.0, 0.0)),
+        offset=RayCasterCfg.OffsetCfg(pos=(0.02, 0.0, 0.0)),
         attach_yaw_only=True,
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14+0.04, 0.07]),
-        # pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.15, 0.07]),
+        # pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14+0.04, 0.07]),
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14, 0.07]),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
         update_period=1/100,
