@@ -32,8 +32,10 @@ BaseTerrain = TerrainImporterCfg(
     physics_material=sim_utils.RigidBodyMaterialCfg(
         friction_combine_mode="multiply",
         restitution_combine_mode="multiply",
-        static_friction=2.0,
-        dynamic_friction=2.0,
+        # static_friction=2.0,
+        # dynamic_friction=2.0,
+        static_friction=0.15,
+        dynamic_friction=0.15,
     ),
     visual_material=sim_utils.MdlFileCfg(
         mdl_path=f"{ISAACLAB_NUCLEUS_DIR}/Materials/TilesMarbleSpiderWhiteBrickBondHoned/TilesMarbleSpiderWhiteBrickBondHoned.mdl",
@@ -142,7 +144,7 @@ InferenceSteppingStoneTerrain = TerrainImporterCfg(
         curriculum=True,
         sub_terrains={
             "terrain1": terrain_gen.StairTerrainCfg(
-            profile_mode="random",
+            profile_mode="up_down",
             proportion=0.2, 
             num_box=60,
             box_height_range=(0.08, 0.08), 
@@ -151,7 +153,7 @@ InferenceSteppingStoneTerrain = TerrainImporterCfg(
             # platform_length_range_start=(0.3, 0.6), platform_length_range_end=(0.3, 0.6),
             platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
             border_size=0.0, 
-            height_noise_range=(-0.00, 0.00), 
+            height_noise_range=(-0.01, 0.01), 
             center_area_size=2.0,
             ),
             # "terrain2": terrain_gen.MeshRepeatedBoxesTerrainCfg(
@@ -313,7 +315,7 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
             platform_length_range_start=(0.5, 1.0), platform_length_range_end=(0.2, 0.8),
             platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
             border_size=0.0, 
-            height_noise_range=(-0.00, 0.00), 
+            height_noise_range=(-0.01, 0.01), 
             center_area_size=1.5,
             ),
             
