@@ -440,26 +440,37 @@ def processed_action_l2(env: ManagerBasedRLEnv, action_name: str = "mpc_action",
 
 def rough_terrain_processed_action_l2(
     env: ManagerBasedRLEnv, 
+    action_idx:int|list[int],
     sensor_cfg: SceneEntityCfg = SceneEntityCfg("ray_caster"),
     action_name: str = "mpc_action",
-    offset: float=0.55,) -> torch.Tensor:
+    offset: float=0.55, 
+    lookahead_distance: float=0.25) -> torch.Tensor:
     """Penalize the actions using L2 squared kernel."""
     
     raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
     action_term = env.action_manager.get_term(action_name)
     
+    # process height map
     height_map = raycaster.data.pos_w[:, 2].unsqueeze(1) - raycaster.data.ray_hits_w[..., 2] - offset
     num_envs = height_map.shape[0]
     resolution = raycaster.cfg.pattern_cfg.resolution
     grid_x, grid_y = raycaster.cfg.pattern_cfg.size
     width, height = int(round(grid_x/resolution, 4)) + 1, int(round(grid_y/resolution, 4)) + 1
-    window_size = 0.2
-    window = int(window_size/resolution)
-    height_map_patch = height_map.reshape(-1, height, width)[:, height//2-window:height//2+window, width//2-window:width//2+window].reshape(num_envs, -1)
-    roughness = height_map_patch.max(dim=1).values - height_map.min(dim=1).values # (num_envs, )
     
+    # extract small patch to attend
+    window = int(lookahead_distance/resolution)
+    window_back = int(0.1/resolution) # look back distance
+    height_map_patch = height_map.reshape(-1, height, width)[:, height//2, width//2-window_back:width//2+window+1].reshape(num_envs, -1)
+    roughness = height_map_patch.max(dim=1).values - height_map_patch.min(dim=1).values # (num_envs, )
+    
+    # process energy penalty
     processed_actions = action_term.processed_actions
-    energy_penalty = torch.sum(torch.square(processed_actions), dim=1).view(-1) * (roughness < 1e-2) # on flat terrain, penalize energy
+    picked_action = processed_actions[:, action_idx]
+    if len(picked_action.shape) == 2:
+        value = torch.sum(torch.square(picked_action), dim=1)
+    elif len(picked_action.shape) == 1:
+        value = torch.square(picked_action)
+    energy_penalty = value.view(-1) * (roughness < 1e-2).float() # on flat terrain, penalize energy
     return energy_penalty
 
 def leg_body_angle_l2(

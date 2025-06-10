@@ -693,6 +693,7 @@ def stair_terrain(
     platform_length_right_half = np.random.uniform(platform_length_0, platform_length_1, size=cfg.num_box//2)
     
     # up
+    assert cfg.profile_mode in ["up", "down", "up_down", "random", "pyramid", "inv_pyramid"], "Invalid profile mode. Choose from 'up', 'down', 'up_down', 'random', 'pyramid', or 'inv_pyramid'."
     if cfg.profile_mode == "up":
         block_height_profile_left = np.ones(len(platform_gap_left_half))
         block_height_profile_right = np.ones(len(platform_gap_right_half))
@@ -707,6 +708,20 @@ def stair_terrain(
     elif cfg.profile_mode == "random":
         block_height_profile_left = np.random.choice([-1, 1], size=len(platform_gap_left_half))
         block_height_profile_right = np.random.choice([-1, 1], size=len(platform_gap_right_half))
+    elif cfg.profile_mode == "pyramid":
+        left_up_number = len(platform_gap_left_half) // 2
+        left_down_number = len(platform_gap_left_half) - left_up_number
+        right_up_number = len(platform_gap_right_half) // 2
+        right_down_number = len(platform_gap_right_half) - right_up_number
+        block_height_profile_left = np.concatenate([np.ones(left_up_number), -np.ones(left_down_number)])
+        block_height_profile_right = np.concatenate([np.ones(right_up_number), -np.ones(right_down_number)])
+    elif cfg.profile_mode == "inv_pyramid":
+        left_up_number = len(platform_gap_left_half) // 2
+        left_down_number = len(platform_gap_left_half) - left_up_number
+        right_up_number = len(platform_gap_right_half) // 2
+        right_down_number = len(platform_gap_right_half) - right_up_number
+        block_height_profile_left = np.concatenate([-np.ones(left_down_number), np.ones(left_up_number)])
+        block_height_profile_right = np.concatenate([-np.ones(right_down_number), np.ones(right_up_number)])
     
     # left blocks
     block_length_prev = cfg.center_area_size

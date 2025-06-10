@@ -190,7 +190,7 @@ class StairTerrainCfg(SubTerrainBaseCfg):
     box_height_range: tuple[float, float] = MISSING
     """The minimum and maximum height of the box (in m)."""
     
-    profile_mode: Literal["up", "down", "up_down", "random"] = "up_down"
+    profile_mode: Literal["up", "down", "up_down", "random", "pyramid", "inv_pyramid"] = "up_down"
     
     platform_length_range_start: tuple[float, float] = MISSING
     """The minimum and maximum length of the platform (in m)."""

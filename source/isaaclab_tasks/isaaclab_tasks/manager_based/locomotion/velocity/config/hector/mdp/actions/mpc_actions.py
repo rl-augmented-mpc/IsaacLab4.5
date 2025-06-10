@@ -82,12 +82,16 @@ class MPCAction(ActionTerm):
         self.gait_contact = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
         self.gait_contact[:, 0] = 1.0 # left foot contact at the beginning
         self.swing_phase = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
+        
         self.foot_placement_w = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32)
-        self.foot_placement_b = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32) # in body frame
+        self.foot_placement_b = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32) # in body frame]
         self.foot_pos_w = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # foot position in world frame
         self.foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # foot position in body frame
+        self.foot_pos_b[:, [2, 5]] = -self.cfg.nominal_height # set reasonable initial value
         self.ref_foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # reference foot position in body frame
+        self.ref_foot_pos_b[:, 5] = -self.cfg.nominal_height # set reasonable initial value
         self.leg_angle = torch.zeros(self.num_envs, 4, device=self.device)
+        
         self.mpc_counter = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
         self.mpc_cost = torch.zeros(self.num_envs, device=self.device)
         self.position_trajectory = torch.zeros(self.num_envs, 10, 3, device=self.device, dtype=torch.float32) # trajectory of the foot placement in world frame
@@ -151,7 +155,6 @@ class MPCAction(ActionTerm):
         cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
         
         # update reference
-        self._get_mpc_state()
         self._get_reference_velocity()
         self._get_reference_height()
         self._get_footplacement_height()
@@ -414,6 +417,8 @@ class MPCAction(ActionTerm):
         joint_actions = torch.from_numpy(self._joint_actions).to(self.device)
         self.robot_api.set_joint_effort_target(joint_actions, self._joint_ids)
         self.mpc_counter += 1
+        
+        self._get_mpc_state()
     
     def _get_state(self) -> None:
         """
