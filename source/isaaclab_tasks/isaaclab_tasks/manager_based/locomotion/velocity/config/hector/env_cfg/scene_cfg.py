@@ -173,3 +173,72 @@ class HECTORSceneCfg(InteractiveSceneCfg):
             texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
         ),
     )
+    
+    
+@configclass
+class HECTORSlipSceneCfg(InteractiveSceneCfg):
+    """Configuration for the terrain scene with a legged robot."""
+
+    # terrain
+    terrain = hector_mdp.CurriculumFrictionPatchTerrain
+    # terrain = hector_mdp.FrictionPatchTerrain
+    
+    
+    # gravel 
+    # gravel = hector_mdp.GravelTerrain
+    
+    # --robots
+    robot: ArticulationCfg = HECTOR_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    
+    # --sensors
+    height_scanner = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.0)),
+        attach_yaw_only=True,
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.05, size=[1.0, 1.0]),
+        debug_vis=False,
+        mesh_prim_paths=["/World/ground_visual"], 
+        update_period=1/10,
+    )
+    height_scanner.visualizer_cfg = VisualizationMarkersCfg(
+        prim_path="/Visuals/RayCaster",
+        markers={
+            "hit": sim_utils.SphereCfg(
+                radius=0.01,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
+            ),
+        },
+    )
+    
+    
+    contact_forces = ContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/.*", 
+        history_length=3, 
+        # track_air_time=True,
+        track_air_time=False,
+        update_period=1/100,
+        debug_vis=True,
+        )
+    contact_forces.visualizer_cfg = VisualizationMarkersCfg(
+        prim_path="/Visuals/ContactSensor",
+        markers={
+            "contact": sim_utils.SphereCfg(
+                radius=0.03,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.8)),
+            ),
+            "no_contact": sim_utils.SphereCfg(
+                radius=0.03,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.8)),
+                visible=False,
+            ),
+        },
+    )
+    
+    # --lights
+    sky_light = AssetBaseCfg(
+        prim_path="/World/skyLight",
+        spawn=sim_utils.DomeLightCfg(
+            intensity=750.0,
+            texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+        ),
+    )

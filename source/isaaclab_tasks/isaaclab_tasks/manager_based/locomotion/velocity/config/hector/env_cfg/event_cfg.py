@@ -96,3 +96,40 @@ class HECTOREventCfg(EventCfg):
     #         "asset_cfg": SceneEntityCfg("gravel"),
     #     },
     # )
+    
+@configclass 
+class HECTORSlipEventCfg(HECTOREventCfg):
+    physics_material = EventTerm(
+        func=mdp.randomize_rigid_body_material, # type: ignore
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+            "static_friction_range": (1.0, 1.0),
+            "dynamic_friction_range": (1.0, 1.0),
+            "restitution_range": (0.0, 0.0),
+            "num_buckets": 64,
+        },
+    )
+    
+    reset_base = EventTerm(
+        func=hector_mdp.reset_root_state_uniform_custom_terrain, # type: ignore
+        mode="reset",
+        params={
+            "pose_range": {
+                "x": (-0.0, 0.0), 
+                "y": (-0.0, -0.0), 
+                "z": (0.0, 0.0),
+                "roll": (0.0, 0.0),
+                "pitch": (0.0, 0.0),
+                "yaw": (math.pi, math.pi),
+                },
+            "velocity_range": {
+                "x": (-0.0, 0.0),
+                "y": (-0.0, 0.0),
+                "z": (0.0, 0.0),  
+                "roll": (-0.0, 0.0),
+                "pitch": (-0.0, 0.0),
+                "yaw": (-0.0, 0.0),
+            },
+        },
+    )

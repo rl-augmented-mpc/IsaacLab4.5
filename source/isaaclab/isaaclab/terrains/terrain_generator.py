@@ -143,7 +143,14 @@ class TerrainGenerator:
 
         # parse configuration and add sub-terrains
         # create terrains based on curriculum or randomly
-        if self.cfg.curriculum:
+        if self.cfg.custom_curriculum:
+            if self.cfg.curriculum:
+                with Timer("[INFO] Generating terrains based on custom curriculum took"):
+                    self._generate_curriculum_custom_terrains()
+            else:
+                with Timer("[INFO] Generating terrains based on custom curriculum took"):
+                    self._generate_random_custom_terrains()
+        elif self.cfg.curriculum:
             with Timer("[INFO] Generating terrains based on curriculum took"):
                 self._generate_curriculum_terrains()
                 # self._generate_grid_terrains()
@@ -169,9 +176,15 @@ class TerrainGenerator:
 
         # offset the entire terrain and origins so that it is centered
         # -- terrain mesh
-        transform = np.eye(4)
-        transform[:2, -1] = -self.cfg.size[0] * self.cfg.num_rows * 0.5, -self.cfg.size[1] * self.cfg.num_cols * 0.5
-        self.terrain_mesh.apply_transform(transform)
+        if self.cfg.custom_curriculum:
+            transform = np.eye(4)
+            transform[:2, -1] = -self.cfg.size[0] * self.cfg.num_sub_patches * self.cfg.num_rows * 0.5, -self.cfg.size[1] * self.cfg.num_sub_patches * self.cfg.num_cols * 0.5
+            self.terrain_mesh.apply_transform(transform)
+        else:
+            transform = np.eye(4)
+            transform[:2, -1] = -self.cfg.size[0] * self.cfg.num_rows * 0.5, -self.cfg.size[1] * self.cfg.num_cols * 0.5
+            self.terrain_mesh.apply_transform(transform)
+        
         # -- terrain origins
         self.terrain_origins += transform[:3, -1]
         # -- valid patches
@@ -220,6 +233,45 @@ class TerrainGenerator:
             mesh, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
             # add to sub-terrains
             self._add_sub_terrain(mesh, origin, sub_row, sub_col, sub_terrains_cfgs[sub_index])
+            
+    def _generate_random_custom_terrains(self):
+        """Add terrains based on randomly sampled difficulty parameter."""
+        # normalize the proportions of the sub-terrains
+        proportions = np.array([sub_cfg.proportion for sub_cfg in self.cfg.sub_terrains.values()])
+        proportions /= np.sum(proportions)
+        # create a list of all terrain configs
+        sub_terrains_cfgs = list(self.cfg.sub_terrains.values())
+
+        # randomly sample sub-terrains
+        for index in range(self.cfg.num_rows * self.cfg.num_cols):
+            # coordinate index of the sub-terrain
+            (sub_row, sub_col) = np.unravel_index(index, (self.cfg.num_rows, self.cfg.num_cols))
+            # randomly sample terrain index
+            sub_index = self.np_rng.choice(len(proportions), p=proportions)
+            # randomly sample difficulty parameter
+            difficulty = self.np_rng.uniform(*self.cfg.difficulty_range)
+            
+            # add to sub-terrains
+            for patch_index in range(self.cfg.num_sub_patches * self.cfg.num_sub_patches):
+                patch_row_id = patch_index // self.cfg.num_sub_patches
+                patch_col_id = patch_index % self.cfg.num_sub_patches
+                patch_row = sub_row * self.cfg.num_sub_patches + patch_row_id
+                patch_col = sub_col * self.cfg.num_sub_patches + patch_col_id
+                
+                # transform the mesh to the correct position
+                transform_patch = np.eye(4)
+                transform_patch[0:2, -1] = (patch_row + 0.5) * self.cfg.size[0], (patch_col + 0.5) * self.cfg.size[1]
+                
+                # generate terrain
+                mesh, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
+                
+                mesh.apply_transform(transform_patch)
+                # add mesh to the list
+                self.terrain_meshes.append(mesh)
+            
+            transform = np.eye(4)
+            transform[0:2, -1] = (sub_row + 0.5) * self.cfg.num_sub_patches * self.cfg.size[0], (sub_col + 0.5) * self.cfg.num_sub_patches * self.cfg.size[1]
+            self.terrain_origins[sub_row, sub_col] = origin + transform[:3, -1]
 
     def _generate_grid_terrains(self):
         """Tile terrains from sub_terrains lists."""
@@ -275,6 +327,59 @@ class TerrainGenerator:
                 mesh, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_indices[sub_col]])
                 # add to sub-terrains
                 self._add_sub_terrain(mesh, origin, sub_row, sub_col, sub_terrains_cfgs[sub_indices[sub_col]])
+    
+    def _generate_curriculum_custom_terrains(self):
+        """Add terrains based on randomly sampled difficulty parameter."""
+        # normalize the proportions of the sub-terrains
+        proportions = np.array([sub_cfg.proportion for sub_cfg in self.cfg.sub_terrains.values()])
+        proportions /= np.sum(proportions)
+
+        # find the sub-terrain index for each column
+        # we generate the terrains based on their proportion (not randomly sampled)
+        sub_indices = []
+        for index in range(self.cfg.num_cols):
+            sub_index = np.min(np.where(index / self.cfg.num_cols + 0.001 < np.cumsum(proportions))[0])
+            sub_indices.append(sub_index)
+        sub_indices = np.array(sub_indices, dtype=np.int32)
+        # create a list of all terrain configs
+        sub_terrains_cfgs = list(self.cfg.sub_terrains.values())
+
+        # TODO: check if col and row are correct
+        # curriculum-based sub-terrains
+        for sub_col in range(self.cfg.num_cols):
+            for sub_row in range(self.cfg.num_rows):
+                # vary the difficulty parameter linearly over the number of rows
+                # note: based on the proportion, multiple columns can have the same sub-terrain type.
+                #  Thus to increase the diversity along the rows, we add a small random value to the difficulty.
+                #  This ensures that the terrains are not exactly the same. For example, if the
+                #  the row index is 2 and the number of rows is 10, the nominal difficulty is 0.2.
+                #  We add a small random value to the difficulty to make it between 0.2 and 0.3.
+                lower, upper = self.cfg.difficulty_range
+                difficulty = (sub_row + self.np_rng.uniform()) / self.cfg.num_rows
+                difficulty = lower + (upper - lower) * difficulty
+                
+                # add to sub-terrains
+                for patch_index in range(self.cfg.num_sub_patches * self.cfg.num_sub_patches):
+                    patch_row_id = patch_index % self.cfg.num_sub_patches
+                    patch_col_id = patch_index // self.cfg.num_sub_patches
+                    
+                    patch_row = sub_col * self.cfg.num_sub_patches + patch_row_id
+                    patch_col = sub_row * self.cfg.num_sub_patches + patch_col_id
+                    
+                    # transform the mesh to the correct position
+                    transform_patch = np.eye(4)
+                    transform_patch[0:2, -1] = (patch_col + 0.5) * self.cfg.size[0], (patch_row + 0.5) * self.cfg.size[1]
+                    
+                    # generate terrain
+                    mesh, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
+                    
+                    mesh.apply_transform(transform_patch)
+                    # add mesh to the list
+                    self.terrain_meshes.append(mesh)
+                
+                transform = np.eye(4)
+                transform[0:2, -1] = (sub_row + 0.5) * self.cfg.num_sub_patches * self.cfg.size[0], (sub_col + 0.5) * self.cfg.num_sub_patches * self.cfg.size[1]
+                self.terrain_origins[sub_row, sub_col] = origin + transform[:3, -1]
 
     """
     Internal helper functions.

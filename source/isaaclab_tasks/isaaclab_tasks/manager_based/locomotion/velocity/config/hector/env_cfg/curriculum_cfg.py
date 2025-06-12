@@ -13,3 +13,11 @@ class HECTORCurriculumCfg:
     """Curriculum terms for the MDP."""
 
     terrain_levels = CurrTerm(func=hector_mdp.terrain_levels_episode)
+
+
+@configclass
+class HECTORSlipCurriculumCfg:
+    """Curriculum terms for the MDP."""
+
+    # terrain_levels = CurrTerm(func=hector_mdp.custom_terrain_levels_episode)
+    terrain_levels = CurrTerm(func=hector_mdp.terrain_levels_episode)

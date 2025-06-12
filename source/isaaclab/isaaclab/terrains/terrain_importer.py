@@ -12,6 +12,7 @@ import trimesh
 from typing import TYPE_CHECKING
 
 import omni.log
+import isaacsim.core.utils.prims as prim_utils
 
 import isaaclab.sim as sim_utils
 from isaaclab.markers import VisualizationMarkers
@@ -91,51 +92,58 @@ class TerrainImporter:
             self.configure_env_origins(terrain_generator.terrain_origins)
             # refer to the flat patches
             self._terrain_flat_patches = terrain_generator.flat_patches
-        elif self.cfg.terrain_type == "patched":
+            
+        elif self.cfg.terrain_type == "custom_curriculum":
             # check config is provided
             if self.cfg.terrain_generator is None:
                 raise ValueError("Input terrain type is 'generator' but no value provided for 'terrain_generator'.")
             # generate the terrain
             terrain_generator = TerrainGenerator(cfg=self.cfg.terrain_generator, device=self.device)
-            num_curriculum_x = int(self.cfg.terrain_generator.num_cols/self.cfg.friction_group_patch_num)
-            num_curriculum_y = int(self.cfg.terrain_generator.num_rows/self.cfg.friction_group_patch_num)
-            num_curriculum_level = num_curriculum_x*num_curriculum_y
-            print("Generating terrain patches...")
+            num_curriculum_x = self.cfg.terrain_generator.num_rows
+            
+            print("Allocating material to each patch ...")
             for i in tqdm(range(len(terrain_generator.terrain_meshes)-1)): # skip border mesh
-                terrain_row_index = int(i/self.cfg.terrain_generator.num_cols)
-                terrain_col_index = i % self.cfg.terrain_generator.num_cols
-                # translation = terrain_generator.terrain_origins[terrain_row_index, terrain_col_index]
+                row = i % (self.cfg.terrain_generator.num_cols * self.cfg.terrain_generator.num_sub_patches)
+                col = int(i/(self.cfg.terrain_generator.num_cols * self.cfg.terrain_generator.num_sub_patches))
                 mesh = terrain_generator.terrain_meshes[i]
-                local_group_idx = int(terrain_col_index/self.cfg.friction_group_patch_num) + num_curriculum_y*int(terrain_row_index/self.cfg.friction_group_patch_num)
                 
-                # infill center of each curriculum patch with 0.5 static friction terrain
-                local_terrain_row_index = terrain_row_index % self.cfg.friction_group_patch_num
-                local_terrain_col_index = terrain_col_index % self.cfg.friction_group_patch_num
+                # offset the entire terrain and origins so that it is centered
+                # It is same as terrain_generator L170, but we apply this transformation to each sub-terrain
+                size_x = self.cfg.terrain_generator.size[0] * self.cfg.terrain_generator.num_rows * self.cfg.terrain_generator.num_sub_patches
+                size_y = self.cfg.terrain_generator.size[1] * self.cfg.terrain_generator.num_cols * self.cfg.terrain_generator.num_sub_patches
+                transform = np.eye(4)
+                transform[0:2, -1] = -0.5 * size_x, -0.5 * size_y
+                mesh.apply_transform(transform)
                 
-                if (local_terrain_row_index >= self.cfg.friction_group_patch_num//2 - 1) and (local_terrain_row_index <= self.cfg.friction_group_patch_num//2) \
-                    and (local_terrain_col_index >= self.cfg.friction_group_patch_num//2 - 1) and (local_terrain_col_index <= self.cfg.friction_group_patch_num//2):
-                        static_friction, dynamic_friction = self._sample_physics_parameter((self.cfg.safe_region_friction, self.cfg.safe_region_friction))
-                else:
-                    local_group_friction_range = \
-                        (self.cfg.static_friction_range[1] - (local_group_idx+1)*((self.cfg.static_friction_range[1]-self.cfg.static_friction_range[0])/num_curriculum_level), \
-                        self.cfg.static_friction_range[1] - local_group_idx*((self.cfg.static_friction_range[1]-self.cfg.static_friction_range[0])/num_curriculum_level))
-                    static_friction, dynamic_friction = self._sample_physics_parameter(local_group_friction_range)
+                # sample friction coefficient for each patch in sub-terrains
+                local_group_idx = int(col/self.cfg.terrain_generator.num_sub_patches) # difficulty of terrain determined by row index (same as generator)
+                static_friction_lb = self.cfg.static_friction_range[0]
+                static_friction_ub = self.cfg.static_friction_range[1]
+                static_friction_dif = static_friction_ub - static_friction_lb
+                local_group_friction_range = (static_friction_ub - ((local_group_idx+1)/num_curriculum_x)*static_friction_dif, 
+                                              static_friction_ub - (local_group_idx/num_curriculum_x)*static_friction_dif)
+                static_friction, dynamic_friction = self._sample_physics_parameter(local_group_friction_range)
                 
-                # local_group_friction_range = \
-                #     (self.cfg.static_friction_range[1] - (local_group_idx+1)*((self.cfg.static_friction_range[1]-self.cfg.static_friction_range[0])/num_curriculum_level), \
-                #     self.cfg.static_friction_range[1] - local_group_idx*((self.cfg.static_friction_range[1]-self.cfg.static_friction_range[0])/num_curriculum_level))
-                # static_friction, dynamic_friction = self._sample_physics_parameter(local_group_friction_range)
-                
-                
+                # spawn in usd stage
                 if self.cfg.physics_material is not None:
                     self.cfg.physics_material.static_friction = static_friction
                     self.cfg.physics_material.dynamic_friction = dynamic_friction
-                self.cfg.visual_material = sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0-2*static_friction, 1.0-2*static_friction, 1.00)) # blue color(max=0.5)
-                self.import_mesh("terrain_{}_{}".format(terrain_row_index, terrain_col_index), mesh)
-            # self.import_mesh("terrain_border", terrain_generator.terrain_meshes[-1])
+                colormap = (static_friction - static_friction_lb) / (static_friction_ub - static_friction_lb) # 0 ~ 1
+                self.cfg.visual_material = sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0-colormap, 1.0-colormap, 1.00)) # higher the friction, more blue the color
+                # self.cfg.visual_material = sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2*(1.0-colormap), 0.2, 0.2*(1.0-colormap))) # higher the friction, more green the color
+                self.import_mesh("terrain_{}_{}".format(row, col), mesh)
+            
+            # import big chunk as visual mesh for raytracing
+            self.cfg.prim_path = "/World/ground_visual"
+            self.cfg.disable_colllider = True
+            self.cfg.disable_visualization = True
+            self.import_mesh("terrain", terrain_generator.terrain_mesh)
+            
+            # configure the origins
             self.configure_env_origins(terrain_generator.terrain_origins)
             self._terrain_flat_patches = terrain_generator.flat_patches
-            print("Completed generating patches")
+            print("Completed generating patches.")
+            
         elif self.cfg.terrain_type == "usd":
             # check if config is provided
             if self.cfg.usd_path is None:
@@ -204,7 +212,7 @@ class TerrainImporter:
         if debug_vis:
             if not hasattr(self, "origin_visualizer"):
                 self.origin_visualizer = VisualizationMarkers(
-                    cfg=FRAME_MARKER_CFG.replace(prim_path="/Visuals/TerrainOrigin")
+                    cfg=FRAME_MARKER_CFG.replace(prim_path=self.cfg.marker_path)
                 )
                 if self.terrain_origins is not None:
                     self.origin_visualizer.visualize(self.terrain_origins.reshape(-1, 3))
@@ -298,6 +306,9 @@ class TerrainImporter:
             contact_offset=self.cfg.contact_offset,
             rest_offset=self.cfg.rest_offset,
         )
+        if self.cfg.disable_visualization:
+            # disable the visualization of the terrain
+            prim_utils.set_prim_attribute_value(prim_path, "visibility", "invisible")
 
     def import_usd(self, name: str, usd_path: str):
         """Import a mesh from a USD file.
@@ -383,6 +394,25 @@ class TerrainImporter:
         self.terrain_types[env_ids] = torch.randint(0, num_cols, (len(env_ids),), device=self.device).to(torch.long)
         # update the env origins
         self.env_origins[env_ids] = self.terrain_origins[self.terrain_levels[env_ids], self.terrain_types[env_ids]]
+    
+    def update_custom_env_origins(self, env_ids: torch.Tensor, move_up: torch.Tensor, move_down: torch.Tensor):
+        """Update the environment origins based on the terrain levels."""
+        # check if grid-like spawning
+        if self.terrain_origins is None:
+            return
+        # update terrain level for the envs
+        self.terrain_levels[env_ids] += 1 * move_up - 1 * move_down
+        # robots that solve the last level are sent to a random one
+        # the minimum level is zero
+        self.terrain_levels[env_ids] = torch.where(
+            self.terrain_levels[env_ids] >= self.max_terrain_level,
+            (self.max_terrain_level-1)*torch.ones_like(self.terrain_levels[env_ids]),
+            torch.clip(self.terrain_levels[env_ids], 0),
+        )
+        # update the env origins
+        row = self.terrain_levels[env_ids] % self.cfg.terrain_generator.num_rows
+        col = torch.div(self.terrain_levels[env_ids], self.cfg.terrain_generator.num_rows, rounding_mode="floor")
+        self.env_origins[env_ids] = self.terrain_origins[row, col]
 
     """
     Internal helpers.

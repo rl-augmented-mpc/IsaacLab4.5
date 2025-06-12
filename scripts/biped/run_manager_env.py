@@ -111,7 +111,7 @@ def main():
             processed_actions = env.unwrapped.action_manager.get_term("mpc_action").processed_actions # type: ignore
             state = env.unwrapped.action_manager.get_term("mpc_action").state # type: ignore
             
-            reward_items = ["foot_landing"] # add reward term you want to log here
+            reward_items = ["termination"] # add reward term you want to log here
             reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
             foot_landing_penalty = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
         

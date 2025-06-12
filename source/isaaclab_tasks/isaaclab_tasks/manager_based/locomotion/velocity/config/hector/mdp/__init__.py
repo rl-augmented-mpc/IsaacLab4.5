@@ -1,7 +1,8 @@
 from .actions.mpc_actions_cfg import MPCActionCfg, MPCActionCfgV2, MPCActionCfgV3, TorchMPCActionCfg
 from .terrain.terrain_cfg import (
     SteppingStoneTerrain, InferenceSteppingStoneTerrain, CurriculumSteppingStoneTerrain, 
-    RandomOrientationCubeTerrain, PyramidHfTerrain, FractalTerrain, BaseTerrain
+    RandomOrientationCubeTerrain, PyramidHfTerrain, FractalTerrain, BaseTerrain, 
+    CurriculumFrictionPatchTerrain, FrictionPatchTerrain
 )
 # from .terrain.dynamic_terrain_cfg import (
 #     GravelTerrain, 
@@ -20,6 +21,9 @@ from .reward.rewards import (
     stance_foot_position_penalty, foot_placement_penalty, 
     swing_foot_landing_penalty, rough_terrain_processed_action_l2
 )
-from .events.events import reset_camera, reset_root_state_uniform, reset_particle_mass, reset_terrain_type
-from .curriculums.curriculums import terrain_levels_episode
+from .events.events import (
+    reset_camera, reset_root_state_uniform, reset_particle_mass, reset_terrain_type, 
+    reset_root_state_uniform_custom_terrain
+)
+from .curriculums.curriculums import terrain_levels_episode, custom_terrain_levels_episode
 from .termination.termination import root_height_below_minimum_adaptive, bad_foot_contact
