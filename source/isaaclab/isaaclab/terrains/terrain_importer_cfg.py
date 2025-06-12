@@ -43,7 +43,7 @@ class TerrainImporterCfg:
     :attr:`isaaclab.scene.InteractiveSceneCfg.num_envs` attribute.
     """
 
-    terrain_type: Literal["patched", "generator", "plane", "usd"] = "generator"
+    terrain_type: Literal["custom_curriculum", "generator", "plane", "usd"] = "generator"
     """The type of terrain to generate. Defaults to "generator".
 
     Available options are "plane", "usd", and "generator".
@@ -102,6 +102,12 @@ class TerrainImporterCfg:
     debug_vis: bool = False
     """Whether to enable visualization of terrain origins for the terrain. Defaults to False."""
     
+    marker_path: str = "/Visuals/TerrainOrigin"
+    
+    """
+    The following parameters are
+    specific to custom curriculum terrain
+    """
     center_position: tuple[float, float, float] = (0.0, 0.0, 0.0)
     """
     Center position of the terrain in the world frame.
@@ -114,17 +120,10 @@ class TerrainImporterCfg:
     """
     Static friction range to sample for each patch when terrain_type is patched.
     """
-    friction_group_patch_num: int = 1
-    """
-    How many patches each curriculum group has.
-    """
-    num_curriculums: int = 1
-    """
-    Number of curriculm terrain.
-    """
-    
     disable_colllider: bool = False
     """Whether to disable the collider for the terrain. Defaults to False."""
+    disable_visualization: bool = False
+    """Whether to disable the visualization of the terrain. Defaults to False."""
     contact_offset: float|None = None
     """The contact offset parameter of collider. Defaults to None meaning it is autocomputed."""
     rest_offset: float|None = None

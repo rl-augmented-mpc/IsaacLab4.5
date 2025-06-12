@@ -48,5 +48,7 @@ def terrain_out_of_bounds(
         x_out_of_bounds = torch.abs(asset.data.root_pos_w[:, 0]) > 0.5 * map_width - distance_buffer
         y_out_of_bounds = torch.abs(asset.data.root_pos_w[:, 1]) > 0.5 * map_height - distance_buffer
         return torch.logical_or(x_out_of_bounds, y_out_of_bounds)
+    elif env.scene.cfg.terrain.terrain_type == "custom_curriculum":
+        return False
     else:
         raise ValueError("Received unsupported terrain type, must be either 'plane' or 'generator'.")

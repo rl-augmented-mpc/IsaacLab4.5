@@ -160,7 +160,6 @@ class MPCAction(ActionTerm):
         self._get_footplacement_height()
         
         for i in range(self.num_envs):
-            # self.mpc_controller[i].update_sampling_time(self.sampling_time[i])
             self.mpc_controller[i].update_sampling_time(sampling_time[i])
             self.mpc_controller[i].set_swing_parameters(
                 stepping_frequency=1.0, 
@@ -205,8 +204,8 @@ class MPCAction(ActionTerm):
         self._env.command_manager._terms[self.cfg.command_name].vel_command_b = command
         
     
-    def _get_reference_height(self):
-        sensor= self._env.scene.sensors["height_scanner_fine"]
+    def _get_reference_height(self, sensor_name: str = "height_scanner_fine"):
+        sensor= self._env.scene.sensors[sensor_name]
         height_map = sensor.data.ray_hits_w[..., 2]
         
         scan_width, scan_height = sensor.cfg.pattern_cfg.size
@@ -272,8 +271,8 @@ class MPCAction(ActionTerm):
         # offset = -0.2*coef
         # self.reference_height = self.cfg.nominal_height + (ground_height - ground_level_odometry_frame).cpu().numpy() + offset.cpu().numpy()
         
-    def _get_footplacement_height(self):
-        sensor= self._env.scene.sensors["height_scanner_fine"]
+    def _get_footplacement_height(self, sensor_name: str = "height_scanner_fine"):
+        sensor= self._env.scene.sensors[sensor_name]
         height_map = sensor.data.ray_hits_w[..., 2]
         
         scan_width, scan_height = sensor.cfg.pattern_cfg.size
@@ -588,14 +587,16 @@ class MPCAction2(MPCAction):
         cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
         
         # update reference
-        self._get_mpc_state()
+        # self._get_mpc_state()
         self._get_reference_velocity()
-        self._get_reference_height()
+        # self._get_reference_height("height_scanner")
+        # self._get_footplacement_height("height_scanner")
+        
         for i in range(self.num_envs):
             self.mpc_controller[i].update_sampling_time(sampling_time[i])
             self.mpc_controller[i].set_srbd_residual(A_residual=A_residual[i], B_residual=B_residual[i])
             self.mpc_controller[i].set_swing_parameters(
-                stepping_frequency=self.cfg.nominal_stepping_frequency, 
+                stepping_frequency=1.0, 
                 foot_height=swing_foot_height[i], 
                 cp1=cp1[i], 
                 cp2=cp2[i], 
@@ -607,6 +608,29 @@ class MPCAction2(MPCAction):
                 height=self.reference_height[i],
             )
         self.visualize_marker()
+        
+        
+    def _get_reference_height(self, sensor_name: str = "height_scanner_fine"):
+        sensor= self._env.scene.sensors[sensor_name]
+        height_map = sensor.data.ray_hits_w[..., 2]
+        scan_width, scan_height = sensor.cfg.pattern_cfg.size
+        scan_resolution = sensor.cfg.pattern_cfg.resolution
+        width = int(scan_width/scan_resolution + 1)
+        height = int(scan_height/scan_resolution + 1)
+        
+        ground_level_odometry_frame = height_map.reshape(-1, height, width)[:, height//2, width//2] # center of the height map
+        self.reference_height = self.cfg.nominal_height + (ground_level_odometry_frame).cpu().numpy()
+        
+    def _get_footplacement_height(self, sensor_name: str = "height_scanner_fine"):
+        sensor= self._env.scene.sensors[sensor_name]
+        height_map = sensor.data.ray_hits_w[..., 2]
+        scan_width, scan_height = sensor.cfg.pattern_cfg.size
+        scan_resolution = sensor.cfg.pattern_cfg.resolution
+        width = int(scan_width/scan_resolution + 1)
+        height = int(scan_height/scan_resolution + 1)
+        
+        ground_level_odometry_frame = height_map.reshape(-1, height, width)[:, height//2, width//2] # center of the height map
+        self.foot_placement_height = np.clip((ground_level_odometry_frame).cpu().numpy(), 0.0, None)
         
 class MPCAction3(MPCAction):
     """

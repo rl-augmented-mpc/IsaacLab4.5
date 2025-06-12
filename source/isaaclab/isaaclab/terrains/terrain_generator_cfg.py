@@ -198,3 +198,7 @@ class TerrainGeneratorCfg:
 
     cache_dir: str = "/tmp/isaaclab/terrains"
     """The directory where the terrain cache is stored. Defaults to "/tmp/isaaclab/terrains"."""
+    
+    """specific to custom curriculum terrain."""
+    num_sub_patches: int = 1
+    custom_curriculum: bool = False
