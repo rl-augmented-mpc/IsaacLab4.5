@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from isaaclab.utils import configclass
+from isaaclab.envs.common import ViewerCfg
+
 # import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg
 import isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp as hector_mdp
@@ -52,8 +54,17 @@ class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
         super().__post_init__()
         self.seed = 42
         self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
-        # self.scene.terrain = hector_mdp.BaseTerrain
-        self.scene.height_scanner.debug_vis = True
-        # self.events.reset_camera = None
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)
+        # self.scene.height_scanner.debug_vis = True
+        self.events.reset_camera = None
         self.curriculum.terrain_levels = None
+        self.viewer = ViewerCfg(
+            eye=(0.0, -8.0, 0.5), 
+            lookat=(0.0, 0.0, 0.0),
+            resolution=(1920, 1080), 
+        )
+        
+        # lower resolution of heightmap since we do not use these during inference
+        # self.scene.height_scanner_fine.pattern_cfg.resolution = 0.5
+        self.scene.height_scanner_L_foot.pattern_cfg.resolution = 0.5
+        self.scene.height_scanner_R_foot.pattern_cfg.resolution = 0.5
+        self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)

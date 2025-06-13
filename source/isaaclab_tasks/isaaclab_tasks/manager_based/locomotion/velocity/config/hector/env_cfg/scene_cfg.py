@@ -181,8 +181,6 @@ class HECTORSlipSceneCfg(InteractiveSceneCfg):
 
     # terrain
     terrain = hector_mdp.CurriculumFrictionPatchTerrain
-    # terrain = hector_mdp.FrictionPatchTerrain
-    
     
     # gravel 
     # gravel = hector_mdp.GravelTerrain

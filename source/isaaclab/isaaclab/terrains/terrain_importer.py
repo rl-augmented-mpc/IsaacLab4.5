@@ -107,7 +107,7 @@ class TerrainImporter:
                 col = int(i/(self.cfg.terrain_generator.num_cols * self.cfg.terrain_generator.num_sub_patches))
                 mesh = terrain_generator.terrain_meshes[i]
                 
-                # offset the entire terrain and origins so that it is centered
+                # Add offset to the entire terrain so that its origin is at center of terrain.
                 # It is same as terrain_generator L170, but we apply this transformation to each sub-terrain
                 size_x = self.cfg.terrain_generator.size[0] * self.cfg.terrain_generator.num_rows * self.cfg.terrain_generator.num_sub_patches
                 size_y = self.cfg.terrain_generator.size[1] * self.cfg.terrain_generator.num_cols * self.cfg.terrain_generator.num_sub_patches
@@ -122,13 +122,22 @@ class TerrainImporter:
                 static_friction_dif = static_friction_ub - static_friction_lb
                 local_group_friction_range = (static_friction_ub - ((local_group_idx+1)/num_curriculum_x)*static_friction_dif, 
                                               static_friction_ub - (local_group_idx/num_curriculum_x)*static_friction_dif)
+                
+                # ## hard-coded terrain ##
+                # static_friction_lb = 0.05
+                # static_friction_ub = 0.3
+                # friction_disc = [0.3, 0.05]
+                # local_group_friction_range = (friction_disc[local_group_idx], friction_disc[local_group_idx])
+                # ########################
+                
+                # random sample friction coefficient from range
                 static_friction, dynamic_friction = self._sample_physics_parameter(local_group_friction_range)
                 
                 # spawn in usd stage
                 if self.cfg.physics_material is not None:
                     self.cfg.physics_material.static_friction = static_friction
                     self.cfg.physics_material.dynamic_friction = dynamic_friction
-                colormap = (static_friction - static_friction_lb) / (static_friction_ub - static_friction_lb) # 0 ~ 1
+                colormap = (static_friction - static_friction_lb) / (static_friction_ub - static_friction_lb + 1e-6) # 0 ~ 1
                 self.cfg.visual_material = sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0-colormap, 1.0-colormap, 1.00)) # higher the friction, more blue the color
                 # self.cfg.visual_material = sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2*(1.0-colormap), 0.2, 0.2*(1.0-colormap))) # higher the friction, more green the color
                 self.import_mesh("terrain_{}_{}".format(row, col), mesh)
