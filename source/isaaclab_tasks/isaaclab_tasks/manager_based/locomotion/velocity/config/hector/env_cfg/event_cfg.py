@@ -41,17 +41,20 @@ class HECTOREventCfg(EventCfg):
     
     # random initial noise added to default state defined in articulation cfg
     reset_base = EventTerm(
-        func=hector_mdp.reset_root_state_uniform, # type: ignore
+        # func=hector_mdp.reset_root_state_uniform, # type: ignore
+        func=mdp.reset_root_state_uniform, # type: ignore
         mode="reset",
         params={
             "pose_range": {
-                "x": (-0.5, 0.5), 
-                "y": (-5.0, -5.0), 
+                # "x": (-0.5, 0.5), 
+                # "y": (-5.0, -5.0), 
+                "x": (2.0, 2.0), 
+                "y": (2.0, 2.0), 
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),
-                "yaw": (-0.0, 0.0),
-                # "yaw": (math.pi/2, math.pi/2),
+                # "yaw": (-0.0, 0.0),
+                "yaw": (-math.pi, math.pi),
                 },
             "velocity_range": {
                 "x": (-0.0, 0.0),
@@ -116,12 +119,15 @@ class HECTORSlipEventCfg(HECTOREventCfg):
         mode="reset",
         params={
             "pose_range": {
-                "x": (-0.0, 0.0), 
-                "y": (-0.0, -0.0), 
+                "x": (-3.0, 3.0), 
+                "y": (-3.0, 3.0), 
+                # "x": (3.0, 3.0), 
+                # "y": (0.0, 0.0), 
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),
-                "yaw": (math.pi, math.pi),
+                "yaw": (-math.pi, math.pi),
+                # "yaw": (0, 0),
                 },
             "velocity_range": {
                 "x": (-0.0, 0.0),
@@ -133,3 +139,21 @@ class HECTORSlipEventCfg(HECTOREventCfg):
             },
         },
     )
+    
+    # interval
+    # push_robot = EventTerm(
+    #     func=mdp.push_by_setting_velocity, # type: ignore
+    #     mode="interval",
+    #     interval_range_s=(10.0, 15.0),
+    #     params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
+    # )
+    # push_robot = EventTerm(
+    #     func=hector_mdp.apply_tangential_external_force_torque,
+    #     mode="interval",
+    #     interval_range_s=(2.0, 5.0),
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names="trunk"),
+    #         "force_range": (-15.0, 15.0), # max 1m/s^2
+    #         "torque_range": (0.0, 0.0), 
+    #         },
+    # )

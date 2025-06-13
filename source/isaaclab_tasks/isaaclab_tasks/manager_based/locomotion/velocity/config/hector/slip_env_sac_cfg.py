@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from isaaclab.utils import configclass
+from isaaclab.envs.common import ViewerCfg
+
 # import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg
 import isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp as hector_mdp
@@ -48,7 +50,14 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
         # post init of parent
         super().__post_init__()
         self.seed = 42
-        self.scene.terrain = hector_mdp.BaseTerrain
-        # self.events.reset_camera = None
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)
+        self.scene.terrain = hector_mdp.FrictionPatchTerrain
+        self.events.reset_camera = None
         self.curriculum.terrain_levels = None
+        self.viewer = ViewerCfg(
+            eye=(-5.0, -5.0, 0.5), 
+            lookat=(0.0, 0.0, 0.0),
+            resolution=(1920, 1080), 
+        )
+        
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)
+        # self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)
