@@ -314,6 +314,10 @@ def foot_placement_penalty(
     std: float = 0.5, 
     offset: float = 0.55,
 ):
+    """
+    Given robot-centric elevation map, project planned footholds onto the map, and get elevation of sampling points on the edge of foothold. 
+    Finally, find roughness of foothold by computing the difference between the maximum and minimum height of the sampling points.
+    """
     raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
     height_map = raycaster.data.pos_w[:, 2].unsqueeze(1) - raycaster.data.ray_hits_w[..., 2] - offset
     
@@ -357,6 +361,10 @@ def stance_foot_position_penalty(
     std: float = 0.5, 
     offset: float = 0.55,
 ):
+    """
+    Given robot-centric elevation map, project actual touchdown position onto the map, and get elevation of sampling points on the edge of touchdown position. 
+    Finally, find roughness by computing the difference between the maximum and minimum height of the sampling points.
+    """
     raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
     contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
     height_map = raycaster.data.pos_w[:, 2].unsqueeze(1) - raycaster.data.ray_hits_w[..., 2] - offset
@@ -444,8 +452,15 @@ def rough_terrain_processed_action_l2(
     sensor_cfg: SceneEntityCfg = SceneEntityCfg("ray_caster"),
     action_name: str = "mpc_action",
     offset: float=0.55, 
-    lookahead_distance: float=0.25) -> torch.Tensor:
-    """Penalize the actions using L2 squared kernel."""
+    lookahead_distance: float=0.25, 
+    lookback_distance: float = 0.1,
+    patch_width: float = 0.15) -> torch.Tensor:
+    
+    """
+    Penalize the actions using L2 squared kernel.
+    This is different from standard L2 energy penalty as the penalty is non-zero only when terrain is flat. 
+    This means you penalize energy only when the robot is stepping on flat terrain, but actively apply action otherwise.
+    """
     
     raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
     action_term = env.action_manager.get_term(action_name)
@@ -457,10 +472,11 @@ def rough_terrain_processed_action_l2(
     grid_x, grid_y = raycaster.cfg.pattern_cfg.size
     width, height = int(round(grid_x/resolution, 4)) + 1, int(round(grid_y/resolution, 4)) + 1
     
-    # extract small patch to attend
-    window = int(lookahead_distance/resolution)
-    window_back = int(0.1/resolution) # look back distance
-    height_map_patch = height_map.reshape(-1, height, width)[:, height//2, width//2-window_back:width//2+window+1].reshape(num_envs, -1)
+    # extract region-of-interest small patch
+    window_front = int(lookahead_distance/resolution)
+    window_back = int(lookback_distance/resolution)
+    window_side = int(patch_width/resolution)
+    height_map_patch = height_map.reshape(-1, height, width)[:, height//2-window_side: height//2+window_side+1, width//2-window_back:width//2+window_front+1].reshape(num_envs, -1)
     roughness = height_map_patch.max(dim=1).values - height_map_patch.min(dim=1).values # (num_envs, )
     
     # process energy penalty

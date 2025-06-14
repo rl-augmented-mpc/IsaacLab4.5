@@ -55,7 +55,7 @@ class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
         self.seed = 42
         self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         # self.scene.height_scanner.debug_vis = True
-        self.events.reset_camera = None
+        # self.events.reset_camera = None
         self.curriculum.terrain_levels = None
         self.viewer = ViewerCfg(
             eye=(0.0, -8.0, 0.5), 

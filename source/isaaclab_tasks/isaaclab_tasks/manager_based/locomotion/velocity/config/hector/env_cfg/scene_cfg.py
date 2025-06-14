@@ -27,11 +27,10 @@ class HECTORSceneCfg(InteractiveSceneCfg):
     """Configuration for the terrain scene with a legged robot."""
 
     # terrain
-    # terrain = hector_mdp.BaseTerrain
     terrain = hector_mdp.CurriculumSteppingStoneTerrain
     
-    
     # gravel 
+    # terrain = hector_mdp.BaseTerrain
     # gravel = hector_mdp.GravelTerrain
     
     # --robots

@@ -1,0 +1,110 @@
+params:
+  seed: 0
+
+  # environment wrapper clipping
+  env:
+    # added to the wrapper
+    clip_observations: 50.0
+    # can make custom wrapper?
+    clip_actions: 1.0
+
+  algo:
+    name: sac
+
+  model:
+    name: soft_actor_critic
+
+  # doesn't have this fine grained control but made it close
+  network:
+    name: soft_actor_critic
+    separate: True
+    space:
+      continuous:
+        mu_activation: None
+        sigma_activation: None
+
+        mu_init:
+          # name: default
+          name: const_initializer
+          val: 0
+        sigma_init:
+          name: const_initializer
+          val: 0
+        fixed_sigma: True
+    mlp:
+      units: [512, 256, 128]
+      activation: elu
+      d2rl: False
+
+      initializer:
+        # name: default
+        # name: kaiming_normal
+        name: orthogonal
+      regularizer:
+        name: None
+      
+    log_std_bounds: [-5, 2]
+
+  load_checkpoint: False # flag which sets whether to load the checkpoint
+  load_path: '' # path to the checkpoint to load
+
+  config:
+    name: manager_sac_rl_games_random_block_mlp
+    env_name: rlgpu
+    device: 'cuda:0'
+    device_name: 'cuda:0'
+    multi_gpu: False
+
+    # common parameters
+    mixed_precision: True
+    normalize_input: True
+    normalize_value: True
+    num_actors: -1  # configured from the script (based on num_envs)
+    reward_shaper:
+      scale_value: 1.0
+    gamma: 0.99
+    entropy_coef: 0.001
+    score_to_win: 20000
+    max_epochs: 100000
+    save_best_after: 500
+    save_frequency: 500
+
+    # PPO
+    # normalize_advantage: True
+    # tau : 0.95
+    # learning_rate: 1e-4
+    # lr_schedule: adaptive
+    # kl_threshold: 0.008
+    # grad_norm: 1.0
+    # truncate_grads: True
+    # e_clip: 0.2
+    # horizon_length: 32
+    # minibatch_size: 384 # num_envs*horizon/num_mini_batch=64*24/4
+    # mini_epochs: 5
+    # critic_coef: 0.5
+    # clip_value: false
+    # seq_length: 4
+
+    # SAC specific parameters
+    num_steps_per_episode: 36
+    horizon_length: ${.num_steps_per_episode}
+    init_alpha: 1.0 # dual parameter initial value
+    # alpha_lr: 2e-4 # dual parameter learning rate
+    # actor_lr: 3e-4 # actor network learning rate
+    # critic_lr: 3e-4 # critic network learning rate
+    alpha_lr: 1e-4 # dual parameter learning rate
+    actor_lr: 1e-4 # actor network learning rate
+    critic_lr: 1e-4 # critic network learning rate
+    critic_tau: 5e-3 # soft update parameter
+    learnable_temperature: True
+    num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
+    batch_size: 216
+    # batch_size: 512
+    # replay_buffer_size: 50000
+    replay_buffer_size: 1000000
+  
+  log:
+    logger: wandb
+    wandb_project_name: rl_mpc_manager
+    wandb_entity: jnskkmr
+    name: manager_sac_rl_games_random_block_mlp
