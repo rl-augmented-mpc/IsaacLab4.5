@@ -14,8 +14,13 @@ from . import agents
 BASE_CLASS = [
     "HECTOR-ManagerBased-RL",
     "HECTOR-ManagerBased-RL-PLAY",
+    
     "HECTOR-ManagerBased-RL-SAC",
     "HECTOR-ManagerBased-RL-SAC-PLAY",
+    
+    "HECTOR-ManagerBased-RL-SAC-Block",
+    "HECTOR-ManagerBased-RL-SAC-Block-PLAY",
+    
     "HECTOR-ManagerBased-RL-SAC-SLIP",
     "HECTOR-ManagerBased-RL-SAC-SLIP-PLAY",
 ]
@@ -35,6 +40,7 @@ ARGS = [
         # "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_mlp_encoder.yaml",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cnn_encoder.yaml",
     },
+    
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvSACCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
@@ -45,6 +51,18 @@ ARGS = [
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
     },
+    
+    {
+        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvSACCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_random_block.yaml",
+    },
+    {
+        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvSACCfgPLAY",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_random_block.yaml",
+    },
+    
     {
         "env_cfg_entry_point": f"{__name__}.slip_env_sac_cfg:HECTORSlipEnvSACCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
