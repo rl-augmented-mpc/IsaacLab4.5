@@ -54,7 +54,7 @@ class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
         self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
         # self.scene.height_scanner.debug_vis = True
         # self.events.reset_camera = None
-        self.curriculum.terrain_levels = None
+        # self.curriculum.terrain_levels = None
         self.viewer = ViewerCfg(
             eye=(0.0, -8.0, 0.5), 
             lookat=(0.0, 0.0, 0.0),

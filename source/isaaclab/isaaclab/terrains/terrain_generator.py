@@ -345,7 +345,8 @@ class TerrainGenerator:
         sub_terrains_cfgs = list(self.cfg.sub_terrains.values())
 
         # TODO: check if col and row are correct
-        # curriculum-based sub-terrains
+        # sub_col actually represents row index and sub_row represents column index
+        # this is because num_cols, num_rows represents how many grid cells are included in each column and row
         for sub_col in range(self.cfg.num_cols):
             for sub_row in range(self.cfg.num_rows):
                 # vary the difficulty parameter linearly over the number of rows
@@ -359,23 +360,21 @@ class TerrainGenerator:
                 difficulty = lower + (upper - lower) * difficulty
                 
                 # add to sub-terrains
-                for patch_index in range(self.cfg.num_sub_patches * self.cfg.num_sub_patches):
-                    patch_row_id = patch_index % self.cfg.num_sub_patches
-                    patch_col_id = patch_index // self.cfg.num_sub_patches
-                    
-                    patch_row = sub_col * self.cfg.num_sub_patches + patch_row_id
-                    patch_col = sub_row * self.cfg.num_sub_patches + patch_col_id
-                    
-                    # transform the mesh to the correct position
-                    transform_patch = np.eye(4)
-                    transform_patch[0:2, -1] = (patch_col + 0.5) * self.cfg.size[0], (patch_row + 0.5) * self.cfg.size[1]
-                    
-                    # generate terrain
-                    mesh, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
-                    
-                    mesh.apply_transform(transform_patch)
-                    # add mesh to the list
-                    self.terrain_meshes.append(mesh)
+                for patch_row_id in range(self.cfg.num_sub_patches):
+                    for patch_col_id in range(self.cfg.num_sub_patches):
+                        patch_row = sub_col * self.cfg.num_sub_patches + patch_row_id
+                        patch_col = sub_row * self.cfg.num_sub_patches + patch_col_id
+                        
+                        # transform the mesh to the correct position
+                        transform_patch = np.eye(4)
+                        transform_patch[0:2, -1] = (patch_col + 0.5) * self.cfg.size[0], (patch_row + 0.5) * self.cfg.size[1]
+                        
+                        # generate terrain
+                        mesh, origin = self._get_terrain_mesh(difficulty, sub_terrains_cfgs[sub_index])
+                        
+                        mesh.apply_transform(transform_patch)
+                        # add mesh to the list
+                        self.terrain_meshes.append(mesh)
                 
                 transform = np.eye(4)
                 transform[0:2, -1] = (sub_row + 0.5) * self.cfg.num_sub_patches * self.cfg.size[0], (sub_col + 0.5) * self.cfg.num_sub_patches * self.cfg.size[1]

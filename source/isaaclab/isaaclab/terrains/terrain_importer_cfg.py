@@ -105,20 +105,7 @@ class TerrainImporterCfg:
     marker_path: str = "/Visuals/TerrainOrigin"
     
     """
-    The following parameters are
-    specific to custom curriculum terrain
-    """
-    center_position: tuple[float, float, float] = (0.0, 0.0, 0.0)
-    """
-    Center position of the terrain in the world frame.
-    """
-    center_orientation: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)
-    """
-    Center orientation of the terrain in the world frame."""
-    
-    static_friction_range: tuple[float, float] = (0.5, 0.5)
-    """
-    Static friction range to sample for each patch when terrain_type is patched.
+    Collider settings
     """
     disable_colllider: bool = False
     """Whether to disable the collider for the terrain. Defaults to False."""
@@ -128,5 +115,23 @@ class TerrainImporterCfg:
     """The contact offset parameter of collider. Defaults to None meaning it is autocomputed."""
     rest_offset: float|None = None
     """The rest offset parameter of collider. Defaults to None meaning it is autocomputed."""
-
-    safe_region_friction: float = 0.5
+    
+    """
+    The following parameters are
+    specific to custom curriculum terrain
+    """
+    static_friction_range: tuple[float, float] = (0.5, 0.5)
+    """
+    Static friction range to sample for each patch when terrain_type is patched.
+    """
+    friction_distribution: Literal["linear", "square", "random"] = "linear"
+    """
+    Distribution of friction value in single sub-terrain.
+    """
+    center_position: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    """
+    Center position of the terrain in the world frame.
+    """
+    center_orientation: tuple[float, float, float, float] = (1.0, 0.0, 0.0, 0.0)
+    """
+    Center orientation of the terrain in the world frame."""

@@ -51,8 +51,8 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
         super().__post_init__()
         self.seed = 42
         self.scene.terrain = hector_mdp.FrictionPatchTerrain
-        self.events.reset_camera = None
-        self.curriculum.terrain_levels = None
+        # self.events.reset_camera = None
+        # self.curriculum.terrain_levels = None
         self.viewer = ViewerCfg(
             eye=(-5.0, -5.0, 0.5), 
             lookat=(0.0, 0.0, 0.0),

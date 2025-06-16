@@ -67,14 +67,14 @@ class HECTORRewardsCfg(RewardsCfg):
     #     weight=-0.1,
     #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_toe_joint"])},
     # )
-    # # Penalize deviation from default of the joints that are not essential for locomotion
-    # joint_deviation = RewTerm(
-    #     func=mdp.joint_deviation_l1, # type: ignore
-    #     weight=-0.01,
-    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_toe_joint"])},
-    # )
+    # Penalize deviation from default of the joints that are not essential for locomotion
+    joint_deviation = RewTerm(
+        func=mdp.joint_deviation_l1, # type: ignore
+        weight=-0.01,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_toe_joint"])},
+    )
     dof_pos_limits = None
-    joint_deviation = None
+    # joint_deviation = None
     
     # -- energy penalty
     # processed_action_l2_12 = RewTerm(
@@ -192,12 +192,12 @@ class HECTORSlipRewardsCfg(RewardsCfg):
     # -- rewards
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
-        weight=0.5,
+        weight=1.0,
         params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_world_exp, 
-        weight=0.5, 
+        weight=1.0, 
         params={"command_name": "base_velocity", "std": 0.5}
     )
     track_height_exp = RewTerm(
@@ -234,6 +234,12 @@ class HECTORSlipRewardsCfg(RewardsCfg):
         weight=-1.0e-5, 
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])}
         )
+    
+    joint_deviation = RewTerm(
+        func=mdp.joint_deviation_l1, # type: ignore
+        weight=-0.01,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_toe_joint"])},
+    )
     
     # -- energy penalty
     processed_action_l2_foot_height = RewTerm(

@@ -60,24 +60,24 @@ CurriculumFrictionPatchTerrain = TerrainImporterCfg(
         curriculum=True,
         sub_terrains={
             "terrain1": terrain_gen.MeshPlaneTerrainCfg(proportion=0.3, height=0.0),
-            "terrain2": terrain_gen.MeshRepeatedBoxesTerrainCfg(
-                object_type="box", 
-                max_height_noise=0.00, 
-                platform_width=0.1,
-                proportion=0.7,
-                object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=2, 
-                    height=0.0*2, 
-                    size=(0.3, 0.3),
-                    max_yx_angle=0.0,
-                ), 
-                object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=2, 
-                    height=0.08*2, 
-                    size=(0.3, 0.3),
-                    max_yx_angle=10.0, 
-                ), 
-            ), 
+            # "terrain2": terrain_gen.MeshRepeatedBoxesTerrainCfg(
+            #     object_type="box", 
+            #     max_height_noise=0.00, 
+            #     platform_width=0.1,
+            #     proportion=0.7,
+            #     object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+            #         num_objects=2, 
+            #         height=0.0*2, 
+            #         size=(0.3, 0.3),
+            #         max_yx_angle=0.0,
+            #     ), 
+            #     object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+            #         num_objects=2, 
+            #         height=0.08*2, 
+            #         size=(0.3, 0.3),
+            #         max_yx_angle=10.0, 
+            #     ), 
+            # ), 
         },
         num_sub_patches=25,
         custom_curriculum=True,
@@ -94,7 +94,8 @@ CurriculumFrictionPatchTerrain = TerrainImporterCfg(
     visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2)),
     debug_vis=False,
     disable_colllider=False,
-    static_friction_range = (0.05, 0.3),
+    static_friction_range = (0.05, 0.5),
+    friction_distribution="linear",
 )
 
 
@@ -102,9 +103,9 @@ FrictionPatchTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="custom_curriculum",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(1.0, 1.0), # size of sub-terrain
+        size=(0.5, 1.0), # size of sub-terrain
         border_width=0.0,
-        num_rows=1,
+        num_rows=10,
         num_cols=1,
         horizontal_scale=0.1,
         vertical_scale=0.005,
@@ -113,7 +114,7 @@ FrictionPatchTerrain = TerrainImporterCfg(
         sub_terrains={
             "flat": terrain_gen.MeshPlaneTerrainCfg(proportion=0.2, height=0.0),
         },
-        num_sub_patches=25,
+        num_sub_patches=5,
         custom_curriculum=True,
     ),
     collision_group=-1,
@@ -131,7 +132,8 @@ FrictionPatchTerrain = TerrainImporterCfg(
     ),
     debug_vis=False,
     disable_colllider=False,
-    static_friction_range=(0.05, 0.05),
+    static_friction_range=(0.05, 0.5),
+    friction_distribution="square",
 )
 
 
@@ -300,13 +302,13 @@ InferenceRandomBlockTerrain = TerrainImporterCfg(
                 proportion=0.2,
                 object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
                     num_objects=700, 
-                    height=0.08*2, 
+                    height=0.00*2, 
                     size=(0.5, 0.5),
                     max_yx_angle=0.0,
                 ), 
                 object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
                     num_objects=700, 
-                    height=0.08*2, 
+                    height=0.00*2, 
                     size=(0.5, 0.5),
                     max_yx_angle=0.0, 
                 ),
