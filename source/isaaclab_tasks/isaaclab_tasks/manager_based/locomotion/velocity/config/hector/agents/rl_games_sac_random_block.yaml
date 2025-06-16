@@ -105,6 +105,6 @@ params:
   
   log:
     logger: wandb
-    wandb_project_name: rl_mpc_manager
+    wandb_project_name: rl_mpc_manager_random_block
     wandb_entity: jnskkmr
-    name: manager_sac_rl_games_random_block_mlp
+    name: sac_rl_games_mlp
