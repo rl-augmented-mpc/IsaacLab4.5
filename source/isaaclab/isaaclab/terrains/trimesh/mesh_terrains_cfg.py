@@ -271,7 +271,8 @@ class MeshRepeatedObjectsTerrainCfg(SubTerrainBaseCfg):
         height: float = MISSING
         """The height (along z) of the object (in m)."""
 
-    function = mesh_terrains.repeated_objects_terrain
+    # function = mesh_terrains.repeated_objects_terrain # uniform sampling
+    function = mesh_terrains.poisson_disk_sampling_terrain # poisson disk sampling
 
     object_type: Literal["cylinder", "box", "cone"] | callable = MISSING
     """The type of object to generate.

@@ -27,7 +27,8 @@ class HECTORSceneCfg(InteractiveSceneCfg):
     """Configuration for the terrain scene with a legged robot."""
 
     # terrain
-    terrain = hector_mdp.CurriculumSteppingStoneTerrain
+    # terrain = hector_mdp.CurriculumSteppingStoneTerrain
+    terrain = hector_mdp.CurriculumRandomBlockTerrain
     
     # gravel 
     # terrain = hector_mdp.BaseTerrain
@@ -51,7 +52,7 @@ class HECTORSceneCfg(InteractiveSceneCfg):
         markers={
             "hit": sim_utils.SphereCfg(
                 radius=0.01,
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0)),
             ),
         },
     )
@@ -168,7 +169,7 @@ class HECTORSceneCfg(InteractiveSceneCfg):
     sky_light = AssetBaseCfg(
         prim_path="/World/skyLight",
         spawn=sim_utils.DomeLightCfg(
-            intensity=750.0,
+            intensity=1000.0,
             texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
         ),
     )
