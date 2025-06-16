@@ -92,7 +92,8 @@ class TerrainImporter:
             self.configure_env_origins(terrain_generator.terrain_origins)
             # refer to the flat patches
             self._terrain_flat_patches = terrain_generator.flat_patches
-            
+        
+        # BUG: if num_col is more than 1, this does not work!
         elif self.cfg.terrain_type == "custom_curriculum":
             # check config is provided
             if self.cfg.terrain_generator is None:
@@ -101,48 +102,62 @@ class TerrainImporter:
             terrain_generator = TerrainGenerator(cfg=self.cfg.terrain_generator, device=self.device)
             num_curriculum_x = self.cfg.terrain_generator.num_rows
             
-            print("Allocating material to each patch ...")
-            for i in tqdm(range(len(terrain_generator.terrain_meshes)-1)): # skip border mesh
-                row = i % (self.cfg.terrain_generator.num_cols * self.cfg.terrain_generator.num_sub_patches)
-                col = int(i/(self.cfg.terrain_generator.num_cols * self.cfg.terrain_generator.num_sub_patches))
-                mesh = terrain_generator.terrain_meshes[i]
-                
-                # Add offset to the entire terrain so that its origin is at center of terrain.
-                # It is same as terrain_generator L170, but we apply this transformation to each sub-terrain
-                size_x = self.cfg.terrain_generator.size[0] * self.cfg.terrain_generator.num_rows * self.cfg.terrain_generator.num_sub_patches
-                size_y = self.cfg.terrain_generator.size[1] * self.cfg.terrain_generator.num_cols * self.cfg.terrain_generator.num_sub_patches
-                transform = np.eye(4)
-                transform[0:2, -1] = -0.5 * size_x, -0.5 * size_y
-                mesh.apply_transform(transform)
-                
-                # sample friction coefficient for each patch in sub-terrains
-                local_group_idx = int(col/self.cfg.terrain_generator.num_sub_patches) # difficulty of terrain determined by row index (same as generator)
-                static_friction_lb = self.cfg.static_friction_range[0]
-                static_friction_ub = self.cfg.static_friction_range[1]
-                static_friction_dif = static_friction_ub - static_friction_lb
-                local_group_friction_range = (static_friction_ub - ((local_group_idx+1)/num_curriculum_x)*static_friction_dif, 
-                                              static_friction_ub - (local_group_idx/num_curriculum_x)*static_friction_dif)
-                
-                # ## hard-coded terrain ##
-                # static_friction_lb = 0.05
-                # static_friction_ub = 0.3
-                # friction_disc = [0.3, 0.05]
-                # local_group_friction_range = (friction_disc[local_group_idx], friction_disc[local_group_idx])
-                # ########################
-                
-                # random sample friction coefficient from range
-                static_friction, dynamic_friction = self._sample_physics_parameter(local_group_friction_range)
-                
-                # spawn in usd stage
-                if self.cfg.physics_material is not None:
-                    self.cfg.physics_material.static_friction = static_friction
-                    self.cfg.physics_material.dynamic_friction = dynamic_friction
-                colormap = (static_friction - static_friction_lb) / (static_friction_ub - static_friction_lb + 1e-6) # 0 ~ 1
-                self.cfg.visual_material = sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0-colormap, 1.0-colormap, 1.00)) # higher the friction, more blue the color
-                # self.cfg.visual_material = sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2*(1.0-colormap), 0.2, 0.2*(1.0-colormap))) # higher the friction, more green the color
-                self.import_mesh("terrain_{}_{}".format(row, col), mesh)
+            static_friction_lb = self.cfg.static_friction_range[0]
+            static_friction_ub = self.cfg.static_friction_range[1]
+            static_friction_dif = static_friction_ub - static_friction_lb
+            friction_randomization_parameter = np.random.randint(0, num_curriculum_x, num_curriculum_x)/num_curriculum_x
             
-            # import big chunk as visual mesh for raytracing
+            print("Allocating material to each patch ...")
+            i = 0
+            with tqdm(total=self.cfg.terrain_generator.num_cols * self.cfg.terrain_generator.num_rows * (self.cfg.terrain_generator.num_sub_patches ** 2)) as pbar:
+                for sub_col in range(self.cfg.terrain_generator.num_cols):
+                    for sub_row in range(self.cfg.terrain_generator.num_rows):
+                        for patch_row_id in range(self.cfg.terrain_generator.num_sub_patches):
+                            for patch_col_id in range(self.cfg.terrain_generator.num_sub_patches):
+                                row = sub_col * self.cfg.terrain_generator.num_sub_patches + patch_row_id
+                                col = sub_row * self.cfg.terrain_generator.num_sub_patches + patch_col_id
+                                mesh = terrain_generator.terrain_meshes[i]
+                                
+                                # Add offset to the entire terrain so that its origin is at center of terrain.
+                                # It is same as terrain_generator L170, but we apply this transformation to each sub-terrain
+                                size_x = self.cfg.terrain_generator.size[0] * self.cfg.terrain_generator.num_rows * self.cfg.terrain_generator.num_sub_patches
+                                size_y = self.cfg.terrain_generator.size[1] * self.cfg.terrain_generator.num_cols * self.cfg.terrain_generator.num_sub_patches
+                                transform = np.eye(4)
+                                transform[0:2, -1] = -0.5 * size_x, -0.5 * size_y
+                                mesh.apply_transform(transform)
+                                
+                                # sample friction coefficient for each patch in sub-terrains
+                                local_group_friction_range = [0.0, 0.0]
+                                if self.cfg.friction_distribution == "linear":
+                                    local_group_friction_range[0] = static_friction_ub - (sub_row+1) * (static_friction_dif/num_curriculum_x)
+                                    local_group_friction_range[1] = static_friction_ub - sub_row * (static_friction_dif/num_curriculum_x)
+                                elif self.cfg.friction_distribution == "square":
+                                    if sub_row % 2 == 0:
+                                        local_group_friction_range[0] = static_friction_ub
+                                        local_group_friction_range[1] = static_friction_ub - (static_friction_dif/num_curriculum_x)
+                                    else:
+                                        local_group_friction_range[0] = static_friction_lb
+                                        local_group_friction_range[1] = static_friction_lb + (static_friction_dif/num_curriculum_x)
+                                elif self.cfg.friction_distribution == "random":
+                                    local_group_friction_range[0] = static_friction_lb + friction_randomization_parameter[sub_row] *(static_friction_dif/num_curriculum_x)
+                                    local_group_friction_range[1] = static_friction_lb + (friction_randomization_parameter[sub_row] + (1/num_curriculum_x)) *(static_friction_dif/num_curriculum_x)
+                                    
+                                
+                                # random sample friction coefficient from range
+                                static_friction, dynamic_friction = self._sample_physics_parameter(local_group_friction_range)
+                                
+                                # spawn in usd stage
+                                if self.cfg.physics_material is not None:
+                                    self.cfg.physics_material.static_friction = static_friction
+                                    self.cfg.physics_material.dynamic_friction = dynamic_friction
+                                colormap = (static_friction - static_friction_lb) / (static_friction_ub - static_friction_lb + 1e-6) # 0 ~ 1
+                                self.cfg.visual_material = sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0-colormap, 1.0-colormap, 1.00)) # higher the friction, more blue the color
+                                self.import_mesh("terrain_{}_{}".format(row, col), mesh)
+                                
+                                i += 1
+                                pbar.update(1)
+            
+            # import concatenated sub-terrains as single visual mesh for raytracing (disable collider and visualization)
             self.cfg.prim_path = "/World/ground_visual"
             self.cfg.disable_colllider = True
             self.cfg.disable_visualization = True
@@ -151,7 +166,7 @@ class TerrainImporter:
             # configure the origins
             self.configure_env_origins(terrain_generator.terrain_origins)
             self._terrain_flat_patches = terrain_generator.flat_patches
-            print("Completed generating patches.")
+            print("Completed generating patches!")
             
         elif self.cfg.terrain_type == "usd":
             # check if config is provided
@@ -389,8 +404,8 @@ class TerrainImporter:
         # the minimum level is zero
         self.terrain_levels[env_ids] = torch.where(
             self.terrain_levels[env_ids] >= self.max_terrain_level,
-            # torch.randint_like(self.terrain_levels[env_ids], self.max_terrain_level),
-            (self.max_terrain_level-1)*torch.ones_like(self.terrain_levels[env_ids]),
+            torch.randint_like(self.terrain_levels[env_ids], self.max_terrain_level), # set random level
+            # (self.max_terrain_level-1)*torch.ones_like(self.terrain_levels[env_ids]), # keep max level
             torch.clip(self.terrain_levels[env_ids], 0),
         )
         # update the env origins
@@ -463,7 +478,7 @@ class TerrainImporter:
         env_origins[:, 2] = 0.0
         return env_origins
     
-    def _sample_physics_parameter(self, friction_range:tuple[float, float])->tuple[float, float]:
+    def _sample_physics_parameter(self, friction_range:list[float, float])->tuple[float, float]:
         static_friction = np.random.uniform(friction_range[0], friction_range[1], 1)
         static_friction = static_friction[0]
         dynamic_friction = static_friction # use same dynamic friction as static friction
