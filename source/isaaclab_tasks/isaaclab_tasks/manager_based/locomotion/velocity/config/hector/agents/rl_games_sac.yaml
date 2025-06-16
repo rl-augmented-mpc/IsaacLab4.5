@@ -105,6 +105,6 @@ params:
   
   log:
     logger: wandb
-    wandb_project_name: rl_mpc_manager
+    wandb_project_name: rl_mpc_manager_stepping_stone
     wandb_entity: jnskkmr
-    name: manager_sac_rl_games_stepping_stone_mlp
+    name: sac_rl_games_mlp
