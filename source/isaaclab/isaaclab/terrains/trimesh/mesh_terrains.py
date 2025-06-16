@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 import scipy.spatial.transform as tf
+from scipy.stats import qmc
 import torch
 import trimesh
 from typing import TYPE_CHECKING
@@ -1205,5 +1206,182 @@ def random_block_terrain(
 
     # specify the origin of the terrain
     origin = np.array([0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.0])
+
+    return meshes_list, origin
+
+
+
+def poisson_disk_sampling_terrain(
+    difficulty: float, cfg: mesh_terrains_cfg.MeshRepeatedObjectsTerrainCfg
+) -> tuple[list[trimesh.Trimesh], np.ndarray]:
+    """Generate a terrain with a set of repeated objects with Poisson disk sampling.
+
+    The terrain has a ground with a platform in the middle. The objects are randomly placed on the
+    terrain s.t. they do not overlap with the platform.
+
+    Depending on the object type, the objects are generated with different parameters. The objects
+    The types of objects that can be generated are: ``"cylinder"``, ``"box"``, ``"cone"``.
+
+    The object parameters are specified in the configuration as curriculum parameters. The difficulty
+    is used to linearly interpolate between the minimum and maximum values of the parameters.
+
+    .. image:: ../../_static/terrains/trimesh/repeated_objects_cylinder_terrain.jpg
+       :width: 30%
+
+    .. image:: ../../_static/terrains/trimesh/repeated_objects_box_terrain.jpg
+       :width: 30%
+
+    .. image:: ../../_static/terrains/trimesh/repeated_objects_pyramid_terrain.jpg
+       :width: 30%
+
+    Args:
+        difficulty: The difficulty of the terrain. This is a value between 0 and 1.
+        cfg: The configuration for the terrain.
+
+    Returns:
+        A tuple containing the tri-mesh of the terrain and the origin of the terrain (in m).
+
+    Raises:
+        ValueError: If the object type is not supported. It must be either a string or a callable.
+    """
+    # import the object functions -- this is done here to avoid circular imports
+    from .mesh_terrains_cfg import (
+        MeshRepeatedBoxesTerrainCfg,
+        MeshRepeatedCylindersTerrainCfg,
+        MeshRepeatedPyramidsTerrainCfg,
+    )
+
+    # if object type is a string, get the function: make_{object_type}
+    if isinstance(cfg.object_type, str):
+        object_func = globals().get(f"make_{cfg.object_type}")
+    else:
+        object_func = cfg.object_type
+    if not callable(object_func):
+        raise ValueError(f"The attribute 'object_type' must be a string or a callable. Received: {object_func}")
+
+    # Resolve the terrain configuration
+    # -- pass parameters to make calling simpler
+    cp_0 = cfg.object_params_start
+    cp_1 = cfg.object_params_end
+    # -- common parameters
+    num_objects = cp_0.num_objects + int(difficulty * (cp_1.num_objects - cp_0.num_objects))
+    height = cp_0.height + difficulty * (cp_1.height - cp_0.height)
+    # -- object specific parameters
+    # note: SIM114 requires duplicated logical blocks under a single body.
+    if isinstance(cfg, MeshRepeatedBoxesTerrainCfg):
+        cp_0: MeshRepeatedBoxesTerrainCfg.ObjectCfg
+        cp_1: MeshRepeatedBoxesTerrainCfg.ObjectCfg
+        object_kwargs = {
+            "length": cp_0.size[0] + difficulty * (cp_1.size[0] - cp_0.size[0]),
+            "width": cp_0.size[1] + difficulty * (cp_1.size[1] - cp_0.size[1]),
+            "max_yx_angle": cp_0.max_yx_angle + difficulty * (cp_1.max_yx_angle - cp_0.max_yx_angle),
+            "degrees": cp_0.degrees,
+        }
+        
+        poisson_radius = np.sqrt(cp_1.size[0]**2 + cp_1.size[1]**2) / np.sqrt(cfg.size[0]**2 + cfg.size[1]**2) # type: ignore
+    elif isinstance(cfg, MeshRepeatedPyramidsTerrainCfg):  # noqa: SIM114
+        cp_0: MeshRepeatedPyramidsTerrainCfg.ObjectCfg
+        cp_1: MeshRepeatedPyramidsTerrainCfg.ObjectCfg
+        object_kwargs = {
+            "radius": cp_0.radius + difficulty * (cp_1.radius - cp_0.radius),
+            "max_yx_angle": cp_0.max_yx_angle + difficulty * (cp_1.max_yx_angle - cp_0.max_yx_angle),
+            "degrees": cp_0.degrees,
+        }
+        poisson_radius = cp_1.radius / np.sqrt(cfg.size[0]**2 + cfg.size[1]**2)
+    elif isinstance(cfg, MeshRepeatedCylindersTerrainCfg):  # noqa: SIM114
+        cp_0: MeshRepeatedCylindersTerrainCfg.ObjectCfg
+        cp_1: MeshRepeatedCylindersTerrainCfg.ObjectCfg
+        object_kwargs = {
+            "radius": cp_0.radius + difficulty * (cp_1.radius - cp_0.radius),
+            "max_yx_angle": cp_0.max_yx_angle + difficulty * (cp_1.max_yx_angle - cp_0.max_yx_angle),
+            "degrees": cp_0.degrees,
+        }
+        poisson_radius = cp_1.radius / np.sqrt(cfg.size[0]**2 + cfg.size[1]**2)
+    else:
+        raise ValueError(f"Unknown terrain configuration: {cfg}")
+    # constants for the terrain
+    platform_clearance = 0.0
+
+    # initialize list of meshes
+    meshes_list = list()
+    # compute quantities
+    origin = np.asarray((0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.0))
+    platform_corners = np.asarray([
+        [origin[0] - cfg.platform_width / 2, origin[1] - cfg.platform_width / 2],
+        [origin[0] + cfg.platform_width / 2, origin[1] + cfg.platform_width / 2],
+    ])
+    platform_corners[0, :] *= 1 - platform_clearance
+    platform_corners[1, :] *= 1 + platform_clearance
+    
+    # create Poisson disk sampler
+    engine = qmc.PoissonDisk(d=2, radius=3*poisson_radius, seed=42)
+    
+    # sample valid center for objects
+    object_centers = np.zeros((num_objects, 3))
+    # use a mask to track invalid objects that still require sampling
+    mask_objects_left = np.ones((num_objects,), dtype=bool)
+    # loop until no objects are left to sample
+    while np.any(mask_objects_left):
+        # only sample the centers of the remaining invalid objects
+        num_objects_left = mask_objects_left.sum()
+        poisson_samples = engine.random(num_objects_left) * cfg.size[0]  # engine.random gives (0, 1) range
+        
+        # sample from poisson disk until we have enough samples
+        while poisson_samples.shape[0] < num_objects_left:
+            extra_samples = engine.random(num_objects_left - poisson_samples.shape[0]) * cfg.size[0]
+            poisson_samples = np.concatenate((poisson_samples, extra_samples), axis=0)
+        object_centers[mask_objects_left, :2] = poisson_samples[:num_objects_left, :2]
+        
+        # filter out the centers that are on the platform
+        is_within_platform_x = np.logical_and(
+            object_centers[mask_objects_left, 0] >= platform_corners[0, 0],
+            object_centers[mask_objects_left, 0] <= platform_corners[1, 0],
+        )
+        is_within_platform_y = np.logical_and(
+            object_centers[mask_objects_left, 1] >= platform_corners[0, 1],
+            object_centers[mask_objects_left, 1] <= platform_corners[1, 1],
+        )
+        # update the mask to track the validity of the objects sampled in this iteration
+        mask_objects_left[mask_objects_left] = np.logical_and(is_within_platform_x, is_within_platform_y)
+        
+        engine.reset()
+
+    # generate obstacles
+    for index in range(len(object_centers)):
+        # randomize the height of the object
+        ob_height = height + np.random.uniform(-cfg.max_height_noise, cfg.max_height_noise)
+        # randomize shape parameters (length, width) or radius depending on the object type by changing ratio from 0.5 to 1.5
+        if ob_height > 0.0:
+            if isinstance(cfg, MeshRepeatedBoxesTerrainCfg):
+                object_width = (1 + np.random.uniform(-0.5, 0.5)) * object_kwargs["width"]
+                object_length = (1 + np.random.uniform(-0.5, 0.5)) * object_kwargs["length"]
+                object_mesh = object_func(
+                    center=object_centers[index], 
+                    height=ob_height, 
+                    width=object_width, 
+                    length=object_length, 
+                    max_yx_angle=object_kwargs["max_yx_angle"], 
+                    degrees=object_kwargs["degrees"])
+            elif isinstance(cfg, MeshRepeatedPyramidsTerrainCfg):
+                object_raidus = (1 + np.random.uniform(-0.5, 0.5)) * object_kwargs["radius"]
+                object_mesh = object_func(
+                    center=object_centers[index], 
+                    height=ob_height,
+                    radius=object_raidus,
+                    max_yx_angle=object_kwargs["max_yx_angle"],
+                    degrees=object_kwargs["degrees"])
+            elif isinstance(cfg, MeshRepeatedCylindersTerrainCfg):
+                object_raidus = (1 + np.random.uniform(-0.5, 0.5)) * object_kwargs["radius"]
+                object_mesh = object_func(
+                    center=object_centers[index], 
+                    height=ob_height,
+                    radius=object_raidus,
+                    max_yx_angle=object_kwargs["max_yx_angle"],
+                    degrees=object_kwargs["degrees"])
+            meshes_list.append(object_mesh)
+
+    # generate a ground plane for the terrain
+    ground_plane = make_plane(cfg.size, height=0.0, center_zero=False)
+    meshes_list.append(ground_plane)
 
     return meshes_list, origin

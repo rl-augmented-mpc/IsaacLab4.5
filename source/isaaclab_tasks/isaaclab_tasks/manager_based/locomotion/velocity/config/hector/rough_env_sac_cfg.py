@@ -16,8 +16,7 @@ from .env_cfg import (
     HECTORCurriculumCfg,
     HECTOREventCfg,
     SACHECTORObservationsCfg,
-    # HECTORRewardsCfg,
-    HECTORRewards2Cfg,
+    HECTORRewardsCfg,
     HECTORTerminationsCfg,
     HECTORSceneCfg,
 )
@@ -25,8 +24,7 @@ from .env_cfg import (
 @configclass
 class HECTORRoughEnvSACCfg(LocomotionVelocityRoughEnvCfg):
     scene: HECTORSceneCfg = HECTORSceneCfg(num_envs=4096, env_spacing=2.5)
-    # rewards: HECTORRewardsCfg = HECTORRewardsCfg()
-    rewards: HECTORRewards2Cfg = HECTORRewards2Cfg()
+    rewards: HECTORRewardsCfg = HECTORRewardsCfg()
     actions: HECTORActionsCfg = HECTORActionsCfg()
     commands: HECTORCommandsCfg = HECTORCommandsCfg()
     observations: SACHECTORObservationsCfg = SACHECTORObservationsCfg()
@@ -43,7 +41,6 @@ class HECTORRoughEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.sim.dt = 1/500
         self.decimation = 5
         self.sim.render_interval = 10
-        # self.events.reset_camera = None
 
 @configclass
 class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
@@ -53,7 +50,8 @@ class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
         # post init of parent
         super().__post_init__()
         self.seed = 42
-        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
         # self.scene.height_scanner.debug_vis = True
         # self.events.reset_camera = None
         self.curriculum.terrain_levels = None
@@ -67,4 +65,6 @@ class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
         # self.scene.height_scanner_fine.pattern_cfg.resolution = 0.5
         self.scene.height_scanner_L_foot.pattern_cfg.resolution = 0.5
         self.scene.height_scanner_R_foot.pattern_cfg.resolution = 0.5
-        self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)
+        
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)
+        # self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)

@@ -2,7 +2,8 @@ from .actions.mpc_actions_cfg import MPCActionCfg, MPCActionCfgV2, MPCActionCfgV
 from .terrain.terrain_cfg import (
     InferenceSteppingStoneTerrain, CurriculumSteppingStoneTerrain, 
     RandomOrientationCubeTerrain, PyramidHfTerrain, FractalTerrain, BaseTerrain, 
-    CurriculumFrictionPatchTerrain, FrictionPatchTerrain
+    CurriculumFrictionPatchTerrain, FrictionPatchTerrain, 
+    InferenceRandomBlockTerrain, CurriculumRandomBlockTerrain
 )
 # from .terrain.dynamic_terrain_cfg import (
 #     GravelTerrain, 
