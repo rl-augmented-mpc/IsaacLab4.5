@@ -86,8 +86,6 @@ def height_scan(env: ManagerBasedEnv, sensor_cfg: SceneEntityCfg, reshape_as_ima
     """
     # extract the used quantities (to enable type-hinting)
     sensor: RayCaster = env.scene.sensors[sensor_cfg.name]
-    # data = sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.ray_hits_w[..., 2]
-    # print(sensor.data.ray_hits_w[..., 2])
     height_scan_b = (sensor.data.ray_hits_w[..., 2]  - sensor.data.pos_w[:, 2].unsqueeze(1)).clamp(-1.0, 0.0)
     if reshape_as_image:
         resolution = sensor.cfg.pattern_cfg.resolution
@@ -97,6 +95,13 @@ def height_scan(env: ManagerBasedEnv, sensor_cfg: SceneEntityCfg, reshape_as_ima
     # print("height scan min, max:", height_scan_b.min(dim=1).values, height_scan_b.max(dim=1).values)
     return height_scan_b
 
+def depth_image(env: ManagerBasedEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    # extract the used quantities (to enable type-hinting)
+    sensor: TiledCamera = env.scene.sensors[sensor_cfg.name]
+    depth_image = sensor.data.output["distance_to_camera"]
+    num_envs = depth_image.shape[0]
+    depth_image_flat = depth_image.reshape(num_envs, -1)
+    return depth_image_flat 
 
 """
 MPC states

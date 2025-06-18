@@ -11,6 +11,9 @@ the reward introduced by the function.
 
 from __future__ import annotations
 
+from datetime import datetime
+import numpy as np
+import cv2
 import torch
 from typing import TYPE_CHECKING
 
@@ -532,3 +535,15 @@ def feet_accel_l2(env, sensor_cfg: SceneEntityCfg, asset_cfg: SceneEntityCfg = S
     body_accel = asset.data.body_lin_acc_w[:, asset_cfg.body_ids, :] # foot acceleration
     reward = torch.sum(body_accel.norm(dim=-1) * (1-contacts), dim=1) # swing foot acceleration
     return reward
+
+def depth_image_r(env, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
+    sensor = env.scene.sensors[sensor_cfg.name]
+    depth_image = sensor.data.output["distance_to_camera"]
+    
+    num_envs = depth_image.shape[0]
+    timestamp = datetime.now().strftime("%H%M%S")
+    gray = (depth_image[0, :, :, 0].cpu().numpy() * 255).clip(0, 255).astype(np.uint8)
+    color = cv2.applyColorMap(gray, cv2.COLORMAP_JET)
+    cv2.imwrite(f"/home/jkamohara3/Downloads/depth/{timestamp}.png", color)
+    
+    return depth_image.reshape(num_envs, -1).sum(dim=1)

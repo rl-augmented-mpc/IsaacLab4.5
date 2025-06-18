@@ -162,7 +162,8 @@ class HECTORRewardsCfg(RewardsCfg):
     # -- use height scanner atatached to foot
     foot_landing_penalty_left = RewTerm(
         func=hector_mdp.swing_foot_landing_penalty,
-        weight=-1.5,
+        # weight=-1.5,
+        weight=-2.5,
         params={
             "sensor_cfg": SceneEntityCfg("height_scanner_L_foot"),
             "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="L_toe"),
@@ -172,7 +173,8 @@ class HECTORRewardsCfg(RewardsCfg):
     
     foot_landing_penalty_right = RewTerm(
         func=hector_mdp.swing_foot_landing_penalty,
-        weight=-1.5,
+        # weight=-1.5,
+        weight=-2.5,
         params={
             "sensor_cfg": SceneEntityCfg("height_scanner_R_foot"),
             "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="R_toe"),
@@ -184,6 +186,13 @@ class HECTORRewardsCfg(RewardsCfg):
     flat_orientation_l2 = None
     undesired_contacts = None
     
+    # depth = RewTerm(
+    #     func=hector_mdp.depth_image_r,
+    #     weight=-1.5,
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("tiled_d435"),
+    #     },
+    # )
     
     
 @configclass
