@@ -41,7 +41,7 @@ class HECTOREventCfg(EventCfg):
     
     # random initial noise added to default state defined in articulation cfg
     reset_base = EventTerm(
-        # func=hector_mdp.reset_root_state_uniform, # type: ignore
+        # func=hector_mdp.reset_root_state_orthogonal, 
         func=mdp.reset_root_state_uniform, # type: ignore
         mode="reset",
         params={
@@ -53,8 +53,8 @@ class HECTOREventCfg(EventCfg):
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),
-                # "yaw": (-0.0, 0.0),
-                "yaw": (-math.pi, math.pi),
+                # "yaw": (0, math.pi/2),
+                "yaw": (0, 0),
                 },
             "velocity_range": {
                 "x": (-0.0, 0.0),
@@ -80,13 +80,13 @@ class HECTOREventCfg(EventCfg):
     push_robot = None
     
     # reset camera
-    reset_camera = EventTerm(
-        func=hector_mdp.reset_camera, # type: ignore
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot"),
-        },
-    )
+    # reset_camera = EventTerm(
+    #     func=hector_mdp.reset_camera, # type: ignore
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot"),
+    #     },
+    # )
     
     # # reset particle mass
     # reset_particle_mass = EventTerm(
@@ -115,25 +115,25 @@ class HECTORSlipEventCfg(HECTOREventCfg):
     )
     
     reset_base = EventTerm(
-        func=hector_mdp.reset_root_state_uniform_custom_terrain, # type: ignore
+        func=mdp.reset_root_state_uniform, # type: ignore
         mode="reset",
         params={
-            "pose_range": {
-                "x": (-3.0, 3.0), 
-                "y": (-3.0, 3.0),
-                "z": (0.0, 0.0),
-                "roll": (0.0, 0.0),
-                "pitch": (0.0, 0.0),
-                "yaw": (-math.pi, math.pi),
-                },
             # "pose_range": {
-            #     "x": (-1.0, 1.0), 
-            #     "y": (-1.0, 1.0),
+            #     "x": (-3.0, 3.0), 
+            #     "y": (-3.0, 3.0),
             #     "z": (0.0, 0.0),
             #     "roll": (0.0, 0.0),
             #     "pitch": (0.0, 0.0),
-            #     "yaw": (0, 0),
+            #     "yaw": (-math.pi, math.pi),
             #     },
+            "pose_range": {
+                "x": (-0.0, 0.0), 
+                "y": (-1.0, 1.0),
+                "z": (0.0, 0.0),
+                "roll": (0.0, 0.0),
+                "pitch": (0.0, 0.0),
+                "yaw": (0, 0),
+                },
             "velocity_range": {
                 "x": (-0.0, 0.0),
                 "y": (-0.0, 0.0),
