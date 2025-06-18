@@ -105,8 +105,8 @@ class MPCAction(ActionTerm):
         
         # markers
         self.foot_placement_visualizer = FootPlacementVisualizer("/Visuals/foot_placement")
-        self.slacked_foot_placement_visualizer = SlackedFootPlacementVisualizer("/Visuals/slacked_foot_placement")
-        self.position_trajectory_visualizer = PositionTrajectoryVisualizer("/Visuals/position_trajectory")
+        # self.slacked_foot_placement_visualizer = SlackedFootPlacementVisualizer("/Visuals/slacked_foot_placement")
+        # self.position_trajectory_visualizer = PositionTrajectoryVisualizer("/Visuals/position_trajectory")
         
         # command
         self.original_command = self._env.command_manager.get_command(self.cfg.command_name)
@@ -327,14 +327,14 @@ class MPCAction(ActionTerm):
         ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1)      # along y
         
         ground_level_odometry_frame = self.robot_api._init_pos[:, 2] - self.robot_api.default_root_state[:, 2]
-        self.foot_placement_height = np.clip((ground_height - ground_level_odometry_frame).cpu().numpy(), 0.0, None)
+        self.foot_placement_height = np.clip((ground_height - ground_level_odometry_frame).cpu().numpy(), 0.0, 1.0)
     
     def visualize_marker(self):
         fp = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
         default_position = self.robot_api._init_pos[:, :3].clone()
         default_position[:, 2] -= self.robot_api.default_root_state[:, 2]
         
-        sensor= self._env.scene.sensors["height_scanner"]
+        sensor= self._env.scene.sensors["height_scanner_fine"]
         height_map = sensor.data.ray_hits_w[..., 2]
         
         scan_width, scan_height = sensor.cfg.pattern_cfg.size
@@ -381,7 +381,7 @@ class MPCAction(ActionTerm):
             # Bilinear interpolation
             z0 = (1 - wx) * z00.unsqueeze(1) + wx * z10.unsqueeze(1)  # along x
             z1 = (1 - wx) * z01.unsqueeze(1) + wx * z11.unsqueeze(1)  # along x
-            ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1)      # along y
+            ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1).clip(-1.0, 1.0)      # along y
             foot_height.append(ground_height)
         
         fp[:, 0, :2] = self.foot_placement_w[:, :2]
@@ -397,11 +397,11 @@ class MPCAction(ActionTerm):
         position_traj_world = self.position_trajectory.clone()
         for i in range(10):
             position_traj_world[:, i, :] = (world_to_odom_rot @ position_traj_world[:, i, :].unsqueeze(-1)).squeeze(-1) + default_position
-        
         orientation = self.robot_api.root_quat_w.repeat(2, 1)
+        
         self.foot_placement_visualizer.visualize(fp, orientation)
-        self.slacked_foot_placement_visualizer.visualize(fp, orientation)
-        self.position_trajectory_visualizer.visualize(position_traj_world)
+        # self.slacked_foot_placement_visualizer.visualize(fp, orientation)
+        # self.position_trajectory_visualizer.visualize(position_traj_world)
         
 
     def apply_actions(self):

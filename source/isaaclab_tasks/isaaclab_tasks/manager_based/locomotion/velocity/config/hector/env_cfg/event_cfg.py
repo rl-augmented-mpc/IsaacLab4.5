@@ -53,8 +53,8 @@ class HECTOREventCfg(EventCfg):
                 "z": (0.0, 0.0),
                 "roll": (0.0, 0.0),
                 "pitch": (0.0, 0.0),
-                # "yaw": (0, math.pi/2),
-                "yaw": (0, 0),
+                "yaw": (-math.pi, math.pi),
+                # "yaw": (0, 0),
                 },
             "velocity_range": {
                 "x": (-0.0, 0.0),

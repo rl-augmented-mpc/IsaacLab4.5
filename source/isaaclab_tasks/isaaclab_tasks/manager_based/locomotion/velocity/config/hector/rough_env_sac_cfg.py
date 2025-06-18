@@ -65,10 +65,10 @@ class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
         # self.curriculum.terrain_levels = None
         
         self.viewer = ViewerCfg(
-            # eye=(-2.5, 0.0, 0.2), 
-            # lookat=(-1.0, 0.0, 0.0),
-            eye=(0.0, -2.5, 0.0), 
-            lookat=(0.0, -1.0, 0.0),
+            eye=(-2.5, 0.0, 0.2), 
+            lookat=(-1.0, 0.0, 0.0),
+            # eye=(0.0, -2.5, 0.0), 
+            # lookat=(0.0, -1.0, 0.0),
             resolution=(1920, 1080), 
             origin_type="asset_root", 
             asset_name="robot"
