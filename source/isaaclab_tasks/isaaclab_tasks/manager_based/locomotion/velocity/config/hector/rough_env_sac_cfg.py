@@ -58,8 +58,8 @@ class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
         # post init of parent
         super().__post_init__()
         self.seed = 42
-        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
-        # self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
+        # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
         
         self.scene.height_scanner.debug_vis = True
         # self.curriculum.terrain_levels = None
