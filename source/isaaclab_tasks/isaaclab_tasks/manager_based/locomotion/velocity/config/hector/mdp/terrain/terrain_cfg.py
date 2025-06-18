@@ -103,7 +103,7 @@ FrictionPatchTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="custom_curriculum",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(0.5, 1.0), # size of sub-terrain
+        size=(0.2, 2.0), # size of sub-terrain
         border_width=0.0,
         num_rows=10,
         num_cols=1,
@@ -298,17 +298,17 @@ InferenceRandomBlockTerrain = TerrainImporterCfg(
             "terrain1": terrain_gen.MeshRepeatedBoxesTerrainCfg(
                 object_type="box", 
                 max_height_noise=0.00, 
-                platform_width=2.0,
+                platform_width=2.5,
                 proportion=0.2,
                 object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=700, 
-                    height=0.00*2, 
+                    num_objects=550, 
+                    height=0.08*2, 
                     size=(0.5, 0.5),
                     max_yx_angle=0.0,
                 ), 
                 object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=700, 
-                    height=0.00*2, 
+                    num_objects=550, 
+                    height=0.08*2, 
                     size=(0.5, 0.5),
                     max_yx_angle=0.0, 
                 ),

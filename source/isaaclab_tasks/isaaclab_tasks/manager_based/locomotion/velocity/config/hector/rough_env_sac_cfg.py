@@ -41,6 +41,14 @@ class HECTORRoughEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.sim.dt = 1/500
         self.decimation = 5
         self.sim.render_interval = 10
+        
+        self.viewer = ViewerCfg(
+            eye=(-2.5, 0.0, 0.2), 
+            lookat=(-1.0, 0.0, 0.0),
+            resolution=(1920, 1080), 
+            origin_type="asset_root", 
+            asset_name="robot"
+        )
 
 @configclass
 class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
@@ -50,15 +58,20 @@ class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
         # post init of parent
         super().__post_init__()
         self.seed = 42
-        # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
-        self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
-        # self.scene.height_scanner.debug_vis = True
-        # self.events.reset_camera = None
+        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        # self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
+        
+        self.scene.height_scanner.debug_vis = True
         # self.curriculum.terrain_levels = None
+        
         self.viewer = ViewerCfg(
-            eye=(0.0, -8.0, 0.5), 
-            lookat=(0.0, 0.0, 0.0),
+            # eye=(-2.5, 0.0, 0.2), 
+            # lookat=(-1.0, 0.0, 0.0),
+            eye=(0.0, -2.5, 0.0), 
+            lookat=(0.0, -1.0, 0.0),
             resolution=(1920, 1080), 
+            origin_type="asset_root", 
+            asset_name="robot"
         )
         
         # lower resolution of heightmap since we do not use these during inference
