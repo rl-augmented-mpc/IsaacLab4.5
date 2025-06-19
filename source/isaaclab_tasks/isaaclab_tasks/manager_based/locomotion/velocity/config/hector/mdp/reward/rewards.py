@@ -170,6 +170,35 @@ def discrete_terrain_costmap(
 rewards
 """
 
+def track_command_lin_vel_xy_exp(
+    env: ManagerBasedRLEnv, 
+    std: float, 
+    command_name: str, 
+    action_name: str,
+) -> torch.Tensor:
+    """Reward tracking of linear velocity commands (xy axes) using exponential kernel."""
+    # extract the used quantities (to enable type-hinting)
+    action_term = env.action_manager.get_term(action_name)
+    # compute the error
+    lin_vel_error = torch.sum(
+        torch.square(env.command_manager.get_command(command_name)[:, :2] - action_term.original_command[:, :2]),
+        dim=1,
+    )
+    return torch.exp(-lin_vel_error / std**2)
+
+def track_command_ang_vel_z_exp(
+    env: ManagerBasedRLEnv, 
+    std: float, 
+    command_name: str, 
+    action_name: str, 
+) -> torch.Tensor:
+    """Reward tracking of angular velocity commands (yaw) using exponential kernel."""
+    # extract the used quantities (to enable type-hinting)
+    action_term = env.action_manager.get_term(action_name)
+    # compute the error
+    ang_vel_error = torch.square(env.command_manager.get_command(command_name)[:, 2] - action_term.original_command[:, 2])
+    return torch.exp(-ang_vel_error / std**2)
+
 def track_torso_height_exp(
     env: ManagerBasedRLEnv, 
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), 

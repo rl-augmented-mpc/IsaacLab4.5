@@ -99,7 +99,7 @@ class MPCAction(ActionTerm):
         self.foot_position_trajectory = torch.zeros(self.num_envs, 10, 3, device=self.device, dtype=torch.float32) # trajectory of the foot placement in body frame
         
         # reference
-        self.command = np.zeros((self.num_envs, 3), dtype=np.float32)
+        self.twist = np.zeros((self.num_envs, 3), dtype=np.float32)
         self.reference_height = self.cfg.nominal_height * np.ones(self.num_envs, dtype=np.float32)
         self.foot_placement_height = np.zeros(self.num_envs, dtype=np.float32)
         
@@ -109,6 +109,7 @@ class MPCAction(ActionTerm):
         # self.position_trajectory_visualizer = PositionTrajectoryVisualizer("/Visuals/position_trajectory")
         
         # command
+        self.command = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
         self.original_command = self._env.command_manager.get_command(self.cfg.command_name)
     
     """
@@ -169,7 +170,7 @@ class MPCAction(ActionTerm):
             self.mpc_controller[i].set_command(
                 gait_num=2, #1:standing, 2:walking
                 roll_pitch=np.zeros(2, dtype=np.float32),
-                twist=self.command[i],
+                twist=self.twist[i],
                 height=self.reference_height[i],
             )
         self.visualize_marker()
@@ -180,7 +181,7 @@ class MPCAction(ActionTerm):
         command = ramp_up_coef * self.original_command
         
         # update command
-        self.command[:, :] = command.cpu().numpy()
+        self.twist[:, :] = command.cpu().numpy()
         # update command manager
         self._env.command_manager._terms[self.cfg.command_name].vel_command_b = command
         
@@ -587,7 +588,7 @@ class MPCAction2(MPCAction):
             self.mpc_controller[i].set_command(
                 gait_num=2, #1:standing, 2:walking
                 roll_pitch=np.zeros(2, dtype=np.float32),
-                twist=self.command[i],
+                twist=self.twist[i],
                 height=self.reference_height[i],
             )
         self.visualize_marker()
@@ -614,3 +615,84 @@ class MPCAction2(MPCAction):
         
         ground_level_odometry_frame = height_map.reshape(-1, height, width)[:, height//2, width//2] # center of the height map
         self.foot_placement_height = np.clip((ground_level_odometry_frame).cpu().numpy(), 0.0, None)
+        
+        
+class MPCAction3(MPCAction):
+    """
+    This is a subclass of MPCAction that uses the new action space.
+    """
+    
+    """
+    Properties.
+    """
+
+    @property
+    def action_dim(self) -> int:
+        """
+        mpc control parameters:
+        - centroidal acceleration (R^6)
+        - mpc sampling time (R^1)
+        - swing foot height (R^1)
+        - swing trajectory control points (R^1)
+        - body velocity (R^2)
+        """
+        return 11
+    
+    def process_actions(self, actions: torch.Tensor):
+        # store the raw actions
+        self._raw_actions[:] = actions
+        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
+        
+        # split processed actions into individual control parameters
+        A_residual = np.zeros((self.num_envs, 13, 13), dtype=np.float32)
+        B_residual = np.zeros((self.num_envs, 13, 12), dtype=np.float32)
+        
+        # split processed actions into individual control parameters
+        centroidal_lin_acc = self._processed_actions[:, :3]
+        centroidal_ang_acc = self._processed_actions[:, 3:6]
+        centroidal_lin_acc = torch.bmm(self.root_rot_mat, centroidal_lin_acc.unsqueeze(-1)).squeeze(-1)
+        centroidal_ang_acc = torch.bmm(self.root_rot_mat, centroidal_ang_acc.unsqueeze(-1)).squeeze(-1)
+        A_residual[:, 6:9, -1] = centroidal_lin_acc.cpu().numpy()
+        A_residual[:, 9:12, -1] = centroidal_ang_acc.cpu().numpy()
+        
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, 6].cpu().numpy())
+        swing_foot_height = self._processed_actions[:, 7].cpu().numpy()
+        trajectory_control_points = self._processed_actions[:, 8].cpu().numpy()
+        
+        # form actual control parameters (nominal value + residual)
+        swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
+        cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
+        cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
+        
+        # update reference
+        self._get_reference_velocity()
+        self._get_reference_height("height_scanner")
+        self._get_footplacement_height("height_scanner")
+        
+        for i in range(self.num_envs):
+            self.mpc_controller[i].update_sampling_time(sampling_time[i])
+            self.mpc_controller[i].set_srbd_residual(A_residual=A_residual[i], B_residual=B_residual[i])
+            self.mpc_controller[i].set_swing_parameters(
+                stepping_frequency=1.0, 
+                foot_height=swing_foot_height[i], 
+                cp1=cp1[i], 
+                cp2=cp2[i], 
+                pf_z=self.foot_placement_height[i])
+            self.mpc_controller[i].set_command(
+                gait_num=2, #1:standing, 2:walking
+                roll_pitch=np.zeros(2, dtype=np.float32),
+                twist=self.twist[i],
+                height=self.reference_height[i],
+            )
+        self.visualize_marker()
+        
+    def _get_reference_velocity(self):
+        # get reference body velocity from policy
+        body_twist = self._processed_actions[:, 9:11] # vx and wz
+        self.command[:, 0] = body_twist[:, 0] # vx
+        self.command[:, 2] = body_twist[:, 1] # wz
+        
+        # update command
+        self.twist[:, :] = self.command.cpu().numpy()
+        # update command manager
+        self._env.command_manager._terms[self.cfg.command_name].vel_command_b = self.command

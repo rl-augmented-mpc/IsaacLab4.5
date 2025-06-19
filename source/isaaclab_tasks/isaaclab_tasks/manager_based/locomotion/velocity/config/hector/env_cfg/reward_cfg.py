@@ -35,6 +35,24 @@ class HECTORRewardsCfg(RewardsCfg):
                 "reference_height": 0.55,
                 },
     )
+    track_command_lin_vel_xy_exp = RewTerm(
+        func=hector_mdp.track_command_lin_vel_xy_exp,
+        weight=0.5,
+        params={
+            "command_name": "base_velocity", 
+            "action_name": "mpc_action", 
+            "std": 0.5, 
+            },
+    )
+    track_command_ang_vel_z_exp = RewTerm(
+        func=hector_mdp.track_command_ang_vel_z_exp, 
+        weight=0.5, 
+        params={
+            "command_name": "base_velocity", 
+            "action_name": "mpc_action", 
+            "std": 0.5, 
+            },
+    )
 
     # -- penalties
     termination = RewTerm(func=mdp.is_terminated, weight=-200.0) # type: ignore
@@ -80,7 +98,8 @@ class HECTORRewardsCfg(RewardsCfg):
         func=hector_mdp.rough_terrain_processed_action_l2,
         weight=-0.5,
         params={
-            "action_idx": [-2],
+            # "action_idx": [-2],
+            "action_idx": [-4],
             "action_name": "mpc_action",
             "sensor_cfg": SceneEntityCfg("height_scanner_fine"),
             "lookahead_distance": 0.2,
@@ -92,12 +111,30 @@ class HECTORRewardsCfg(RewardsCfg):
         func=hector_mdp.rough_terrain_processed_action_l2,
         weight=-2.0,
         params={
-            "action_idx": [-1, -3],
+            # "action_idx": [-1, -3],
+            "action_idx": [-5, -3],
             "action_name": "mpc_action",
             "sensor_cfg": SceneEntityCfg("height_scanner_fine"),
             "lookahead_distance": 0.2,
             "lookback_distance": 0.0, 
             "patch_width": 0.1,
+        }
+    )
+    
+    processed_action_l2_lin_accel = RewTerm(
+        func=hector_mdp.individual_action_l2, # type: ignore
+        weight=-1.0,
+        params={
+            "action_idx": [0, 1, 2],
+            "action_name": "mpc_action",
+        }
+    )
+    processed_action_l2_ang_accel = RewTerm(
+        func=hector_mdp.individual_action_l2, # type: ignore
+        weight=-0.5,
+        params={
+            "action_idx": [3, 4, 5],
+            "action_name": "mpc_action",
         }
     )
     

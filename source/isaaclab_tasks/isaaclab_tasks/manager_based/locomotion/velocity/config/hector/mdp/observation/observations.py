@@ -76,6 +76,15 @@ def joint_torque(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCf
     joint_ids, _ = asset.find_joints(joint_names, preserve_order=True)
     return asset.data.applied_torque[:, joint_ids]
 
+def reference_command(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:
+    """Reference foot position of the robot.
+
+    The reference foot position is defined as the position of the foot in the world frame.
+    """
+    # extract the used quantities (to enable type-hinting)
+    action_term = env.action_manager.get_term(action_name)
+    return action_term.original_command
+
 """
 Exteroceptive observations
 """
