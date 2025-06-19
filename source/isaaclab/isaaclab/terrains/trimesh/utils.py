@@ -134,6 +134,84 @@ def make_box(
     dims = (length, width, height)
     return trimesh.creation.box(dims, transform=transform)
 
+def make_perturbed_box_with_triangle(
+    length: float,
+    width: float,
+    height: float,
+    center: tuple[float, float, float],
+    max_yx_angle: float = 0,
+    degrees: bool = True,
+) -> trimesh.Trimesh:
+    """Generate a box mesh with a triangle on top and a random orientation."""
+    
+    # Create transformation matrix
+    transform = np.eye(4)
+    transform[0:3, -1] = np.asarray(center)
+
+    # Generate small perturbation rotation
+    euler_zyx = tf.Rotation.random().as_euler("zyx")
+    euler_zyx[0] = 0.0
+    if degrees:
+        max_yx_angle = max_yx_angle / 180.0
+    euler_zyx[1:] *= max_yx_angle
+    transform[0:3, 0:3] = tf.Rotation.from_euler("zyx", euler_zyx).as_matrix()
+
+    # Create the box mesh
+    dims = (length, width, height)
+    box = trimesh.creation.box(dims, transform=transform)
+
+    # Create triangle mesh on top of box
+    world_top_center = transform @ np.array([0, 0, height / 2.0, 1])
+    skew_ratio = np.random.uniform(-1.0, 1.0)
+    perturbation_height = (height/2) * np.random.uniform(0.3, 0.6)
+    triangle_type = np.random.randint(0, 2)
+    if triangle_type == 0:  # isosceles triangle
+        triangle_vertices = np.array([
+            [-length/2, -width/2, 0], 
+            [-length/2, width/2, 0], 
+            [length/2, -width/2, 0], 
+            [length/2, width/2, 0], 
+            [skew_ratio*length/2, -width/2, perturbation_height], 
+            [skew_ratio*length/2, width/2, perturbation_height],
+        ])
+        triangle_faces = np.array([
+            [0, 1, 2], 
+            [1, 2, 3], 
+            [0, 1, 4], 
+            [1, 4, 5], 
+            [2, 3, 4], 
+            [3, 4, 5], 
+            [0, 2, 4], 
+            [1, 3, 5]
+        ])
+    else:
+        triangle_vertices = np.array([
+            [-length/2, -width/2, 0], 
+            [-length/2, width/2, 0], 
+            [length/2, -width/2, 0], 
+            [length/2, width/2, 0], 
+            [-length/2, skew_ratio*width/2, perturbation_height], 
+            [length/2, skew_ratio*width/2, perturbation_height],
+        ])
+        triangle_faces = np.array([
+            [0, 1, 2], 
+            [1, 2, 3], 
+            [0, 1, 4],
+            [2, 3, 5], 
+            [0, 2, 4], 
+            [2, 4, 5], 
+            [1, 3, 4], 
+            [3, 4, 5]
+        ])
+    # Rotate triangle to align with box top (same orientation as box)
+    triangle_vertices = triangle_vertices @ transform[0:3, 0:3].T
+    # Translate triangle to top center
+    triangle_vertices += world_top_center[:3]
+    triangle_mesh = trimesh.Trimesh(vertices=triangle_vertices, faces=triangle_faces)
+
+    # Combine box and triangle
+    return trimesh.util.concatenate([box, triangle_mesh])
+
 
 def make_cylinder(
     radius: float, height: float, center: tuple[float, float, float], max_yx_angle: float = 0, degrees: bool = True

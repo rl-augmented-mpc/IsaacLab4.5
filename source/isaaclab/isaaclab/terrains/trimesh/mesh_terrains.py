@@ -1353,8 +1353,8 @@ def poisson_disk_sampling_terrain(
         # randomize shape parameters (length, width) or radius depending on the object type by changing ratio from 0.5 to 1.5
         if ob_height > 0.0:
             if isinstance(cfg, MeshRepeatedBoxesTerrainCfg):
-                object_width = (1 + np.random.uniform(-0.5, 0.5)) * object_kwargs["width"]
-                object_length = (1 + np.random.uniform(-0.5, 0.5)) * object_kwargs["length"]
+                object_width = (1 + np.random.uniform(-0.3, 0.2)) * object_kwargs["width"]
+                object_length = (1 + np.random.uniform(-0.3, 0.2)) * object_kwargs["length"]
                 object_mesh = object_func(
                     center=object_centers[index], 
                     height=ob_height, 
