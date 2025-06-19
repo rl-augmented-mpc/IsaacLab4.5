@@ -26,7 +26,7 @@ class HECTORTerminationsCfg:
     base_too_low = DoneTerm(
         func=hector_mdp.root_height_below_minimum_adaptive,  # type: ignore
         params={
-            "minimum_height": 0.35,
+            "minimum_height": 0.3,
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_sole"),
         },
     )

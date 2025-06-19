@@ -251,16 +251,16 @@ CurriculumRandomBlockTerrain = TerrainImporterCfg(
             "terrain1": terrain_gen.MeshRepeatedBoxesTerrainCfg(
                 object_type="box", 
                 max_height_noise=0.00, 
-                platform_width=1.0,
+                platform_width=1.5,
                 proportion=0.2,
                 object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=700, 
+                    num_objects=1000, 
                     height=0.02*2, 
                     size=(0.5, 0.5),
                     max_yx_angle=0.0,
                 ), 
                 object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=700, 
+                    num_objects=1000, 
                     height=0.08*2, 
                     size=(0.5, 0.5),
                     max_yx_angle=0.0, 
@@ -298,16 +298,16 @@ InferenceRandomBlockTerrain = TerrainImporterCfg(
             "terrain1": terrain_gen.MeshRepeatedBoxesTerrainCfg(
                 object_type="box", 
                 max_height_noise=0.00, 
-                platform_width=1.0,
+                platform_width=1.5,
                 proportion=0.2,
                 object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=900, 
+                    num_objects=1000, 
                     height=0.08*2, 
                     size=(0.5, 0.5),
                     max_yx_angle=0.0,
                 ), 
                 object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=900, 
+                    num_objects=1000, 
                     height=0.08*2, 
                     size=(0.5, 0.5),
                     max_yx_angle=0.0, 
