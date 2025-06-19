@@ -471,7 +471,6 @@ class MPCAction(ActionTerm):
         self.foot_position_trajectory = torch.from_numpy(np.array(foot_position_traj)).to(self.device).view(self.num_envs, 10, 3).to(torch.float32)
 
         # transform foot placement to body frame
-        self.foot_placement_b = torch.zeros((self.num_envs, 4), device=self.device)
         foot_placement_body_prime = self.foot_placement_w.clone()
         foot_placement_body_prime[:, :2] -= self.root_pos[:, :2]
         foot_placement_body_prime[:, 2:] -= self.root_pos[:, :2]
