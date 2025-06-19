@@ -64,20 +64,20 @@ class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
         self.scene.height_scanner.debug_vis = True
         # self.curriculum.terrain_levels = None
         
-        self.viewer = ViewerCfg(
-            eye=(-2.5, 0.0, 0.2), 
-            lookat=(-1.0, 0.0, 0.0),
-            # eye=(0.0, -2.5, 0.0), 
-            # lookat=(0.0, -1.0, 0.0),
-            resolution=(1920, 1080), 
-            origin_type="asset_root", 
-            asset_name="robot"
-        )
+        # self.viewer = ViewerCfg(
+        #     eye=(-2.5, 0.0, 0.2), 
+        #     lookat=(-1.0, 0.0, 0.0),
+        #     # eye=(0.0, -2.5, 0.0), 
+        #     # lookat=(0.0, -1.0, 0.0),
+        #     resolution=(1920, 1080), 
+        #     origin_type="asset_root", 
+        #     asset_name="robot"
+        # )
         
         # lower resolution of heightmap since we do not use these during inference
         self.scene.height_scanner_fine.pattern_cfg.resolution = 0.5
         self.scene.height_scanner_L_foot.pattern_cfg.resolution = 0.5
         self.scene.height_scanner_R_foot.pattern_cfg.resolution = 0.5
         
-        self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)
         # self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)

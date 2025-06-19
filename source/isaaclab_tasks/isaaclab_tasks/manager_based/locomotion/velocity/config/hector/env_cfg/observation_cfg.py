@@ -137,6 +137,7 @@ class SACHECTORObservationsCfg:
             # noise=Unoise(n_min=-0.2, n_max=0.2)
             )
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
+        user_velocity_commands = ObsTerm(func=hector_mdp.reference_command, params={"action_name": "mpc_action"}) # type: ignore
         
         joint_pos = ObsTerm(
             func=hector_mdp.joint_pos, 

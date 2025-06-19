@@ -1,4 +1,4 @@
-from .actions.mpc_actions_cfg import MPCActionCfg, MPCActionCfgV2, TorchMPCActionCfg
+from .actions.mpc_actions_cfg import MPCActionCfg, MPCActionCfgV2, MPCActionCfgV3, TorchMPCActionCfg
 from .terrain.terrain_cfg import (
     InferenceSteppingStoneTerrain, CurriculumSteppingStoneTerrain, 
     RandomOrientationCubeTerrain, PyramidHfTerrain, FractalTerrain, BaseTerrain, 
@@ -13,9 +13,11 @@ from .observation.observations import (
     base_pos_z,
     joint_pos, joint_vel, joint_torque, 
     height_scan, depth_image,
-    swing_phase, foot_placement_b, foot_position_b, reference_foot_position_b
+    swing_phase, foot_placement_b, foot_position_b, reference_foot_position_b, 
+    reference_command
 )
 from .reward.rewards import (
+    track_command_lin_vel_xy_exp, track_command_ang_vel_z_exp, 
     leg_body_angle_l2, leg_distance_l2, 
     negative_lin_vel_l2, track_torso_height_exp,
     individual_action_l2, mpc_cost_l1, processed_action_l2, 
