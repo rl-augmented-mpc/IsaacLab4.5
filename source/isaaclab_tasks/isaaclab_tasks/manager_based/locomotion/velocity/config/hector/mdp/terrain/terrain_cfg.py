@@ -226,6 +226,7 @@ CurriculumSteppingStoneTerrain = TerrainImporterCfg(
     ),
     visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
     max_init_terrain_level=0,
+    keep_max_terrain_level=True,
     debug_vis=False,
     disable_colllider=False,
 )
@@ -277,6 +278,7 @@ CurriculumRandomBlockTerrain = TerrainImporterCfg(
     ),
     visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
     max_init_terrain_level=0,
+    keep_max_terrain_level=True,
     debug_vis=False,
     disable_colllider=False,
 )
