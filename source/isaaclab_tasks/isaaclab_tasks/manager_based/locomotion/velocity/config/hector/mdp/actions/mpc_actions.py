@@ -110,7 +110,6 @@ class MPCAction(ActionTerm):
         
         # command
         self.original_command = self._env.command_manager.get_command(self.cfg.command_name)
-        # self.sampling_time = self.cfg.nominal_mpc_dt * np.ones(self.num_envs, dtype=np.float32) # sampling time for each environment
     
     """
     Properties.
@@ -120,7 +119,7 @@ class MPCAction(ActionTerm):
     def action_dim(self) -> int:
         """
         mpc control parameters:
-        - gait stepping frequency 
+        - mpc sampling time
         - swing foot height 
         - swing trajectory control points
         """
@@ -156,8 +155,8 @@ class MPCAction(ActionTerm):
         
         # update reference
         self._get_reference_velocity()
-        self._get_reference_height()
-        self._get_footplacement_height()
+        self._get_reference_height(sensor_name="height_scanner")
+        self._get_footplacement_height(sensor_name="height_scanner")
         
         for i in range(self.num_envs):
             self.mpc_controller[i].update_sampling_time(sampling_time[i])
@@ -178,28 +177,10 @@ class MPCAction(ActionTerm):
     def _get_reference_velocity(self):
         ramp_up_duration = 1.2 # seconds
         ramp_up_coef = torch.clip(self.mpc_counter/int(ramp_up_duration/self._env.physics_dt), 0.0, 1.0).unsqueeze(1)
-        
-        # sensor= self._env.scene.sensors["height_scanner_fine"]
-        # # height_map = sensor.data.ray_hits_w[..., 2]
-        # height_map = sensor.data.pos_w[:, 2].unsqueeze(1) - sensor.data.ray_hits_w[..., 2] - 0.55
-        
-        # scan_width, scan_height = sensor.cfg.pattern_cfg.size
-        # scan_resolution = sensor.cfg.pattern_cfg.resolution
-        # width = int(scan_width/scan_resolution + 1)
-        # height = int(scan_height/scan_resolution + 1)
-        # height_map = height_map.reshape(self.num_envs, width, height)
-        
-        # window = int(0.2/scan_resolution)
-        # height_map_patch = height_map[:, width//2:width//2+window+1, height//2:height//2+window+1].reshape(self.num_envs, -1)
-        # # roughness = height_map_patch.max(dim=1).values - height_map_patch.min(dim=1).values
-        # roughness = height_map_patch[:, -1] - height_map_patch[:, 0] # roughness in the last column of the height map
+        command = ramp_up_coef * self.original_command
         
         # update command
-        command = ramp_up_coef * self.original_command
-        # command[roughness > 1e-2, :] *= 0.5 # going down
-        # command[roughness < -1e-2, :] *= 1.0 # going up
         self.command[:, :] = command.cpu().numpy()
-        
         # update command manager
         self._env.command_manager._terms[self.cfg.command_name].vel_command_b = command
         
@@ -330,13 +311,13 @@ class MPCAction(ActionTerm):
         self.foot_placement_height = np.clip((ground_height - ground_level_odometry_frame).cpu().numpy(), 0.0, 1.0)
     
     def visualize_marker(self):
+        # create storag tensors
         fp = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
         default_position = self.robot_api._init_pos[:, :3].clone()
-        default_position[:, 2] -= self.robot_api.default_root_state[:, 2]
+        default_position[:, 2] = 0.0
         
-        sensor= self._env.scene.sensors["height_scanner_fine"]
+        sensor= self._env.scene.sensors["height_scanner"]
         height_map = sensor.data.ray_hits_w[..., 2]
-        
         scan_width, scan_height = sensor.cfg.pattern_cfg.size
         scan_resolution = sensor.cfg.pattern_cfg.resolution
         width = int(scan_width/scan_resolution + 1)
@@ -345,10 +326,9 @@ class MPCAction(ActionTerm):
         
         foot_height = []
         for foot in range(2):
-            target_pos = self.foot_placement_b.reshape(self.num_envs, 2, 2)[:, foot, :]
-            
-            x_img = target_pos[:, 0] / scan_resolution + (width // 2 - scan_offset[0])
-            y_img = target_pos[:, 1] / scan_resolution + (height // 2 - scan_offset[1])
+            target_pos = self.foot_placement_b[:, 2*foot:2*(foot+1)]    
+            x_img = target_pos[:, 0] / scan_resolution + (width // 2 - scan_offset[0]) # col
+            y_img = target_pos[:, 1] / scan_resolution + (height // 2 - scan_offset[1]) # row
 
             # Clamp to valid range before ceil/floor to avoid out-of-bounds
             x0 = x_img.floor().clamp(0, width - 2)     # [N]
@@ -394,11 +374,13 @@ class MPCAction(ActionTerm):
         fp[:, 0, :] = torch.bmm(world_to_odom_rot, fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position
         fp[:, 1, :] = torch.bmm(world_to_odom_rot, fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position
         
+        # process mpc reference trajectory
         position_traj_world = self.position_trajectory.clone()
         for i in range(10):
             position_traj_world[:, i, :] = (world_to_odom_rot @ position_traj_world[:, i, :].unsqueeze(-1)).squeeze(-1) + default_position
-        orientation = self.robot_api.root_quat_w.repeat(2, 1)
         
+        # send quantities to visualizer
+        orientation = self.robot_api.root_quat_w.repeat(2, 1)
         self.foot_placement_visualizer.visualize(fp, orientation)
         # self.slacked_foot_placement_visualizer.visualize(fp, orientation)
         # self.position_trajectory_visualizer.visualize(position_traj_world)
@@ -490,10 +472,13 @@ class MPCAction(ActionTerm):
 
         # transform foot placement to body frame
         self.foot_placement_b = torch.zeros((self.num_envs, 4), device=self.device)
-        self.foot_placement_b[:, 0] = self.foot_placement_w[:, 0]*torch.cos(self.root_yaw) + self.foot_placement_w[:, 1]*torch.sin(self.root_yaw) - self.root_pos[:, 0]
-        self.foot_placement_b[:, 1] = -self.foot_placement_w[:, 0]*torch.sin(self.root_yaw) + self.foot_placement_w[:, 1]*torch.cos(self.root_yaw) - self.root_pos[:, 1]
-        self.foot_placement_b[:, 2] = self.foot_placement_w[:, 2]*torch.cos(self.root_yaw) + self.foot_placement_w[:, 3]*torch.sin(self.root_yaw) - self.root_pos[:, 0]
-        self.foot_placement_b[:, 3] = -self.foot_placement_w[:, 2]*torch.sin(self.root_yaw) + self.foot_placement_w[:, 3]*torch.cos(self.root_yaw) - self.root_pos[:, 1]
+        foot_placement_body_prime = self.foot_placement_w.clone()
+        foot_placement_body_prime[:, :2] -= self.root_pos[:, :2]
+        foot_placement_body_prime[:, 2:] -= self.root_pos[:, :2]
+        self.foot_placement_b[:, 0] = foot_placement_body_prime[:, 0]*torch.cos(self.root_yaw) + foot_placement_body_prime[:, 1]*torch.sin(self.root_yaw)
+        self.foot_placement_b[:, 1] = -foot_placement_body_prime[:, 0]*torch.sin(self.root_yaw) + foot_placement_body_prime[:, 1]*torch.cos(self.root_yaw)
+        self.foot_placement_b[:, 2] = foot_placement_body_prime[:, 2]*torch.cos(self.root_yaw) + foot_placement_body_prime[:, 3]*torch.sin(self.root_yaw)
+        self.foot_placement_b[:, 3] = -foot_placement_body_prime[:, 2]*torch.sin(self.root_yaw) + foot_placement_body_prime[:, 3]*torch.cos(self.root_yaw)
         
         # body-leg angle
         stance_leg_r_left = torch.abs(self.foot_pos_b[:, :3]).clamp(min=1e-6)  # avoid division by zero
@@ -587,7 +572,6 @@ class MPCAction2(MPCAction):
         cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
         
         # update reference
-        # self._get_mpc_state()
         self._get_reference_velocity()
         # self._get_reference_height("height_scanner")
         # self._get_footplacement_height("height_scanner")
@@ -631,56 +615,3 @@ class MPCAction2(MPCAction):
         
         ground_level_odometry_frame = height_map.reshape(-1, height, width)[:, height//2, width//2] # center of the height map
         self.foot_placement_height = np.clip((ground_level_odometry_frame).cpu().numpy(), 0.0, None)
-        
-class MPCAction3(MPCAction):
-    """
-    This is a subclass of MPCAction that uses the new action space.
-    """
-    
-    """
-    Properties.
-    """
-
-    @property
-    def action_dim(self) -> int:
-        """
-        mpc control parameters:
-        - gait stepping frequency 
-        - swing foot height 
-        - swing trajectory control points
-        """
-        return 3
-    
-    def process_actions(self, actions: torch.Tensor):
-        # store the raw actions
-        self._raw_actions[:] = actions
-        # self._raw_actions[:, 0] = 2*torch.rand(self.num_envs, device=self.device) - 1 # randomize sampling time
-        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
-        
-        stepping_frequency = self.cfg.nominal_stepping_frequency + self._processed_actions[:, 0].cpu().numpy()
-        swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
-        trajectory_control_points = self._processed_actions[:, 2].cpu().numpy()
-        
-        # form actual control parameters (nominal value + residual)
-        swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
-        cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
-        cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
-        
-        # update reference
-        self._get_mpc_state()
-        self._get_reference_velocity()
-        self._get_reference_height()
-        for i in range(self.num_envs):
-            self.mpc_controller[i].set_swing_parameters(
-                stepping_frequency=stepping_frequency[i], 
-                foot_height=swing_foot_height[i], 
-                cp1=cp1[i], 
-                cp2=cp2[i], 
-                pf_z=self.foot_placement_height[i])
-            self.mpc_controller[i].set_command(
-                gait_num=2, #1:standing, 2:walking
-                roll_pitch=np.zeros(2, dtype=np.float32),
-                twist=self.command[i],
-                height=self.reference_height[i],
-            )
-        self.visualize_marker()
