@@ -402,12 +402,18 @@ class TerrainImporter:
         self.terrain_levels[env_ids] += 1 * move_up - 1 * move_down
         # robots that solve the last level are sent to a random one
         # the minimum level is zero
-        self.terrain_levels[env_ids] = torch.where(
-            self.terrain_levels[env_ids] >= self.max_terrain_level,
-            torch.randint_like(self.terrain_levels[env_ids], self.max_terrain_level), # set random level
-            # (self.max_terrain_level-1)*torch.ones_like(self.terrain_levels[env_ids]), # keep max level
-            torch.clip(self.terrain_levels[env_ids], 0),
-        )
+        if self.cfg.keep_max_terrain_level:
+            self.terrain_levels[env_ids] = torch.where(
+                self.terrain_levels[env_ids] >= self.max_terrain_level,
+                (self.max_terrain_level-1)*torch.ones_like(self.terrain_levels[env_ids]), # keep max level
+                torch.clip(self.terrain_levels[env_ids], 0),
+            )
+        else:
+            self.terrain_levels[env_ids] = torch.where(
+                self.terrain_levels[env_ids] >= self.max_terrain_level,
+                torch.randint_like(self.terrain_levels[env_ids], self.max_terrain_level), # set random level
+                torch.clip(self.terrain_levels[env_ids], 0),
+            )
         # update the env origins
         self.env_origins[env_ids] = self.terrain_origins[self.terrain_levels[env_ids], self.terrain_types[env_ids]]
     

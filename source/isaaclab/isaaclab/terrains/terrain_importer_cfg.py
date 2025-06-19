@@ -104,6 +104,8 @@ class TerrainImporterCfg:
     
     marker_path: str = "/Visuals/TerrainOrigin"
     
+    keep_max_terrain_level: bool = False
+    
     """
     Collider settings
     """
