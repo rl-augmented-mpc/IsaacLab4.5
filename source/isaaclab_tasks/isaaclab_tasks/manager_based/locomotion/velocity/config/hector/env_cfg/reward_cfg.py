@@ -76,23 +76,6 @@ class HECTORRewardsCfg(RewardsCfg):
     dof_pos_limits = None
     # joint_deviation = None
     
-    # -- energy penalty
-    # processed_action_l2_12 = RewTerm(
-    #     func=hector_mdp.individual_action_l2, # type: ignore
-    #     weight=-0.5,
-    #     params={
-    #         "action_idx": [-2],
-    #         "action_name": "mpc_action",
-    #     }
-    # )
-    # processed_action_l2_0 = RewTerm(
-    #     func=hector_mdp.individual_action_l2, # type: ignore
-    #     weight=-2.0,
-    #     params={
-    #         "action_idx": [-1, -3],
-    #         "action_name": "mpc_action",
-    #     }
-    # )
     processed_action_l2_12 = RewTerm(
         func=hector_mdp.rough_terrain_processed_action_l2,
         weight=-0.5,
@@ -100,7 +83,9 @@ class HECTORRewardsCfg(RewardsCfg):
             "action_idx": [-2],
             "action_name": "mpc_action",
             "sensor_cfg": SceneEntityCfg("height_scanner_fine"),
-            "lookahead_distance": 0.25,
+            "lookahead_distance": 0.2,
+            "lookback_distance": 0.0, 
+            "patch_width": 0.1,
         }
     )
     processed_action_l2_0 = RewTerm(
@@ -110,7 +95,9 @@ class HECTORRewardsCfg(RewardsCfg):
             "action_idx": [-1, -3],
             "action_name": "mpc_action",
             "sensor_cfg": SceneEntityCfg("height_scanner_fine"),
-            "lookahead_distance": 0.25,
+            "lookahead_distance": 0.2,
+            "lookback_distance": 0.0, 
+            "patch_width": 0.1,
         }
     )
     

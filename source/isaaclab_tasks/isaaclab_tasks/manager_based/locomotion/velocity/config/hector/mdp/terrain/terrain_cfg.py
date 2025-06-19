@@ -251,7 +251,7 @@ CurriculumRandomBlockTerrain = TerrainImporterCfg(
             "terrain1": terrain_gen.MeshRepeatedBoxesTerrainCfg(
                 object_type="box", 
                 max_height_noise=0.00, 
-                platform_width=2.0,
+                platform_width=1.0,
                 proportion=0.2,
                 object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
                     num_objects=700, 
@@ -298,7 +298,7 @@ InferenceRandomBlockTerrain = TerrainImporterCfg(
             "terrain1": terrain_gen.MeshRepeatedBoxesTerrainCfg(
                 object_type="box", 
                 max_height_noise=0.00, 
-                platform_width=2.5,
+                platform_width=1.0,
                 proportion=0.2,
                 object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
                     num_objects=900, 
