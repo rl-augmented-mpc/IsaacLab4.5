@@ -67,3 +67,7 @@ class RayCasterCfg(SensorBaseCfg):
     Note:
         This attribute is only used when debug visualization is enabled.
     """
+    visualize_noise: bool = False
+    """Whether to add noise to raycaster visualization."""
+    noise_std: float = 0.02
+    """Standard deviation of the noise to add to raycaster visualization."""

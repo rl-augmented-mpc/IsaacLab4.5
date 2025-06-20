@@ -31,7 +31,7 @@ class HECTORSceneCfg(InteractiveSceneCfg):
     # terrain = hector_mdp.CurriculumSteppingStoneTerrain
     terrain = hector_mdp.CurriculumRandomBlockTerrain
     
-    # gravel 
+    # # gravel 
     # terrain = hector_mdp.BaseTerrain
     # gravel = hector_mdp.GravelTerrain
     

@@ -60,13 +60,5 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
         self.seed = 42
         self.scene.terrain = hector_mdp.FrictionPatchTerrain
         self.curriculum.terrain_levels = None
-        self.viewer = ViewerCfg(
-            eye=(0.0, -2.5, 0.0), 
-            lookat=(0.0, -1.0, 0.0),
-            resolution=(1920, 1080), 
-            origin_type="asset_root", 
-            asset_name="robot"
-        )
-        
         self.commands.base_velocity.ranges.lin_vel_x = (0.3, 0.5)
         # self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)

@@ -163,7 +163,7 @@ def make_perturbed_box_with_triangle(
     # Create triangle mesh on top of box
     world_top_center = transform @ np.array([0, 0, height / 2.0, 1])
     skew_ratio = np.random.uniform(-1.0, 1.0)
-    perturbation_height = (height/2) * np.random.uniform(0.0, 0.4)
+    perturbation_height = (height/2) * np.random.uniform(0.2, 0.4)
     triangle_type = np.random.randint(0, 2)
     if triangle_type == 0:  # isosceles triangle
         triangle_vertices = np.array([

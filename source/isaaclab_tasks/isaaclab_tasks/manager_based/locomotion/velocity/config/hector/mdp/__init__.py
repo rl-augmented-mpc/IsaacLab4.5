@@ -5,10 +5,14 @@ from .terrain.terrain_cfg import (
     CurriculumFrictionPatchTerrain, FrictionPatchTerrain, 
     InferenceRandomBlockTerrain, CurriculumRandomBlockTerrain
 )
+
+# # only enable when using dynamic terrain 
+# # otherwise, importing this takes long time
 # from .terrain.dynamic_terrain_cfg import (
 #     GravelTerrain, 
-#     ParticleTerrain
+#     # ParticleTerrain
 # )
+
 from .observation.observations import (
     base_pos_z,
     joint_pos, joint_vel, joint_torque, 

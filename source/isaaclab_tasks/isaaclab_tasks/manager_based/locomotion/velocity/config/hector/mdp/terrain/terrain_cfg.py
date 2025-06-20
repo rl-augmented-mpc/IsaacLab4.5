@@ -15,7 +15,7 @@ BaseTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="generator",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(60.0, 60.0), # size of sub-terrain
+        size=(10.0, 10.0), # size of sub-terrain
         border_width=0.0,
         num_rows=1,
         num_cols=1,
@@ -25,7 +25,6 @@ BaseTerrain = TerrainImporterCfg(
         use_cache=False,
         sub_terrains={
             "terrain1": terrain_gen.MeshPlaneTerrainCfg(proportion=0.2, height=0.0),
-            # "flat": terrain_gen.MeshPlaneTerrainCfg(proportion=0.2, height=-0.07), # ground level
         },
     ),
     collision_group=-1,
@@ -299,8 +298,8 @@ InferenceRandomBlockTerrain = TerrainImporterCfg(
         curriculum=True,
         sub_terrains={
             "terrain1": terrain_gen.MeshRepeatedBoxesTerrainCfg(
-                object_type="box", 
-                # object_type="perturbed_box_with_triangle",
+                # object_type="box", 
+                object_type="perturbed_box_with_triangle",
                 max_height_noise=0.00, 
                 platform_width=1.5,
                 proportion=0.2,
