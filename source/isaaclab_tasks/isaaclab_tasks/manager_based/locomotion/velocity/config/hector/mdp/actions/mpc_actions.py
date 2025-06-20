@@ -672,13 +672,15 @@ class MPCAction3(MPCAction):
             self.mpc_controller[i].update_sampling_time(sampling_time[i])
             self.mpc_controller[i].set_srbd_residual(
                 A_residual=A_residual[i], 
-                B_residual=B_residual[i])
+                B_residual=B_residual[i], 
+                )
             self.mpc_controller[i].set_swing_parameters(
                 stepping_frequency=1.0, 
                 foot_height=swing_foot_height[i], 
                 cp1=cp1[i], 
                 cp2=cp2[i], 
-                pf_z=self.foot_placement_height[i])
+                pf_z=self.foot_placement_height[i], 
+                )
             self.mpc_controller[i].set_command(
                 gait_num=2, #1:standing, 2:walking
                 roll_pitch=np.zeros(2, dtype=np.float32),

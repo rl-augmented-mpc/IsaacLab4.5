@@ -274,6 +274,8 @@ class RayCaster(SensorBase):
     def _debug_vis_callback(self, event):
         # remove possible inf values
         viz_points = self._data.ray_hits_w.reshape(-1, 3)
+        if self.cfg.visualize_noise:
+            viz_points[:, 2] += torch.empty_like(viz_points[:, 2]).normal_(mean=0.0, std=self.cfg.noise_std)
         viz_points = viz_points[~torch.any(torch.isinf(viz_points), dim=1)]
         # show ray hit positions
         self.ray_visualizer.visualize(viz_points)

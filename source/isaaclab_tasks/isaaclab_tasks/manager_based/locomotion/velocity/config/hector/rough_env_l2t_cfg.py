@@ -15,19 +15,26 @@ from .env_cfg import (
     HECTORCommandsCfg,
     HECTORCurriculumCfg,
     HECTOREventCfg,
-    SACHECTORObservationsCfg,
+    TeacherObsCfg,
+    StudentObsCfg,
     HECTORRewardsCfg,
     HECTORTerminationsCfg,
     HECTORSceneCfg,
 )
 
 @configclass
-class HECTORRoughEnvSACCfg(LocomotionVelocityRoughEnvCfg):
+class L2TObservationCfg:
+    """Base class for L2T observations."""
+    teacher: TeacherObsCfg = TeacherObsCfg()
+    student: StudentObsCfg = StudentObsCfg()
+
+@configclass
+class HECTORRoughEnvL2TCfg(LocomotionVelocityRoughEnvCfg):
     scene: HECTORSceneCfg = HECTORSceneCfg(num_envs=4096, env_spacing=2.5)
     rewards: HECTORRewardsCfg = HECTORRewardsCfg()
     actions: HECTORActionsCfg = HECTORActionsCfg()
     commands: HECTORCommandsCfg = HECTORCommandsCfg()
-    observations: SACHECTORObservationsCfg = SACHECTORObservationsCfg()
+    observations: L2TObservationCfg = L2TObservationCfg()
     terminations: HECTORTerminationsCfg = HECTORTerminationsCfg()
     events: HECTOREventCfg = HECTOREventCfg()
     curriculum: HECTORCurriculumCfg = HECTORCurriculumCfg()
@@ -51,7 +58,7 @@ class HECTORRoughEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         )
 
 @configclass
-class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
+class HECTORRoughEnvL2TCfgPLAY(HECTORRoughEnvL2TCfg):
     """Playground environment configuration for HECTOR."""
     
     def __post_init__(self):
@@ -62,7 +69,7 @@ class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
         self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
         
         self.scene.height_scanner.debug_vis = True
-        # self.curriculum.terrain_levels = None
+        # self.curriculum.terrain_levels = None # disable terrain curriculum
         
         # lower resolution of heightmap since we do not use these during inference
         self.scene.height_scanner_fine.pattern_cfg.resolution = 0.5
