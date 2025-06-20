@@ -52,12 +52,7 @@ class MPCAction(ActionTerm):
         self._action_lb[:] = torch.tensor(self.cfg.action_range[0], device=self.device)
         self._action_ub[:] = torch.tensor(self.cfg.action_range[1], device=self.device)
         
-        
         # create mpc object array
-        # ============================
-        # each stance/swing phase includes 10 mpc time steps
-        # this means iteration_between_mpc = phase_steps/(10*dt)
-        # mpc is updated at same rate as rl policy
         mpc_conf = MPC_Conf(
             control_dt=env.physics_dt, control_iteration_between_mpc=self.cfg.control_iteration_between_mpc, 
             horizon_length=self.cfg.horizon_length, mpc_decimation=int(env.step_dt//env.physics_dt))
@@ -159,6 +154,7 @@ class MPCAction(ActionTerm):
         self._get_reference_height(sensor_name="height_scanner")
         self._get_footplacement_height(sensor_name="height_scanner")
         
+        # send updated parameters to MPC
         for i in range(self.num_envs):
             self.mpc_controller[i].update_sampling_time(sampling_time[i])
             self.mpc_controller[i].set_swing_parameters(
@@ -173,7 +169,8 @@ class MPCAction(ActionTerm):
                 twist=self.twist[i],
                 height=self.reference_height[i],
             )
-        self.visualize_marker()
+            
+        self.update_visual_marker()
         
     def _get_reference_velocity(self):
         ramp_up_duration = 1.2 # seconds
@@ -311,7 +308,7 @@ class MPCAction(ActionTerm):
         ground_level_odometry_frame = self.robot_api._init_pos[:, 2] - self.robot_api.default_root_state[:, 2]
         self.foot_placement_height = np.clip((ground_height - ground_level_odometry_frame).cpu().numpy(), 0.0, 1.0)
     
-    def visualize_marker(self):
+    def update_visual_marker(self):
         # create storag tensors
         fp = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
         default_position = self.robot_api._init_pos[:, :3].clone()
@@ -538,10 +535,9 @@ class MPCAction2(MPCAction):
         """
         mpc control parameters:
         - centroidal acceleration (R^6)
-        - gait stepping frequency 
-        - swing foot height 
-        - swing trajectory control points
-        - foot placement in body frame (R^2)
+        - mpc sampling time (R^1)
+        - swing foot height (R^1)
+        - swing trajectory control points (R^1)
         """
         return 9
     
@@ -573,9 +569,10 @@ class MPCAction2(MPCAction):
         
         # update reference
         self._get_reference_velocity()
-        # self._get_reference_height("height_scanner")
-        # self._get_footplacement_height("height_scanner")
+        self._get_reference_height("height_scanner")
+        self._get_footplacement_height("height_scanner")
         
+        # send updated parameters to MPC
         for i in range(self.num_envs):
             self.mpc_controller[i].update_sampling_time(sampling_time[i])
             self.mpc_controller[i].set_srbd_residual(A_residual=A_residual[i], B_residual=B_residual[i])
@@ -591,7 +588,8 @@ class MPCAction2(MPCAction):
                 twist=self.twist[i],
                 height=self.reference_height[i],
             )
-        self.visualize_marker()
+            
+        self.update_visual_marker()
         
         
     def _get_reference_height(self, sensor_name: str = "height_scanner_fine"):
@@ -634,7 +632,7 @@ class MPCAction3(MPCAction):
         - mpc sampling time (R^1)
         - swing foot height (R^1)
         - swing trajectory control points (R^1)
-        - body velocity (R^2)
+        - body velocity ratio (R^2)
         """
         return 11
     
@@ -647,7 +645,7 @@ class MPCAction3(MPCAction):
         A_residual = np.zeros((self.num_envs, 13, 13), dtype=np.float32)
         B_residual = np.zeros((self.num_envs, 13, 12), dtype=np.float32)
         
-        # split processed actions into individual control parameters
+        # transform accel to global frame
         centroidal_lin_acc = self._processed_actions[:, :3]
         centroidal_ang_acc = self._processed_actions[:, 3:6]
         centroidal_lin_acc = torch.bmm(self.root_rot_mat, centroidal_lin_acc.unsqueeze(-1)).squeeze(-1)
@@ -669,9 +667,12 @@ class MPCAction3(MPCAction):
         self._get_reference_height("height_scanner")
         self._get_footplacement_height("height_scanner")
         
+        # send updated parameters to MPC
         for i in range(self.num_envs):
             self.mpc_controller[i].update_sampling_time(sampling_time[i])
-            self.mpc_controller[i].set_srbd_residual(A_residual=A_residual[i], B_residual=B_residual[i])
+            self.mpc_controller[i].set_srbd_residual(
+                A_residual=A_residual[i], 
+                B_residual=B_residual[i])
             self.mpc_controller[i].set_swing_parameters(
                 stepping_frequency=1.0, 
                 foot_height=swing_foot_height[i], 
@@ -684,13 +685,18 @@ class MPCAction3(MPCAction):
                 twist=self.twist[i],
                 height=self.reference_height[i],
             )
-        self.visualize_marker()
+            
+        self.update_visual_marker()
         
     def _get_reference_velocity(self):
+        """
+        Compute reference velocity as
+        \tilde{v} = v_0 * (1 + \delta{v})
+        -1.5 <= \delta{v} <= 0.5
+        """
         # get reference body velocity from policy
-        body_twist = self._processed_actions[:, 9:11] # vx and wz
-        self.command[:, 0] = body_twist[:, 0] # vx
-        self.command[:, 2] = body_twist[:, 1] # wz
+        self.command[:, 0] = self.original_command[:, 0] * (1 + self._processed_actions[:, 0])
+        self.command[:, 2] = self.original_command[:, 2] * (1 + self._processed_actions[:, 1])
         
         # update command
         self.twist[:, :] = self.command.cpu().numpy()

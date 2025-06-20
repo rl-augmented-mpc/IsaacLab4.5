@@ -35,24 +35,24 @@ class HECTORRewardsCfg(RewardsCfg):
                 "reference_height": 0.55,
                 },
     )
-    track_command_lin_vel_xy_exp = RewTerm(
-        func=hector_mdp.track_command_lin_vel_xy_exp,
-        weight=0.5,
-        params={
-            "command_name": "base_velocity", 
-            "action_name": "mpc_action", 
-            "std": 0.5, 
-            },
-    )
-    track_command_ang_vel_z_exp = RewTerm(
-        func=hector_mdp.track_command_ang_vel_z_exp, 
-        weight=0.5, 
-        params={
-            "command_name": "base_velocity", 
-            "action_name": "mpc_action", 
-            "std": 0.5, 
-            },
-    )
+    # track_command_lin_vel_xy_exp = RewTerm(
+    #     func=hector_mdp.track_command_lin_vel_xy_exp,
+    #     weight=0.5,
+    #     params={
+    #         "command_name": "base_velocity", 
+    #         "action_name": "mpc_action", 
+    #         "std": 0.5, 
+    #         },
+    # )
+    # track_command_ang_vel_z_exp = RewTerm(
+    #     func=hector_mdp.track_command_ang_vel_z_exp, 
+    #     weight=0.5, 
+    #     params={
+    #         "command_name": "base_velocity", 
+    #         "action_name": "mpc_action", 
+    #         "std": 0.5, 
+    #         },
+    # )
 
     # -- penalties
     termination = RewTerm(func=mdp.is_terminated, weight=-200.0) # type: ignore
@@ -94,7 +94,7 @@ class HECTORRewardsCfg(RewardsCfg):
     dof_pos_limits = None
     # joint_deviation = None
     
-    processed_action_l2_12 = RewTerm(
+    processed_action_l2_swing_height = RewTerm(
         func=hector_mdp.rough_terrain_processed_action_l2,
         weight=-0.5,
         params={
@@ -107,7 +107,7 @@ class HECTORRewardsCfg(RewardsCfg):
             "patch_width": 0.1,
         }
     )
-    processed_action_l2_0 = RewTerm(
+    processed_action_l2_sampling_time = RewTerm(
         func=hector_mdp.rough_terrain_processed_action_l2,
         weight=-2.0,
         params={
@@ -134,6 +134,15 @@ class HECTORRewardsCfg(RewardsCfg):
         weight=-0.5,
         params={
             "action_idx": [3, 4, 5],
+            "action_name": "mpc_action",
+        }
+    )
+    
+    processed_action_l2_ref_vel = RewTerm(
+        func=hector_mdp.individual_action_l2, # type: ignore
+        weight=-1.0,
+        params={
+            "action_idx": [-2, -1],
             "action_name": "mpc_action",
         }
     )

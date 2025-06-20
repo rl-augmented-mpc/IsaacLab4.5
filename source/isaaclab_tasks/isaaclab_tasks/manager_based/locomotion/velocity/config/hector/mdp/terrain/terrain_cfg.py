@@ -299,8 +299,8 @@ InferenceRandomBlockTerrain = TerrainImporterCfg(
         curriculum=True,
         sub_terrains={
             "terrain1": terrain_gen.MeshRepeatedBoxesTerrainCfg(
-                # object_type="box", 
-                object_type="perturbed_box_with_triangle",
+                object_type="box", 
+                # object_type="perturbed_box_with_triangle",
                 max_height_noise=0.00, 
                 platform_width=1.5,
                 proportion=0.2,

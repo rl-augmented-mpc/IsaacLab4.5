@@ -104,7 +104,8 @@ def main():
     while simulation_app.is_running():
         with torch.inference_mode():
             action = torch.zeros(env.action_space.shape,dtype=torch.float32, device=args_cli.device) # type: ignore
-            # action[:, -2] = -1.0
+            action[:, -2] = 3/4
+            action[:, -1] = 3/4
             action[:, -4] = -1.0
             obs, _, terminated, time_out, _ = env.step(action)
             dones = terminated | time_out
