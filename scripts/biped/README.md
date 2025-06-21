@@ -24,9 +24,9 @@ cd ~/IsaacLab
 ./isaaclab.sh -i
 ```
 
-### Build hector controller
+### Build Convex MPC Controller
 ```bash
-git clone https://github.gatech.edu/GeorgiaTechLIDARGroup/HECTOR_HW_new.git -b devel/slope_terrain
+git clone https://github.gatech.edu/GeorgiaTechLIDARGroup/HECTOR_HW_new.git -b feature/gait_update_v2
 ./isaaclab.sh -p -m pip install -e {/path/to/hector/controller}
 ```
 
@@ -49,26 +49,30 @@ git clone -b devel git@github.com:jnskkmhr/rsl_rl.git
 Only MPC
 
 ```bash
-./isaaclab.sh -p scripts/biped/run_direct_env.py --task SteppingStone --num_envs 1 --max_trials 10 --episode_length 20
+./isaaclab.sh -p scripts/biped/convex_mpc/play.py --task HECTOR-ManagerBased-RL-SAC-Block-PLAY --num_envs 1 --max_trials 10 --episode_length 20
 ```
 
 ### Train RL 
 
-#### (RSl-RL)
+<!-- #### (RSl-RL)
 ```bash
 ./isaaclab.sh -p scripts/biped/rsl_rl/train.py --task SteppingStone --num_envs 32 --video --headless
 ```
-After a while, you will see the logs under `logs` directory (for example `logs/rsl_rl/ppo_rsl_rl_lstm_friction/2025-03-17_15-31-27`). 
+After a while, you will see the logs under `logs` directory (for example `logs/rsl_rl/ppo_rsl_rl_lstm_friction/2025-03-17_15-31-27`).  -->
 
 #### (RL-Games)
 ```bash
-./isaaclab.sh -p scripts/biped/rl_games/train.py --task SteppingStone --num_envs 32 --video --headless
+./isaaclab.sh -p scripts/biped/rl_games/train.py --task HECTOR-ManagerBased-RL-SAC-Block --num_envs 32 --video --headless
 ```
 
 ### Inference
-```bash
-./isaaclab.sh -p scripts/biped/rsl_rl/benchmark.py --task SteppingStone  --num_envs 5 --use_rl
 
-# with logging
-./isaaclab.sh -p scripts/biped/rsl_rl/benchmark.py --task SteppingStone  --num_envs 5 --use_rl --log
+<!-- #### (RSl-RL)
+```bash
+./isaaclab.sh -p scripts/biped/rsl_rl/play.py --task SteppingStone --num_envs 1 --max_trials 100
+``` -->
+
+#### (RL-Games)
+```bash
+./isaaclab.sh -p scripts/biped/rl_games/play.py --task HECTOR-ManagerBased-RL-SAC-Block-PLAY --num_envs 1 --max_trials 100
 ```
