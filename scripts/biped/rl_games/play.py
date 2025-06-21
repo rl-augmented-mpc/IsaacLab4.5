@@ -18,6 +18,7 @@ parser.add_argument("--video_length", type=int, default=200, help="Length of the
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
+parser.add_argument("--video_speed", type=float, default=0.5, help="Speed of the recorded video.")
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--checkpoint", type=str, default=None, help="Path to model checkpoint.")
@@ -73,7 +74,7 @@ from isaaclab_rl.rl_games import RlGamesGpuEnv, RlGamesVecEnvWrapper
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import get_checkpoint_path, load_cfg_from_registry, parse_env_cfg
 
-from logger import BenchmarkLogger
+from logger import DictBenchmarkLogger
 
 # PLACEHOLDER: Extension template (do not remove this comment)
 
@@ -122,18 +123,20 @@ def main():
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
-    
     # slow down recording speed
-    env.metadata["render_fps"] = 100/2 # 0.5x speed
+    env.metadata["render_fps"] = int((1/env.unwrapped.step_dt) * args_cli.video_speed)  # type: ignore
 
     # convert to single-agent instance if required by the RL algorithm
     if isinstance(env.unwrapped, DirectMARLEnv):
         env = multi_agent_to_single_agent(env)
+        
+    # for logging
+    name = "play_rl" if args_cli.use_rl else "play_mpc"
 
     # wrap for video recording
     if args_cli.video:
         video_kwargs = {
-            "video_folder": os.path.join(log_root_path, log_dir, "videos", "play"), # type: ignore
+            "video_folder": os.path.join(log_root_path, log_dir, "videos", name), # type: ignore
             "step_trigger": lambda step: step == 0,
             "video_length": args_cli.video_length,
             "disable_logger": True,
@@ -144,10 +147,12 @@ def main():
     
     if args_cli.log:
         max_episode_length = int(env_cfg.episode_length_s/(env_cfg.decimation*env_cfg.sim.dt))
-        if args_cli.use_rl:
-            logger = BenchmarkLogger(log_dir, "rl", num_envs=args_cli.num_envs, max_trials=args_cli.max_trials, max_episode_length=max_episode_length)
-        else:
-            logger = BenchmarkLogger(log_dir, "mpc", num_envs=args_cli.num_envs, max_trials=args_cli.max_trials, max_episode_length=max_episode_length)
+        logger = DictBenchmarkLogger(
+            log_dir, name, 
+            num_envs=args_cli.num_envs, 
+            max_trials=args_cli.max_trials, 
+            max_episode_length=max_episode_length, 
+            log_item=["state", "obs", "raw_action", "action", "reward"])
         
     # wrap around environment for rl-games
     env = RlGamesVecEnvWrapper(env, rl_device, clip_obs, clip_actions)
@@ -183,6 +188,8 @@ def main():
     obs = env.reset()
     if isinstance(obs, dict):
         obs = obs["obs"]
+    # convert obs to agent format
+    obs = agent.obs_to_torch(obs)
     
     # required: enables the flag for batched observations
     _ = agent.get_batch_size(obs, 1)
@@ -193,14 +200,24 @@ def main():
     # simulate environment
     while simulation_app.is_running():
         with torch.inference_mode():
-            # convert obs to agent format
-            obs = agent.obs_to_torch(obs)
             if args_cli.use_rl:
-                actions = agent.get_action(obs, is_deterministic=agent.is_deterministic)
+                # print(obs[:, 43:43+18])
+                action = agent.get_action(obs, is_deterministic=agent.is_deterministic)
             else:
-                actions = torch.zeros(env.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
-            obs, _, dones, _ = env.step(actions)
+                action = torch.zeros(env.unwrapped.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
+                action[:, -2] = 3/4
+                action[:, -1] = 3/4
+                action[:, -4] = -1.0
+            obs, _, dones, _ = env.step(action)
             obs = agent.obs_to_torch(obs)
+            
+            processed_actions = env.unwrapped.action_manager.get_term("mpc_action").processed_actions # type: ignore
+            state = env.unwrapped.action_manager.get_term("mpc_action").state # type: ignore
+            
+            reward_items = ["termination"] # add reward term you want to log here
+            # reward_items = ["foot_landing"] # add reward term you want to log here
+            reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
+            foot_landing_penalty = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
             
             # perform operations for terminated episodes
             if len(dones) > 0:
@@ -210,12 +227,14 @@ def main():
                         s[:, dones, :] = 0.0
         
         if args_cli.log:
-            logger.log(state=env.unwrapped._state.cpu().numpy(), # type: ignore
-                    obs=obs.cpu().numpy(), # type: ignore
-                    raw_action=actions.cpu().numpy(),
-                    action=env.unwrapped._actions_op.cpu().numpy(), # type: ignore
-                    done=dones.cpu().numpy(), 
-                    )
+            item_dict = {
+                "state": state.cpu().numpy(),  # type: ignore
+                "obs": obs.cpu().numpy(), # type: ignore
+                "raw_action": action.cpu().numpy(),  # type: ignore
+                "action": processed_actions.cpu().numpy(),
+                "reward": foot_landing_penalty.cpu().numpy(),  # type: ignore
+            }
+            logger.log(item_dict)
         # Incremenet episode length 
         for i  in range(args_cli.num_envs):
             episode_length_log[i] += 1

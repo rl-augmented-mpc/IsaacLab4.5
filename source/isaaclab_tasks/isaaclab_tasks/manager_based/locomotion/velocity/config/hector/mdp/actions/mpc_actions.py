@@ -697,8 +697,8 @@ class MPCAction3(MPCAction):
         -1.5 <= \delta{v} <= 0.5
         """
         # get reference body velocity from policy
-        self.command[:, 0] = self.original_command[:, 0] * (1 + self._processed_actions[:, 0])
-        self.command[:, 2] = self.original_command[:, 2] * (1 + self._processed_actions[:, 1])
+        self.command[:, 0] = self.original_command[:, 0] * (1 + self._processed_actions[:, 9])
+        self.command[:, 2] = self.original_command[:, 2] * (1 + self._processed_actions[:, 10])
         
         # update command
         self.twist[:, :] = self.command.cpu().numpy()

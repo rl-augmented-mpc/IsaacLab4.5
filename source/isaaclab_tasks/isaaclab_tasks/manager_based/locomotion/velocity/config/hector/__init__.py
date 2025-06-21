@@ -23,6 +23,9 @@ BASE_CLASS = [
     
     "HECTOR-ManagerBased-RL-SAC-SLIP",
     "HECTOR-ManagerBased-RL-SAC-SLIP-PLAY",
+    
+    "HECTOR-ManagerBased-RL-L2T-Rough",
+    "HECTOR-ManagerBased-RL-L2T-Rough-PLAY",
 ]
 
 ARGS = [
@@ -73,7 +76,20 @@ ARGS = [
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_slip.yaml",
     },
+    
+    {
+        "env_cfg_entry_point": f"{__name__}.rough_env_l2t_cfg:HECTORRoughEnvL2TCfg",
+        "sb3_cfg_entry_point": f"{agents.__name__}:sb3_l2t_cfg.yaml",
+    },
+    {
+        "env_cfg_entry_point": f"{__name__}.rough_env_l2t_cfg:HECTORRoughEnvL2TCfgPLAY",
+        "sb3_cfg_entry_point": f"{agents.__name__}:sb3_l2t_cfg.yaml",
+    },
 ]
 
 for i in range(len(BASE_CLASS)):
-    gym.register(id=BASE_CLASS[i], entry_point="isaaclab.envs:ManagerBasedRLEnv", disable_env_checker=True, kwargs=ARGS[i])
+    gym.register(
+        id=BASE_CLASS[i], 
+        entry_point="isaaclab.envs:ManagerBasedRLEnv", 
+        disable_env_checker=True, 
+        kwargs=ARGS[i])
