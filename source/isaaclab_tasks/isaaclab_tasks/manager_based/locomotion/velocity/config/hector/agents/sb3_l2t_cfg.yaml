@@ -27,6 +27,5 @@ student_policy_kwargs: "dict(
   activation_fn=nn.ELU,
   net_arch=[512, 256, 128],
   lstm_hidden_size=128,
-  squash_output=True,
-  use_sde=True,
   )"
+# do not use SDE for student policy due to backward error
