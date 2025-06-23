@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import math
+
 from isaaclab.utils import configclass
 from isaaclab.envs.common import ViewerCfg
 
@@ -49,6 +51,20 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
             origin_type="asset_root", 
             asset_name="robot"
         )
+        
+        # command
+        self.commands.base_velocity.ranges.lin_vel_x = (0.3, 0.7)
+        self.commands.base_velocity.ranges.ang_vel_z = (-(20.0/180)*math.pi, (20.0/180)*math.pi)
+        
+        # event 
+        self.events.reset_base.params["pose_range"] = {
+            "x": (-2.0, 2.0), 
+            "y": (-2.0, 2.0), 
+            "z": (0.0, 0.0),
+            "roll": (0.0, 0.0),
+            "pitch": (0.0, 0.0),
+            "yaw": (-math.pi, math.pi),
+        }
 
 @configclass
 class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):

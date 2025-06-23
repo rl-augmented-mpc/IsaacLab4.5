@@ -201,13 +201,12 @@ def main():
     while simulation_app.is_running():
         with torch.inference_mode():
             if args_cli.use_rl:
-                # print(obs[:, 43:43+18])
                 action = agent.get_action(obs, is_deterministic=agent.is_deterministic)
             else:
                 action = torch.zeros(env.unwrapped.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
-                action[:, -2] = 3/4
-                action[:, -1] = 3/4
-                action[:, -4] = -1.0
+                action[:, 1] = -1.0
+                action[:, 3] = 3/4
+                action[:, 4] = 3/4
             obs, _, dones, _ = env.step(action)
             obs = agent.obs_to_torch(obs)
             

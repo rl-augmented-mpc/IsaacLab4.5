@@ -25,7 +25,7 @@ class MPCActionCfg(ActionTermCfg):
     """Name of the command to be used for the action term."""
     nominal_height: float = 0.55
     """Reference height of the robot."""
-    nominal_swing_height : float = 0.1
+    nominal_swing_height : float = 0.12
     """Nominal swing height of the robot."""
     nominal_stepping_frequency: float = 1.0
     """Nominal stepping frequency of the robot."""
@@ -61,6 +61,10 @@ class MPCActionCfgV2(MPCActionCfg):
 @configclass
 class MPCActionCfgV3(MPCActionCfg):
     class_type: type[ActionTerm] = mpc_actions.MPCAction3
+    
+@configclass
+class MPCActionCfgV4(MPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.MPCAction4
     
     
 @configclass

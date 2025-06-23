@@ -2,6 +2,7 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
+import math
 
 from isaaclab.utils import configclass
 from isaaclab.envs.common import ViewerCfg
@@ -43,12 +44,64 @@ class HECTORRoughEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.sim.render_interval = 10
         
         self.viewer = ViewerCfg(
-            eye=(-2.5, 0.0, 0.2), 
-            lookat=(-1.0, 0.0, 0.0),
+            # eye=(-2.5, 0.0, 0.2), 
+            # lookat=(-1.0, 0.0, 0.0),
+            eye=(0.0, -2.2, 0.0), 
+            lookat=(0.0, -1.0, 0.0),
             resolution=(1920, 1080), 
             origin_type="asset_root", 
             asset_name="robot"
         )
+        
+        # command 
+        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
+        
+@configclass
+class HECTORandomBlockEnvSACCfg(LocomotionVelocityRoughEnvCfg):
+    scene: HECTORSceneCfg = HECTORSceneCfg(num_envs=4096, env_spacing=2.5)
+    rewards: HECTORRewardsCfg = HECTORRewardsCfg()
+    actions: HECTORActionsCfg = HECTORActionsCfg()
+    commands: HECTORCommandsCfg = HECTORCommandsCfg()
+    observations: SACHECTORObservationsCfg = SACHECTORObservationsCfg()
+    terminations: HECTORTerminationsCfg = HECTORTerminationsCfg()
+    events: HECTOREventCfg = HECTOREventCfg()
+    curriculum: HECTORCurriculumCfg = HECTORCurriculumCfg()
+    seed = 42
+
+    def __post_init__(self):
+        # post init of parent
+        super().__post_init__()
+        
+        # sim time
+        self.sim.dt = 1/500
+        self.decimation = 5
+        self.sim.render_interval = 10
+        
+        self.viewer = ViewerCfg(
+            # eye=(-2.5, 0.0, 0.2), 
+            # lookat=(-1.0, 0.0, 0.0),
+            eye=(0.0, -2.2, 0.4), 
+            lookat=(0.0, -1.0, 0.2),
+            resolution=(1920, 1080), 
+            origin_type="asset_root", 
+            asset_name="robot"
+        )
+        
+        self.scene.terrain = hector_mdp.CurriculumRandomBlockTerrain
+        
+        # command
+        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
+        self.commands.base_velocity.ranges.ang_vel_z = (-(20.0/180)*math.pi, (20.0/180)*math.pi)
+        
+        # event 
+        self.events.reset_base.params["pose_range"] = {
+            "x": (-0.3, 0.3), 
+            "y": (-0.3, 0.3), 
+            "z": (0.0, 0.0),
+            "roll": (0.0, 0.0),
+            "pitch": (0.0, 0.0),
+            "yaw": (-math.pi, math.pi),
+        }
 
 @configclass
 class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
@@ -58,16 +111,35 @@ class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
         # post init of parent
         super().__post_init__()
         self.seed = 42
-        # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
-        self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
+        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         
         self.scene.height_scanner.debug_vis = True
-        # self.curriculum.terrain_levels = None
+        self.curriculum.terrain_levels = None
         
         # lower resolution of heightmap since we do not use these during inference
         self.scene.height_scanner_fine.pattern_cfg.resolution = 0.5
         self.scene.height_scanner_L_foot.pattern_cfg.resolution = 0.5
         self.scene.height_scanner_R_foot.pattern_cfg.resolution = 0.5
         
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)
-        # self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
+        
+@configclass
+class HECTORRandomBlockEnvSACCfgPLAY(HECTORandomBlockEnvSACCfg):
+    """Playground environment configuration for HECTOR."""
+    
+    def __post_init__(self):
+        # post init of parent
+        super().__post_init__()
+        self.seed = 42
+        self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
+        
+        self.scene.height_scanner.debug_vis = True
+        self.curriculum.terrain_levels = None
+        
+        # lower resolution of heightmap since we do not use these during inference
+        self.scene.height_scanner_fine.pattern_cfg.resolution = 0.5
+        self.scene.height_scanner_L_foot.pattern_cfg.resolution = 0.5
+        self.scene.height_scanner_R_foot.pattern_cfg.resolution = 0.5
+        
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
+        # self.commands.base_velocity.ranges.ang_vel_z = (-(20.0/180)*math.pi, (20.0/180)*math.pi)
