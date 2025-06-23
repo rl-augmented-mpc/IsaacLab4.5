@@ -613,9 +613,85 @@ class MPCAction2(MPCAction):
         
         ground_level_odometry_frame = height_map.reshape(-1, height, width)[:, height//2, width//2] # center of the height map
         self.foot_placement_height = np.clip((ground_level_odometry_frame).cpu().numpy(), 0.0, None)
-        
-        
+
+
 class MPCAction3(MPCAction):
+    """
+    This is a subclass of MPCAction that uses the new action space.
+    """
+    
+    """
+    Properties.
+    """
+
+    @property
+    def action_dim(self) -> int:
+        """
+        mpc control parameters:
+        - mpc sampling time (R^1)
+        - swing foot height (R^1)
+        - swing trajectory control points (R^1)
+        - body velocity ratio (R^2)
+        """
+        return 5
+    
+    def process_actions(self, actions: torch.Tensor):
+        # store the raw actions
+        self._raw_actions[:] = actions
+        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
+        
+        # split processed actions into individual control parameters
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, -3].cpu().numpy())
+        swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
+        trajectory_control_points = self._processed_actions[:, 2].cpu().numpy()
+        
+        # form actual control parameters (nominal value + residual)
+        swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
+        cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
+        cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
+        
+        # update reference
+        self._get_reference_velocity()
+        self._get_reference_height(sensor_name="height_scanner")
+        self._get_footplacement_height(sensor_name="height_scanner")
+        
+        # send updated parameters to MPC
+        for i in range(self.num_envs):
+            self.mpc_controller[i].update_sampling_time(sampling_time[i])
+            self.mpc_controller[i].set_swing_parameters(
+                stepping_frequency=1.0, 
+                foot_height=swing_foot_height[i], 
+                cp1=cp1[i], 
+                cp2=cp2[i], 
+                pf_z=self.foot_placement_height[i], 
+                )
+            self.mpc_controller[i].set_command(
+                gait_num=2, #1:standing, 2:walking
+                roll_pitch=np.zeros(2, dtype=np.float32),
+                twist=self.twist[i],
+                height=self.reference_height[i],
+            )
+            
+        self.update_visual_marker()
+        
+    def _get_reference_velocity(self):
+        """
+        Compute reference velocity as
+        \tilde{v} = v_0 * (1 + \delta{v})
+        -1.5 <= \delta{v} <= 0.5
+        """
+        # get reference body velocity from policy
+        vx = self._processed_actions[:, 3]
+        wz = self._processed_actions[:, 4]
+        self.command[:, 0] = self.original_command[:, 0] * (1 + vx)
+        self.command[:, 2] = self.original_command[:, 2] * (1 + wz)
+        
+        # update command
+        self.twist[:, :] = self.command.cpu().numpy()
+        # update command manager
+        self._env.command_manager._terms[self.cfg.command_name].vel_command_b = self.command
+        
+class MPCAction4(MPCAction):
     """
     This is a subclass of MPCAction that uses the new action space.
     """

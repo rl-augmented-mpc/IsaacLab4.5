@@ -117,7 +117,7 @@ class SACHECTORObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
 
-        # observation terms (order preserved)
+        # observation terms (order preserved !!!!)
         base_pos_z = ObsTerm(
             func=hector_mdp.base_pos_z, # type: ignore
             params={
@@ -126,10 +126,6 @@ class SACHECTORObservationsCfg:
                 },
             # noise=Unoise(n_min=-0.1, n_max=0.1)
             )
-        projected_gravity = ObsTerm(
-            func=mdp.projected_gravity, # type: ignore
-            # noise=Unoise(n_min=-0.05, n_max=0.05),
-        )
         base_lin_vel = ObsTerm(
             func=mdp.base_lin_vel, # type: ignore
             # noise=Unoise(n_min=-0.1, n_max=0.1)
@@ -138,8 +134,13 @@ class SACHECTORObservationsCfg:
             func=mdp.base_ang_vel, # type: ignore
             # noise=Unoise(n_min=-0.2, n_max=0.2)
             )
-        user_velocity_commands = ObsTerm(func=hector_mdp.reference_command, params={"action_name": "mpc_action"}) # type: ignore
-        policy_velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
+        projected_gravity = ObsTerm(
+            func=mdp.projected_gravity, # type: ignore
+            # noise=Unoise(n_min=-0.05, n_max=0.05),
+        )
+        
+        # user_velocity_commands = ObsTerm(func=hector_mdp.reference_command, params={"action_name": "mpc_action"}) # type: ignore
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
         
         joint_pos = ObsTerm(
             func=hector_mdp.joint_pos, 
@@ -186,16 +187,6 @@ class SACHECTORObservationsCfg:
             clip=(-1.0, 1.0),
         )
         
-        height_scan_noisy = ObsTerm(
-            func=mdp.height_scan, # type: ignore
-            params={
-                "sensor_cfg": SceneEntityCfg("height_scanner"),
-                "offset": 0.56,
-                },
-            noise=Unoise(n_min=-0.1, n_max=0.1),
-            clip=(-1.0, 1.0),
-        )
-        
         # depth_image = ObsTerm(
         #     func=hector_mdp.depth_image, # type: ignore
         #     params={
@@ -229,10 +220,6 @@ class SACHECTORSlipObservationsCfg:
                 },
             # noise=Unoise(n_min=-0.1, n_max=0.1)
             )
-        projected_gravity = ObsTerm(
-            func=mdp.projected_gravity, # type: ignore
-            # noise=Unoise(n_min=-0.05, n_max=0.05),
-        )
         
         base_lin_vel = ObsTerm(
             func=mdp.base_lin_vel, # type: ignore
@@ -242,6 +229,11 @@ class SACHECTORSlipObservationsCfg:
             func=mdp.base_ang_vel, # type: ignore
             # noise=Unoise(n_min=-0.2, n_max=0.2)
             )
+        projected_gravity = ObsTerm(
+            func=mdp.projected_gravity, # type: ignore
+            # noise=Unoise(n_min=-0.05, n_max=0.05),
+        )
+        
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
         
         joint_pos = ObsTerm(

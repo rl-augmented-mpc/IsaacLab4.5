@@ -29,6 +29,7 @@ BASE_CLASS = [
 ]
 
 ARGS = [
+    # PPO env
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_cfg:HECTORRoughEnvCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
@@ -44,39 +45,37 @@ ARGS = [
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cnn_encoder.yaml",
     },
     
+    # SAC stepping stone env
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvSACCfg",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
     },
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvSACCfgPLAY",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
     },
     
+    # SAC random block env
     {
-        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvSACCfg",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
+        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORandomBlockEnvSACCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_random_block.yaml",
     },
     {
-        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvSACCfgPLAY",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
+        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRandomBlockEnvSACCfgPLAY",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_random_block.yaml",
     },
     
+    # SAC slip env
     {
         "env_cfg_entry_point": f"{__name__}.slip_env_sac_cfg:HECTORSlipEnvSACCfg",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_slip.yaml",
     },
     {
         "env_cfg_entry_point": f"{__name__}.slip_env_sac_cfg:HECTORSlipEnvSACCfgPLAY",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_cfg:HectorPPOMLPRunnerCfg", 
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_slip.yaml",
     },
     
+    # L2T rough env
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_l2t_cfg:HECTORRoughEnvL2TCfg",
         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_l2t_cfg.yaml",

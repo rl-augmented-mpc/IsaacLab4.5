@@ -17,7 +17,7 @@ class HECTORCommandsCfg:
     base_velocity = mdp.UniformVelocityCommandCfg( # type: ignore
         # class_type=hector_mdp.TerrainAwareUniformVelocityCommand,
         asset_name="robot",
-        resampling_time_range=(10.0, 10.0),
+        resampling_time_range=(20.0, 20.0),
         rel_standing_envs=0.0,
         rel_heading_envs=1.0,
         heading_command=False,
@@ -26,8 +26,7 @@ class HECTORCommandsCfg:
         ranges=mdp.UniformVelocityCommandCfg.Ranges( # type: ignore
             lin_vel_x=(0.3, 0.6), 
             lin_vel_y=(0.0, 0.0), 
-            # ang_vel_z=(-0.0, 0.0), 
-            ang_vel_z=(-(20.0/180)*math.pi, (20.0/180)*math.pi), 
-            heading=(-math.pi, math.pi)
+            ang_vel_z=(0.0, 0.0),
+            heading=(0.0, 0.0)
         ),
     )
