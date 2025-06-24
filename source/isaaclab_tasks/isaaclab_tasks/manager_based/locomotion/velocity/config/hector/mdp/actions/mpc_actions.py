@@ -378,7 +378,7 @@ class MPCAction(ActionTerm):
             position_traj_world[:, i, :] = (world_to_odom_rot @ position_traj_world[:, i, :].unsqueeze(-1)).squeeze(-1) + default_position
         
         # send quantities to visualizer
-        orientation = self.robot_api.root_quat_w.repeat(2, 1)
+        orientation = self.robot_api.root_quat_w[:, None, :].repeat(1, 2, 1).view(-1, 4)
         self.foot_placement_visualizer.visualize(fp, orientation)
         # self.slacked_foot_placement_visualizer.visualize(fp, orientation)
         # self.position_trajectory_visualizer.visualize(position_traj_world)

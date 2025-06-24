@@ -99,6 +99,7 @@ def main():
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg)
+    env.metadata["render_fps"] = 50
     # wrap around environment for stable baselines
     env = Sb3VecEnvWrapper(env)  # type: ignore
 

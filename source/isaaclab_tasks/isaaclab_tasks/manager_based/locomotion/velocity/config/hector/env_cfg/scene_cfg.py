@@ -57,24 +57,24 @@ class HECTORSceneCfg(InteractiveSceneCfg):
         },
     )
     
-    height_scanner_fine = RayCasterCfg(
-        prim_path="{ENV_REGEX_NS}/Robot/base",
-        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.0)),
-        attach_yaw_only=True,
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=[1.0, 1.0]),
-        debug_vis=False,
-        mesh_prim_paths=["/World/ground"],
-        update_period=1/10,
-    )
-    height_scanner_fine.visualizer_cfg = VisualizationMarkersCfg(
-        prim_path="/Visuals/RayCasterFine",
-        markers={
-            "hit": sim_utils.SphereCfg(
-                radius=0.01,
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
-            ),
-        },
-    )
+    # height_scanner_fine = RayCasterCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/base",
+    #     offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 0.0)),
+    #     attach_yaw_only=True,
+    #     pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=[1.0, 1.0]),
+    #     debug_vis=False,
+    #     mesh_prim_paths=["/World/ground"],
+    #     update_period=1/10,
+    # )
+    # height_scanner_fine.visualizer_cfg = VisualizationMarkersCfg(
+    #     prim_path="/Visuals/RayCasterFine",
+    #     markers={
+    #         "hit": sim_utils.SphereCfg(
+    #             radius=0.01,
+    #             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
+    #         ),
+    #     },
+    # )
     
     
     height_scanner_L_foot = RayCasterCfg(
@@ -82,7 +82,7 @@ class HECTORSceneCfg(InteractiveSceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.04, 0.0, 0.0)),
         # offset=RayCasterCfg.OffsetCfg(pos=(0.02, 0.0, 0.0)),
         attach_yaw_only=True,
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14+0.04, 0.07]),
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14+0.04, 0.08]),
         # pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14, 0.07]),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
@@ -103,7 +103,7 @@ class HECTORSceneCfg(InteractiveSceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.04, 0.0, 0.0)),
         # offset=RayCasterCfg.OffsetCfg(pos=(0.02, 0.0, 0.0)),
         attach_yaw_only=True,
-        pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14+0.04, 0.07]),
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14+0.04, 0.08]),
         # pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14, 0.07]),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],

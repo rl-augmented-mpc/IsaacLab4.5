@@ -27,7 +27,7 @@ parser.add_argument(
 parser.add_argument(
     "--video_length",
     type=int,
-    default=200,
+    default=500,
     help="Length of the recorded video (in steps).",
 )
 parser.add_argument(
@@ -177,6 +177,7 @@ def main(
     env = gym.make(
         args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None
     )
+    env.metadata["render_fps"] = 50
     # wrap for video recording
     if args_cli.video:
         video_kwargs = {
@@ -241,7 +242,7 @@ def main(
 
     # callbacks for agent
     checkpoint_callback = CheckpointCallback(
-        save_freq=1000, save_path=log_dir, name_prefix="model", verbose=0
+        save_freq=10000, save_path=log_dir, name_prefix="model", verbose=0
     )
 
     # chain the callbacks

@@ -28,7 +28,7 @@ from .observation.observations import (
 )
 from .reward.rewards import (
     track_command_lin_vel_xy_exp, track_command_ang_vel_z_exp, 
-    leg_body_angle_l2, leg_distance_l2, 
+    leg_body_angle_l2, leg_distance_l2, lin_vel_y_l2, 
     negative_lin_vel_l2, track_torso_height_exp,
     individual_action_l2, mpc_cost_l1, processed_action_l2, 
     stance_foot_position_reward, foot_placement_reward, feet_accel_l2, active_action_reward,
