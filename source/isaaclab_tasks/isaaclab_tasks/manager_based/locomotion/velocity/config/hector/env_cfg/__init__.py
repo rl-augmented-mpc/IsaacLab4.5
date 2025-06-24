@@ -1,4 +1,8 @@
-from .action_cfg import HECTORActionsCfg, HECTORSlipActionsCfg
+from .action_cfg import (
+    HECTORActionsCfg, 
+    HECTORSlipActionsCfg, 
+    HECTORL2TActionsCfg,
+)
 from .command_cfg import HECTORCommandsCfg
 from .curriculum_cfg import HECTORCurriculumCfg, HECTORSlipCurriculumCfg
 from .event_cfg import HECTOREventCfg, HECTORSlipEventCfg

@@ -1314,7 +1314,7 @@ def poisson_disk_sampling_terrain(
     platform_corners[1, :] *= 1 + platform_clearance
     
     # create Poisson disk sampler
-    engine = qmc.PoissonDisk(d=2, radius=3*poisson_radius, seed=42)
+    engine = qmc.PoissonDisk(d=2, radius=2.0*poisson_radius, seed=42)
     
     # sample valid center for objects
     object_centers = np.zeros((num_objects, 3))

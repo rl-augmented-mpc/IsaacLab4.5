@@ -35,35 +35,16 @@ class HECTORRewardsCfg(RewardsCfg):
                 "reference_height": 0.55,
                 },
     )
-    
-    # track_command_lin_vel_xy_exp = RewTerm(
-    #     func=hector_mdp.track_command_lin_vel_xy_exp,
-    #     weight=0.5,
-    #     params={
-    #         "command_name": "base_velocity", 
-    #         "action_name": "mpc_action", 
-    #         "std": 0.5, 
-    #         },
-    # )
-    # track_command_ang_vel_z_exp = RewTerm(
-    #     func=hector_mdp.track_command_ang_vel_z_exp, 
-    #     weight=0.5, 
-    #     params={
-    #         "command_name": "base_velocity", 
-    #         "action_name": "mpc_action", 
-    #         "std": 0.5, 
-    #         },
-    # )
 
     # -- penalties
     termination = RewTerm(func=mdp.is_terminated, weight=-200.0) # type: ignore
+    lin_vel_y_l2 = RewTerm(func=hector_mdp.lin_vel_y_l2, weight=-0.5) # type: ignore
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01) # type: ignore
     lin_accel_l2 = RewTerm(func=mdp.body_lin_acc_l2, weight=-5e-4, params={"asset_cfg": SceneEntityCfg("robot", body_names="base")}) # type: ignore
     action_rate_l2 = RewTerm(
         func=mdp.action_rate_l2, # type: ignore
-        weight=-0.05, 
-        # weight=-0.01, 
+        weight=-0.15, 
         ) 
     
     # -- joint penalties
@@ -104,10 +85,10 @@ class HECTORRewardsCfg(RewardsCfg):
             "action_idx": [1],
             # "action_idx": [7],
             "action_name": "mpc_action",
-            "sensor_cfg": SceneEntityCfg("height_scanner_fine"),
+            "sensor_cfg": SceneEntityCfg("height_scanner"),
             "lookahead_distance": 0.2,
             "lookback_distance": 0.0, 
-            "patch_width": 0.1,
+            "patch_width": 0.15,
         }
     )
     processed_action_l2_sampling_time = RewTerm(
@@ -117,10 +98,34 @@ class HECTORRewardsCfg(RewardsCfg):
             "action_idx": [0, 2],
             # "action_idx": [6, 8],
             "action_name": "mpc_action",
-            "sensor_cfg": SceneEntityCfg("height_scanner_fine"),
+            "sensor_cfg": SceneEntityCfg("height_scanner"),
             "lookahead_distance": 0.2,
             "lookback_distance": 0.0, 
-            "patch_width": 0.1,
+            "patch_width": 0.15,
+        }
+    )
+    
+    # processed_action_l2_ref_vel = RewTerm(
+    #     func=hector_mdp.individual_action_l2, # type: ignore
+    #     weight=-3.0,
+    #     params={
+    #         "action_idx": [3, 4],
+    #         # "action_idx": [9, 10],
+    #         "action_name": "mpc_action",
+    #     }
+    # )
+    
+    processed_action_l2_ref_vel = RewTerm(
+        func=hector_mdp.rough_terrain_processed_action_l2,
+        weight=-3.0,
+        params={
+            "action_idx": [3, 4],
+            # "action_idx": [9, 10],
+            "action_name": "mpc_action",
+            "sensor_cfg": SceneEntityCfg("height_scanner"),
+            "lookahead_distance": 0.2,
+            "lookback_distance": 0.0, 
+            "patch_width": 0.15,
         }
     )
     
@@ -140,16 +145,6 @@ class HECTORRewardsCfg(RewardsCfg):
     #         "action_name": "mpc_action",
     #     }
     # )
-    
-    processed_action_l2_ref_vel = RewTerm(
-        func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-3.0,
-        params={
-            "action_idx": [3, 4],
-            # "action_idx": [9, 10],
-            "action_name": "mpc_action",
-        }
-    )
     
     # body-leg angle penalties
     leg_body_angle_l2 = RewTerm(
@@ -189,7 +184,6 @@ class HECTORRewardsCfg(RewardsCfg):
     # -- use height scanner atatached to foot
     foot_landing_penalty_left = RewTerm(
         func=hector_mdp.swing_foot_landing_penalty,
-        # weight=-1.5,
         weight=-2.5,
         params={
             "sensor_cfg": SceneEntityCfg("height_scanner_L_foot"),
@@ -200,7 +194,6 @@ class HECTORRewardsCfg(RewardsCfg):
     
     foot_landing_penalty_right = RewTerm(
         func=hector_mdp.swing_foot_landing_penalty,
-        # weight=-1.5,
         weight=-2.5,
         params={
             "sensor_cfg": SceneEntityCfg("height_scanner_R_foot"),

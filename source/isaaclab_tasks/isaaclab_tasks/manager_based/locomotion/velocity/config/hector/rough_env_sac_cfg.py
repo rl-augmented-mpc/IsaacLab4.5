@@ -117,7 +117,6 @@ class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
         self.curriculum.terrain_levels = None
         
         # lower resolution of heightmap since we do not use these during inference
-        self.scene.height_scanner_fine.pattern_cfg.resolution = 0.5
         self.scene.height_scanner_L_foot.pattern_cfg.resolution = 0.5
         self.scene.height_scanner_R_foot.pattern_cfg.resolution = 0.5
         
@@ -137,9 +136,18 @@ class HECTORRandomBlockEnvSACCfgPLAY(HECTORandomBlockEnvSACCfg):
         self.curriculum.terrain_levels = None
         
         # lower resolution of heightmap since we do not use these during inference
-        self.scene.height_scanner_fine.pattern_cfg.resolution = 0.5
-        self.scene.height_scanner_L_foot.pattern_cfg.resolution = 0.5
-        self.scene.height_scanner_R_foot.pattern_cfg.resolution = 0.5
+        # self.scene.height_scanner_L_foot.pattern_cfg.resolution = 0.5
+        # self.scene.height_scanner_R_foot.pattern_cfg.resolution = 0.5
         
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
-        # self.commands.base_velocity.ranges.ang_vel_z = (-(20.0/180)*math.pi, (20.0/180)*math.pi)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
+        # self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
+        
+        # event 
+        self.events.reset_base.params["pose_range"] = {
+            "x": (-0.3, 0.3), 
+            "y": (-0.3, 0.3), 
+            "z": (0.0, 0.0),
+            "roll": (0.0, 0.0),
+            "pitch": (0.0, 0.0),
+            "yaw": (-math.pi, math.pi),
+        }

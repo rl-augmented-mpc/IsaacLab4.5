@@ -139,7 +139,7 @@ class SACHECTORObservationsCfg:
             # noise=Unoise(n_min=-0.05, n_max=0.05),
         )
         
-        # user_velocity_commands = ObsTerm(func=hector_mdp.reference_command, params={"action_name": "mpc_action"}) # type: ignore
+        user_velocity_commands = ObsTerm(func=hector_mdp.reference_command, params={"action_name": "mpc_action"}) # type: ignore
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
         
         joint_pos = ObsTerm(
@@ -305,8 +305,8 @@ class TeacherObsCfg(ObsGroup):
     base_ang_vel = ObsTerm(
         func=mdp.base_ang_vel, # type: ignore
         )
-    user_velocity_commands = ObsTerm(func=hector_mdp.reference_command, params={"action_name": "mpc_action"}) # type: ignore
-    policy_velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
+    # user_velocity_commands = ObsTerm(func=hector_mdp.reference_command, params={"action_name": "mpc_action"}) # type: ignore
+    velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
     
     joint_pos = ObsTerm(
         func=hector_mdp.joint_pos, 
@@ -379,8 +379,8 @@ class StudentObsCfg(ObsGroup):
         noise=Gnoise(mean=0.0, std=0.15),
         )
     
-    user_velocity_commands = ObsTerm(func=hector_mdp.reference_command, params={"action_name": "mpc_action"}) # type: ignore
-    policy_velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
+    # user_velocity_commands = ObsTerm(func=hector_mdp.reference_command, params={"action_name": "mpc_action"}) # type: ignore
+    velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
     
     joint_pos = ObsTerm(
         func=hector_mdp.joint_pos, 

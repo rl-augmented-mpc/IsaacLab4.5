@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import math
+
 from isaaclab.utils import configclass
 from isaaclab.envs.common import ViewerCfg
 
@@ -11,7 +13,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 import isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp as hector_mdp
 
 from .env_cfg import (
-    HECTORActionsCfg, 
+    HECTORL2TActionsCfg, 
     HECTORCommandsCfg,
     HECTORCurriculumCfg,
     HECTOREventCfg,
@@ -32,7 +34,7 @@ class L2TObservationCfg:
 class HECTORRoughEnvL2TCfg(LocomotionVelocityRoughEnvCfg):
     scene: HECTORSceneCfg = HECTORSceneCfg(num_envs=4096, env_spacing=2.5)
     rewards: HECTORRewardsCfg = HECTORRewardsCfg()
-    actions: HECTORActionsCfg = HECTORActionsCfg()
+    actions: HECTORL2TActionsCfg = HECTORL2TActionsCfg()
     commands: HECTORCommandsCfg = HECTORCommandsCfg()
     observations: L2TObservationCfg = L2TObservationCfg()
     terminations: HECTORTerminationsCfg = HECTORTerminationsCfg()
@@ -50,12 +52,30 @@ class HECTORRoughEnvL2TCfg(LocomotionVelocityRoughEnvCfg):
         self.sim.render_interval = 10
         
         self.viewer = ViewerCfg(
-            eye=(-2.5, 0.0, 0.2), 
-            lookat=(-1.0, 0.0, 0.0),
+            # eye=(-2.5, 0.0, 0.2), 
+            # lookat=(-1.0, 0.0, 0.0),
+            eye=(0.0, -2.2, 0.4), 
+            lookat=(0.0, -1.0, 0.2),
             resolution=(1920, 1080), 
             origin_type="asset_root", 
             asset_name="robot"
         )
+        
+        self.scene.terrain = hector_mdp.CurriculumRandomBlockTerrain
+        
+        # command
+        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
+        self.commands.base_velocity.ranges.ang_vel_z = (-(20.0/180)*math.pi, (20.0/180)*math.pi)
+        
+        # event 
+        self.events.reset_base.params["pose_range"] = {
+            "x": (-0.3, 0.3), 
+            "y": (-0.3, 0.3), 
+            "z": (0.0, 0.0),
+            "roll": (0.0, 0.0),
+            "pitch": (0.0, 0.0),
+            "yaw": (-math.pi, math.pi),
+        }
 
 @configclass
 class HECTORRoughEnvL2TCfgPLAY(HECTORRoughEnvL2TCfg):
@@ -65,7 +85,6 @@ class HECTORRoughEnvL2TCfgPLAY(HECTORRoughEnvL2TCfg):
         # post init of parent
         super().__post_init__()
         self.seed = 42
-        # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
         
         self.scene.height_scanner.debug_vis = True
