@@ -15,7 +15,7 @@ class RobotCore:
         
     # state reset
     def reset_default_pose(self, default_pose:torch.Tensor, env_id:torch.Tensor)->None:
-        self._init_pos[env_id] = default_pose[env_id, :3].clone() - self.default_root_state[:, :3]
+        self._init_pos[env_id] = default_pose[env_id, :3].clone() - self.default_root_state[env_id, :3]
         self._init_rot[env_id] = matrix_from_quat(default_pose[:, 3:7].clone())
         
     def set_external_force(self, forces:torch.Tensor, body_id:torch.Tensor, env_id:torch.Tensor)->None:
