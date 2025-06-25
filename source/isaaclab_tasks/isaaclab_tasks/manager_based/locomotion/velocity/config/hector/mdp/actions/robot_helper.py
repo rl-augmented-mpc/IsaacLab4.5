@@ -15,8 +15,8 @@ class RobotCore:
         
     # state reset
     def reset_default_pose(self, default_pose:torch.Tensor, env_id:torch.Tensor)->None:
-        self._init_pos[env_id] = default_pose[:, :3]
-        self._init_rot[env_id] = matrix_from_quat(default_pose[:, 3:7])
+        self._init_pos[env_id] = default_pose[env_id, :3].clone() - self.default_root_state[:, :3]
+        self._init_rot[env_id] = matrix_from_quat(default_pose[:, 3:7].clone())
         
     def set_external_force(self, forces:torch.Tensor, body_id:torch.Tensor, env_id:torch.Tensor)->None:
         self.articulation.set_external_force_and_torque(forces, torch.zeros_like(forces), body_id, env_id) # type: ignore
@@ -83,7 +83,7 @@ class RobotCore:
         """
         root_pos_w = self.root_pos_w.clone()
         root_pos_w[:, :] -= self._init_pos[:, :]
-        root_pos_w[:, 2] += self.default_root_state[:, 2]
+        # root_pos_w[:, 2] += self.default_root_state[:, 2]
         return torch.bmm(torch.transpose(self._init_rot, 1, 2), root_pos_w.view(-1, 3, 1)).view(-1, 3)
     
     @property
@@ -292,7 +292,7 @@ class RobotCore:
         """
         foot_pos = self.foot_pos.clone()
         foot_pos[:, :, :3] -= self._init_pos[:, None, :3]
-        foot_pos[:, :, 2] += self.default_root_state[:, 2]
+        # foot_pos[:, :, 2] += self.default_root_state[:, 2]
         rot_mat = self._init_rot.clone().unsqueeze(1).repeat(1, self.total_contact_point, 1, 1).view(-1, 3, 3)
         return torch.bmm(rot_mat.transpose(1,2), foot_pos.view(-1, 3, 1)).view(-1, self.total_contact_point, 3)
     
