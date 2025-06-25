@@ -55,7 +55,26 @@ class HECTORRoughEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         
         # command 
         self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
+
+@configclass
+class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
+    """Playground environment configuration for HECTOR."""
+    
+    def __post_init__(self):
+        # post init of parent
+        super().__post_init__()
+        self.seed = 42
+        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         
+        self.scene.height_scanner.debug_vis = True
+        self.curriculum.terrain_levels = None
+        
+        # lower resolution of heightmap since we do not use these during inference
+        self.scene.height_scanner_L_foot.pattern_cfg.resolution = 0.5
+        self.scene.height_scanner_R_foot.pattern_cfg.resolution = 0.5
+        
+        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
+
 @configclass
 class HECTORandomBlockEnvSACCfg(LocomotionVelocityRoughEnvCfg):
     scene: HECTORSceneCfg = HECTORSceneCfg(num_envs=4096, env_spacing=2.5)
@@ -80,8 +99,8 @@ class HECTORandomBlockEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.viewer = ViewerCfg(
             # eye=(-2.5, 0.0, 0.2), 
             # lookat=(-1.0, 0.0, 0.0),
-            eye=(0.0, -2.2, 0.4), 
-            lookat=(0.0, -1.0, 0.2),
+            eye=(0.0, -2.2, 0.3), 
+            lookat=(0.0, -1.0, 0.0),
             resolution=(1920, 1080), 
             origin_type="asset_root", 
             asset_name="robot"
@@ -90,8 +109,9 @@ class HECTORandomBlockEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.terrain = hector_mdp.CurriculumRandomBlockTerrain
         
         # command
-        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
-        self.commands.base_velocity.ranges.ang_vel_z = (-(20.0/180)*math.pi, (20.0/180)*math.pi)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.3, 0.6)
+        # self.commands.base_velocity.ranges.ang_vel_z = (-(20.0/180)*math.pi, (20.0/180)*math.pi)
+        self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
         
         # event 
         self.events.reset_base.params["pose_range"] = {
@@ -102,25 +122,6 @@ class HECTORandomBlockEnvSACCfg(LocomotionVelocityRoughEnvCfg):
             "pitch": (0.0, 0.0),
             "yaw": (-math.pi, math.pi),
         }
-
-@configclass
-class HECTORRoughEnvSACCfgPLAY(HECTORRoughEnvSACCfg):
-    """Playground environment configuration for HECTOR."""
-    
-    def __post_init__(self):
-        # post init of parent
-        super().__post_init__()
-        self.seed = 42
-        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
-        
-        self.scene.height_scanner.debug_vis = True
-        self.curriculum.terrain_levels = None
-        
-        # lower resolution of heightmap since we do not use these during inference
-        self.scene.height_scanner_L_foot.pattern_cfg.resolution = 0.5
-        self.scene.height_scanner_R_foot.pattern_cfg.resolution = 0.5
-        
-        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
         
 @configclass
 class HECTORRandomBlockEnvSACCfgPLAY(HECTORandomBlockEnvSACCfg):
@@ -139,7 +140,7 @@ class HECTORRandomBlockEnvSACCfgPLAY(HECTORandomBlockEnvSACCfg):
         # self.scene.height_scanner_L_foot.pattern_cfg.resolution = 0.5
         # self.scene.height_scanner_R_foot.pattern_cfg.resolution = 0.5
         
-        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         # self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
         
         # event 
@@ -150,4 +151,8 @@ class HECTORRandomBlockEnvSACCfgPLAY(HECTORandomBlockEnvSACCfg):
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
             "yaw": (-math.pi, math.pi),
+            # "yaw": (0.0, 0.0),
         }
+        
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.4)
+        self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)

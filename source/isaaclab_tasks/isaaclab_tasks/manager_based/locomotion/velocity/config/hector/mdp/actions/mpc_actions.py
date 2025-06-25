@@ -18,7 +18,11 @@ from isaaclab.envs import ManagerBasedEnv
 from . import mpc_actions_cfg
 from .robot_helper import RobotCore
 from .mpc_controller import MPC_Conf, MPCController
-from isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp.marker import FootPlacementVisualizer, SlackedFootPlacementVisualizer, PositionTrajectoryVisualizer
+from isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp.marker import (
+    FootPlacementVisualizer, 
+    PositionTrajectoryVisualizer, 
+    SwingFootVisualizer
+)
 
 class MPCAction(ActionTerm):
 
@@ -100,8 +104,9 @@ class MPCAction(ActionTerm):
         
         # markers
         self.foot_placement_visualizer = FootPlacementVisualizer("/Visuals/foot_placement")
-        # self.slacked_foot_placement_visualizer = SlackedFootPlacementVisualizer("/Visuals/slacked_foot_placement")
+        self.foot_position_visualizer = SwingFootVisualizer("/Visuals/foot_position")
         # self.position_trajectory_visualizer = PositionTrajectoryVisualizer("/Visuals/position_trajectory")
+        self.foot_trajectory_visualizer = PositionTrajectoryVisualizer("/Visuals/foot_trajectory", color=(0.0, 0.0, 1.0))
         
         # command
         self.command = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
@@ -238,7 +243,7 @@ class MPCAction(ActionTerm):
         z1 = (1 - wx) * z01.unsqueeze(1) + wx * z11.unsqueeze(1)  # along x
         ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1)      # along y
         
-        ground_level_odometry_frame = self.robot_api._init_pos[:, 2] - self.robot_api.default_root_state[:, 2]
+        ground_level_odometry_frame = self.robot_api._init_pos[:, 2] #- self.robot_api.default_root_state[:, 2]
         self.reference_height = self.cfg.nominal_height + (ground_height - ground_level_odometry_frame).cpu().numpy()
         
         # squat motion
@@ -305,14 +310,17 @@ class MPCAction(ActionTerm):
         z1 = (1 - wx) * z01.unsqueeze(1) + wx * z11.unsqueeze(1)  # along x
         ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1)      # along y
         
-        ground_level_odometry_frame = self.robot_api._init_pos[:, 2] - self.robot_api.default_root_state[:, 2]
+        ground_level_odometry_frame = self.robot_api._init_pos[:, 2] #- self.robot_api.default_root_state[:, 2]
         self.foot_placement_height = np.clip((ground_height - ground_level_odometry_frame).cpu().numpy(), 0.0, 1.0)
     
     def update_visual_marker(self):
         # create storag tensors
         fp = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
-        default_position = self.robot_api._init_pos[:, :3].clone()
-        default_position[:, 2] = 0.0
+        foot_pos = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
+        
+        world_to_odom_trans = self.robot_api._init_pos[:, :3].clone()
+        # world_to_odom_trans[:, 2] -= self.robot_api.default_root_state[:, 2]
+        world_to_odom_rot = self.robot_api._init_rot.clone()
         
         sensor= self._env.scene.sensors["height_scanner"]
         height_map = sensor.data.ray_hits_w[..., 2]
@@ -368,20 +376,24 @@ class MPCAction(ActionTerm):
         fp[:, 1, 2] = foot_height[1]
         
         # convert from robot odometry frame to simulation global frame
-        world_to_odom_rot = self.robot_api._init_rot
-        fp[:, 0, :] = torch.bmm(world_to_odom_rot, fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position
-        fp[:, 1, :] = torch.bmm(world_to_odom_rot, fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position
+        fp[:, 0, :] = (world_to_odom_rot @ fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
+        fp[:, 1, :] = (world_to_odom_rot @ fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
+        foot_pos[:, 0, :] = (world_to_odom_rot @ self.foot_pos_w[:, :3].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
+        foot_pos[:, 1, :] = (world_to_odom_rot @ self.foot_pos_w[:, 3:6].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
         
         # process mpc reference trajectory
         position_traj_world = self.position_trajectory.clone()
+        foot_traj_world = self.foot_position_trajectory.clone()
         for i in range(10):
-            position_traj_world[:, i, :] = (world_to_odom_rot @ position_traj_world[:, i, :].unsqueeze(-1)).squeeze(-1) + default_position
+            position_traj_world[:, i, :] = (world_to_odom_rot @ position_traj_world[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
+            foot_traj_world[:, i, :] = (world_to_odom_rot @ foot_traj_world[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
         
         # send quantities to visualizer
         orientation = self.robot_api.root_quat_w[:, None, :].repeat(1, 2, 1).view(-1, 4)
         self.foot_placement_visualizer.visualize(fp, orientation)
-        # self.slacked_foot_placement_visualizer.visualize(fp, orientation)
+        self.foot_position_visualizer.visualize(foot_pos)
         # self.position_trajectory_visualizer.visualize(position_traj_world)
+        self.foot_trajectory_visualizer.visualize(foot_traj_world)
         
 
     def apply_actions(self):
@@ -476,6 +488,10 @@ class MPCAction(ActionTerm):
         self.foot_placement_b[:, 1] = -foot_placement_body_prime[:, 0]*torch.sin(self.root_yaw) + foot_placement_body_prime[:, 1]*torch.cos(self.root_yaw)
         self.foot_placement_b[:, 2] = foot_placement_body_prime[:, 2]*torch.cos(self.root_yaw) + foot_placement_body_prime[:, 3]*torch.sin(self.root_yaw)
         self.foot_placement_b[:, 3] = -foot_placement_body_prime[:, 2]*torch.sin(self.root_yaw) + foot_placement_body_prime[:, 3]*torch.cos(self.root_yaw)
+        
+        # transform foot position in body frame to odometry frame
+        self.foot_pos_w[:, :3] = (self.root_rot_mat @ self.foot_pos_b[:, :3].unsqueeze(-1)).squeeze(-1) + self.root_pos[:, :3]
+        self.foot_pos_w[:, 3:] = (self.root_rot_mat @ self.foot_pos_b[:, 3:].unsqueeze(-1)).squeeze(-1) + self.root_pos[:, :3]
         
         # body-leg angle
         stance_leg_r_left = torch.abs(self.foot_pos_b[:, :3]).clamp(min=1e-6)  # avoid division by zero

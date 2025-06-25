@@ -105,27 +105,13 @@ class HECTORRewardsCfg(RewardsCfg):
         }
     )
     
-    # processed_action_l2_ref_vel = RewTerm(
-    #     func=hector_mdp.individual_action_l2, # type: ignore
-    #     weight=-3.0,
-    #     params={
-    #         "action_idx": [3, 4],
-    #         # "action_idx": [9, 10],
-    #         "action_name": "mpc_action",
-    #     }
-    # )
-    
     processed_action_l2_ref_vel = RewTerm(
-        func=hector_mdp.rough_terrain_processed_action_l2,
+        func=hector_mdp.individual_action_l2, # type: ignore
         weight=-3.0,
         params={
             "action_idx": [3, 4],
             # "action_idx": [9, 10],
             "action_name": "mpc_action",
-            "sensor_cfg": SceneEntityCfg("height_scanner"),
-            "lookahead_distance": 0.2,
-            "lookback_distance": 0.0, 
-            "patch_width": 0.15,
         }
     )
     
@@ -182,37 +168,42 @@ class HECTORRewardsCfg(RewardsCfg):
         )
     
     # -- use height scanner atatached to foot
-    foot_landing_penalty_left = RewTerm(
-        func=hector_mdp.swing_foot_landing_penalty,
-        weight=-2.5,
-        params={
-            "sensor_cfg": SceneEntityCfg("height_scanner_L_foot"),
-            "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="L_toe"),
-            "std": 0.03, 
-        },
-    )
+    # foot_landing_penalty_left = RewTerm(
+    #     func=hector_mdp.swing_foot_landing_penalty,
+    #     weight=-1.5,
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("height_scanner_L_foot"),
+    #         "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="L_toe"),
+    #         "std": 0.03, 
+    #     },
+    # )
     
-    foot_landing_penalty_right = RewTerm(
-        func=hector_mdp.swing_foot_landing_penalty,
-        weight=-2.5,
-        params={
-            "sensor_cfg": SceneEntityCfg("height_scanner_R_foot"),
-            "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="R_toe"),
-            "std": 0.03, 
-        },
-    )
+    # foot_landing_penalty_right = RewTerm(
+    #     func=hector_mdp.swing_foot_landing_penalty,
+    #     weight=-1.5,
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("height_scanner_R_foot"),
+    #         "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="R_toe"),
+    #         "std": 0.03, 
+    #     },
+    # )
+    
+    # foot_placement = RewTerm(
+    #     func=hector_mdp.foot_placement_penalty,
+    #     weight=-1.0,
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("height_scanner_fine"),
+    #         "action_name": "mpc_action",
+    #         "l_toe": 0.091+0.02,
+    #         "l_heel": 0.054+0.02,
+    #         "l_width": 0.073+0.04,
+    #         "std": 0.03, 
+    #     },
+    # )
     
     feet_air_time = None
     flat_orientation_l2 = None
     undesired_contacts = None
-    
-    # depth = RewTerm(
-    #     func=hector_mdp.depth_image_r,
-    #     weight=-1.5,
-    #     params={
-    #         "sensor_cfg": SceneEntityCfg("tiled_d435"),
-    #     },
-    # )
     
     
 @configclass

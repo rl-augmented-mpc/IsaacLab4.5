@@ -1,3 +1,7 @@
+import os
+from glob import glob
+import pickle
+import warnings
 import numpy as np
 
 def quaternion_to_euler(quats):
@@ -109,3 +113,150 @@ def cluster_time_points(t_array, threshold=0.01):
             end = t
     chunks.append((start, end))  # don't forget the last one
     return chunks
+
+def process_data(data_dir:str):
+    state_dir = os.path.join(data_dir, "state")
+    obs_dir = os.path.join(data_dir, "obs")
+    action_dir = os.path.join(data_dir, "action")
+    episode_length_dir = os.path.join(data_dir, "episode")
+    reward_dir = os.path.join(data_dir, "reward")
+
+
+    # collect all the data
+    state_files = glob(os.path.join(state_dir, "*.pkl"))
+    obs_files = glob(os.path.join(obs_dir, "*.pkl"))
+    action_files = glob(os.path.join(action_dir, "*.pkl"))
+    episode_files = glob(os.path.join(episode_length_dir, "*.pkl"))
+    reward_files = glob(os.path.join(reward_dir, "*.pkl"))
+
+
+    # sort the files
+    state_files.sort()
+    obs_files.sort()
+    action_files.sort()
+    episode_files.sort()
+    reward_files.sort()
+
+    # load the data
+    for i in range(len(state_files)):
+        state_file = state_files[i]
+        obs_file = obs_files[i]
+        action_file = action_files[i]
+        episode_file = episode_files[i]
+        reward_file = reward_files[i]
+
+        with open(state_file, "rb") as f:
+            state = pickle.load(f)
+        with open(obs_file, "rb") as f:
+            obs = pickle.load(f)
+        with open(action_file, "rb") as f:
+            action = pickle.load(f)
+        with open(episode_file, "rb") as f:
+            episode_length_data = pickle.load(f)
+        with open(reward_file, "rb") as f:
+            reward = pickle.load(f)
+
+    state_data = np.array(state)
+    obs_data = np.array(obs)
+    action_data = np.array(action)
+    mpc_action_data = obs_data[:, :, :, 50:56]
+    episode_length_data = np.array(episode_length_data)
+    reward_data = np.array(reward)
+
+    num_trials = state_data.shape[0]
+    batch_size = state_data.shape[1]
+    time_step = state_data.shape[2]
+
+    state_data = state_data.reshape(num_trials*batch_size, time_step, -1)
+    obs_data = obs_data.reshape(num_trials*batch_size, time_step, -1)
+    action_data = action_data.reshape(num_trials*batch_size, time_step, -1)
+    mpc_action_data = mpc_action_data.reshape(num_trials*batch_size, time_step, -1)
+    episode_length_data = episode_length_data.reshape(-1)
+    reward_data = reward_data.reshape(num_trials*batch_size, time_step, -1)
+    
+    return (
+        state_data, 
+        obs_data,
+        action_data,
+        reward_data,
+        mpc_action_data, 
+        episode_length_data, 
+    )
+
+def process_data_with_height(data_dir:str):
+    state_dir = os.path.join(data_dir, "state")
+    obs_dir = os.path.join(data_dir, "obs")
+    action_dir = os.path.join(data_dir, "action")
+    episode_length_dir = os.path.join(data_dir, "episode")
+    reward_dir = os.path.join(data_dir, "reward")
+
+
+    # collect all the data
+    state_files = glob(os.path.join(state_dir, "*.pkl"))
+    obs_files = glob(os.path.join(obs_dir, "*.pkl"))
+    action_files = glob(os.path.join(action_dir, "*.pkl"))
+    episode_files = glob(os.path.join(episode_length_dir, "*.pkl"))
+    reward_files = glob(os.path.join(reward_dir, "*.pkl"))
+
+
+    # sort the files
+    state_files.sort()
+    obs_files.sort()
+    action_files.sort()
+    episode_files.sort()
+    reward_files.sort()
+
+    # load the data
+    for i in range(len(state_files)):
+        state_file = state_files[i]
+        obs_file = obs_files[i]
+        action_file = action_files[i]
+        episode_file = episode_files[i]
+        reward_file = reward_files[i]
+
+        with open(state_file, "rb") as f:
+            state = pickle.load(f)
+        with open(obs_file, "rb") as f:
+            obs = pickle.load(f)
+        with open(action_file, "rb") as f:
+            action = pickle.load(f)
+        with open(episode_file, "rb") as f:
+            episode_length_data = pickle.load(f)
+        with open(reward_file, "rb") as f:
+            reward = pickle.load(f)
+
+    state_data = np.array(state)
+    obs_data = np.array(obs)
+    action_data = np.array(action)
+    mpc_action_data = obs_data[:, :, :, 50:56]
+    episode_length_data = np.array(episode_length_data)
+    reward_data = np.array(reward)
+
+    num_trials = state_data.shape[0]
+    batch_size = state_data.shape[1]
+    time_step = state_data.shape[2]
+
+    state_data = state_data.reshape(num_trials*batch_size, time_step, -1)
+
+    # process height data
+    num_history = 1
+    height_w, height_h = 21, 21 # resolution 0.05
+    height_scan_num = height_w * height_h
+    obs_data = obs_data.reshape(num_trials*batch_size, time_step, -1)
+    height_data = obs_data[:, :, -height_scan_num:]
+    
+    obs_data = obs_data[:, :, :-height_scan_num].reshape(num_trials*batch_size, time_step, num_history, -1)[:, :, -1, :]
+    action_data = action_data.reshape(num_trials*batch_size, time_step, -1)
+    mpc_action_data = mpc_action_data.reshape(num_trials*batch_size, time_step, -1)
+    episode_length_data = episode_length_data.reshape(-1)
+    reward_data = reward_data.reshape(num_trials*batch_size, time_step, -1)
+    
+    return (
+        state_data, 
+        obs_data,
+        action_data,
+        reward_data,
+        mpc_action_data, 
+        height_data, 
+        episode_length_data, 
+    )
