@@ -99,7 +99,7 @@ class HECTORandomBlockEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.viewer = ViewerCfg(
             # eye=(-2.5, 0.0, 0.2), 
             # lookat=(-1.0, 0.0, 0.0),
-            eye=(0.0, -2.2, 0.3), 
+            eye=(0.0, -2.5, 0.2), 
             lookat=(0.0, -1.0, 0.0),
             resolution=(1920, 1080), 
             origin_type="asset_root", 
@@ -109,7 +109,7 @@ class HECTORandomBlockEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.terrain = hector_mdp.CurriculumRandomBlockTerrain
         
         # command
-        self.commands.base_velocity.ranges.lin_vel_x = (0.3, 0.6)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.3, 0.5)
         # self.commands.base_velocity.ranges.ang_vel_z = (-(20.0/180)*math.pi, (20.0/180)*math.pi)
         self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
         
@@ -133,7 +133,7 @@ class HECTORRandomBlockEnvSACCfgPLAY(HECTORandomBlockEnvSACCfg):
         self.seed = 42
         self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
         
-        self.scene.height_scanner.debug_vis = True
+        # self.scene.height_scanner.debug_vis = True
         self.curriculum.terrain_levels = None
         
         # lower resolution of heightmap since we do not use these during inference
@@ -145,14 +145,17 @@ class HECTORRandomBlockEnvSACCfgPLAY(HECTORandomBlockEnvSACCfg):
         
         # event 
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0.3, 0.3), 
-            "y": (-0.3, 0.3), 
+            # "x": (-0.3, 0.3), 
+            # "y": (-0.3, 0.3), 
+            "x": (-0.0, 0.0), 
+            "y": (-0.0, 0.0), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            "yaw": (-math.pi, math.pi),
+            "yaw": (-math.pi/6, math.pi/6),
+            # "yaw": (-math.pi/2, math.pi/2),
             # "yaw": (0.0, 0.0),
         }
         
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.4)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)

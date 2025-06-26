@@ -459,6 +459,40 @@ def swing_foot_landing_penalty(
     
     return penalty
 
+def log_barrier_swing_foot_landing_penalty(
+    env: ManagerBasedRLEnv,
+    action_name: str = "mpc_action",
+    contact_sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
+    l_toe: float = 0.091,
+    l_heel: float = 0.054,
+    l_width: float = 0.073,
+):
+    contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
+    action_term = env.action_manager.get_term(action_name)
+    
+    boundary_grid_point_in_body = action_term.grid_point_boundary_in_body # (num_envs, n, 3)
+    
+    contact = contact_sensor.data.net_forces_w[:, contact_sensor_cfg.body_ids, :].norm(dim=2) > 1.0
+    first_contact = (contact_sensor.data.net_forces_w_history[:, :, contact_sensor_cfg.body_ids, :].norm(dim=3) > 1.0).sum(dim=1).float() == 1.0 # (num_envs, 2)
+    foot_position_b = action_term.foot_pos_b.reshape(-1, 2, 3) # (num_envs, 2, 3)
+    stance_position_b = (foot_position_b * contact[:, :, None]).sum(dim=1) # (num_envs, 3)
+    
+    # -l_heel <= dx <= l_toe and -l_width/2 <= dy <= l_width/2
+    dx = boundary_grid_point_in_body[:, :, 0] - stance_position_b[:, None, 0]
+    dy = boundary_grid_point_in_body[:, :, 1] - stance_position_b[:, None, 1]
+    mask = (dx <= l_toe) & (-l_heel <= dx) & (dy.abs() <= l_width / 2) # (num_envs, n)
+    
+    eps = 1e-6  # small epsilon to avoid log(0)
+    penalty_x_lb = -(torch.log(((-dx) * (dx<0) + eps) / (l_heel + eps))) * (dx < 0).float() # -l_heel >= dx > 0
+    penalty_x_ub = -(torch.log((dx * (dx>=0) + eps) / (l_toe + eps))) * (dx >= 0).float() # 0 <= dx < l_toe
+    penalty_x = penalty_x_lb + penalty_x_ub # (num_envs, n)
+    penalty_y = -torch.log((dy.abs() + eps) / ((l_width / 2) + eps))
+    penalty_x = torch.clamp(penalty_x, min=0.0)
+    penalty_y = torch.clamp(penalty_y, min=0.0) * 0.0
+    penalty = ((penalty_x + penalty_y) * mask.float()).sum(dim=1) * first_contact.sum(dim=1).float()
+    return penalty
+    
+
 def negative_lin_vel_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize negative forward velocity using L2 squared kernel."""
     # extract the used quantities (to enable type-hinting)

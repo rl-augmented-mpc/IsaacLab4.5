@@ -199,11 +199,11 @@ class SwingFootVisualizer:
             prim_path=prim_path,
             markers={
                 "left": sim_utils.SphereCfg(
-                radius=0.03,
+                radius=0.015,
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
                 ),
                 "right": sim_utils.SphereCfg(
-                radius=0.03,
+                radius=0.015,
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
                 ),
             }
@@ -279,5 +279,34 @@ class PositionTrajectoryVisualizer:
         num_envs = position_trajectory.shape[0]
         indices = torch.arange(self.marker.num_prototypes, device=position_trajectory.device).reshape(1, -1).repeat(num_envs, 10) # (num_envs, 10)
         positions = position_trajectory.reshape(-1, 3) # (num_envs*10, 3)
+        indices = indices.reshape(-1)
+        self.marker.visualize(translations=positions, marker_indices=indices)
+        
+        
+class GridPointVisualizer:
+    def __init__(self, prim_path:str, color:tuple=(0.0, 1.0, 0.0)):
+        self.prim_path = prim_path
+        self.markers_cfg = VisualizationMarkersCfg(
+            prim_path=prim_path,
+            markers={
+                "point": sim_utils.SphereCfg(
+                radius=0.01,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=color),
+                ),
+            }
+        )
+        self.marker = VisualizationMarkers(self.markers_cfg)
+        
+    
+    def visualize(self, viz_points:torch.Tensor):
+        """_summary_
+
+        Args:
+            position_trajectory (torch.Tensor): (num_envs, N, 3)
+        """
+        num_envs = viz_points.shape[0]
+        num_points = viz_points.shape[1]
+        indices = torch.arange(self.marker.num_prototypes, device=viz_points.device).reshape(1, -1).repeat(num_envs, num_points) # (num_envs, N)
+        positions = viz_points.reshape(-1, 3) # (num_envs*N, 3)
         indices = indices.reshape(-1)
         self.marker.visualize(translations=positions, marker_indices=indices)
