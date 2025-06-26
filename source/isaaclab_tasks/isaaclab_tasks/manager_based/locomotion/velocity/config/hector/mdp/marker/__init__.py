@@ -2,5 +2,6 @@ from .visualization_marker import (
     FootPlacementVisualizer, 
     SwingFootVisualizer, 
     SlackedFootPlacementVisualizer, 
-    PositionTrajectoryVisualizer
+    PositionTrajectoryVisualizer, 
+    GridPointVisualizer
 )

@@ -167,6 +167,19 @@ class HECTORRewardsCfg(RewardsCfg):
         },
         )
     
+    
+    foot_landing_penalty = RewTerm(
+        func=hector_mdp.log_barrier_swing_foot_landing_penalty,
+        weight=-1.0,
+        params={
+            "action_name": "mpc_action",
+            "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+            "l_toe": 0.091+0.02,  # ankle to toe
+            "l_heel": 0.04,  # ankle to heel
+            "l_width": 0.04,  # width of foot
+        },
+    )
+    
     # -- use height scanner atatached to foot
     # foot_landing_penalty_left = RewTerm(
     #     func=hector_mdp.swing_foot_landing_penalty,

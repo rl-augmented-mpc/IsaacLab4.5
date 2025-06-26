@@ -21,8 +21,10 @@ from .mpc_controller import MPC_Conf, MPCController
 from isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp.marker import (
     FootPlacementVisualizer, 
     PositionTrajectoryVisualizer, 
-    SwingFootVisualizer
+    SwingFootVisualizer, 
+    GridPointVisualizer
 )
+from isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp.util import log_score_filter
 
 class MPCAction(ActionTerm):
 
@@ -107,10 +109,15 @@ class MPCAction(ActionTerm):
         self.foot_position_visualizer = SwingFootVisualizer("/Visuals/foot_position")
         # self.position_trajectory_visualizer = PositionTrajectoryVisualizer("/Visuals/position_trajectory")
         self.foot_trajectory_visualizer = PositionTrajectoryVisualizer("/Visuals/foot_trajectory", color=(0.0, 0.0, 1.0))
+        self.grid_point_visualizer = GridPointVisualizer("/Visuals/safe_region", color=(1.0, 0.0, 0.0))
         
         # command
         self.command = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
         self.original_command = self._env.command_manager.get_command(self.cfg.command_name)
+        
+        # heightmap related
+        self.grid_point_boundary = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
+        self.grid_point_boundary_in_body = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
     
     """
     Properties.
@@ -158,6 +165,7 @@ class MPCAction(ActionTerm):
         self._get_reference_velocity()
         self._get_reference_height(sensor_name="height_scanner")
         self._get_footplacement_height(sensor_name="height_scanner")
+        self._process_heightmap()
         
         # send updated parameters to MPC
         for i in range(self.num_envs):
@@ -319,10 +327,9 @@ class MPCAction(ActionTerm):
         foot_pos = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
         
         world_to_odom_trans = self.robot_api._init_pos[:, :3].clone()
-        # world_to_odom_trans[:, 2] -= self.robot_api.default_root_state[:, 2]
         world_to_odom_rot = self.robot_api._init_rot.clone()
         
-        sensor= self._env.scene.sensors["height_scanner"]
+        sensor= self._env.scene.sensors["height_scanner_fine"]
         height_map = sensor.data.ray_hits_w[..., 2]
         scan_width, scan_height = sensor.cfg.pattern_cfg.size
         scan_resolution = sensor.cfg.pattern_cfg.resolution
@@ -394,6 +401,30 @@ class MPCAction(ActionTerm):
         self.foot_position_visualizer.visualize(foot_pos)
         # self.position_trajectory_visualizer.visualize(position_traj_world)
         self.foot_trajectory_visualizer.visualize(foot_traj_world)
+        self.grid_point_visualizer.visualize(self.grid_point_boundary)
+        
+    def _process_heightmap(self):
+        sensor= self._env.scene.sensors["height_scanner_fine"]
+        scan_width, scan_height = sensor.cfg.pattern_cfg.size
+        scan_resolution = sensor.cfg.pattern_cfg.resolution
+        width = int(scan_width/scan_resolution + 1)
+        height = int(scan_height/scan_resolution + 1)
+        
+        world_to_odom_trans = self.robot_api._init_pos[:, :3].clone()
+        world_to_odom_rot = self.robot_api._init_rot.clone()
+        
+        grid_point = sensor.data.ray_hits_w[..., :3]
+        grid_point_local = (world_to_odom_rot[:, None, :, :].transpose(2, 3) @ grid_point.unsqueeze(-1)).squeeze(-1) - world_to_odom_trans # sim world to odometry
+        grid_point_local = (self.root_rot_mat[:, None, :, :].transpose(2, 3) @ grid_point_local.unsqueeze(-1)).squeeze(-1) - self.root_pos[:, None, :] # odometry to body frame
+        grid_point_local[:, :, 2] += self.root_pos[:, None, 2]
+        elevation_map = sensor.data.ray_hits_w[..., 2].view(-1, 1, height, width)
+        log_score = log_score_filter(elevation_map, alpha=50.0).view(-1, height*width)
+        safe_region = log_score < 0.4
+        grid_point_boundary = grid_point.view(-1, 3)[safe_region.view(-1)].view(self.num_envs, -1, 3) # (num_envs, num_grid_points, 3)
+        grid_point_boundary_in_body = grid_point_local.view(-1, 3)[safe_region.view(-1)].view(self.num_envs, -1, 3) # (num_envs, num_grid_points, 3)
+        
+        self.grid_point_boundary = grid_point_boundary.clone()
+        self.grid_point_boundary_in_body = grid_point_boundary_in_body.clone()
         
 
     def apply_actions(self):
@@ -587,6 +618,7 @@ class MPCAction2(MPCAction):
         self._get_reference_velocity()
         self._get_reference_height("height_scanner")
         self._get_footplacement_height("height_scanner")
+        self._process_heightmap()
         
         # send updated parameters to MPC
         for i in range(self.num_envs):
@@ -670,6 +702,7 @@ class MPCAction3(MPCAction):
         self._get_reference_velocity()
         self._get_reference_height(sensor_name="height_scanner")
         self._get_footplacement_height(sensor_name="height_scanner")
+        self._process_heightmap()
         
         # send updated parameters to MPC
         for i in range(self.num_envs):
@@ -758,6 +791,7 @@ class MPCAction4(MPCAction):
         self._get_reference_velocity()
         self._get_reference_height("height_scanner")
         self._get_footplacement_height("height_scanner")
+        self._process_heightmap()
         
         # send updated parameters to MPC
         for i in range(self.num_envs):
