@@ -174,7 +174,7 @@ class HECTORRewardsCfg(RewardsCfg):
         params={
             "action_name": "mpc_action",
             "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
-            "l_toe": 0.091+0.02,  # ankle to toe
+            "l_toe": 0.07,  # ankle to toe
             "l_heel": 0.04,  # ankle to heel
             "l_width": 0.04,  # width of foot
         },

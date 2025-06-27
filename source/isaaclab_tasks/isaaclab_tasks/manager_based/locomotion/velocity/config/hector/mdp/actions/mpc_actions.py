@@ -419,7 +419,7 @@ class MPCAction(ActionTerm):
         grid_point_local[:, :, 2] += self.root_pos[:, None, 2]
         elevation_map = sensor.data.ray_hits_w[..., 2].view(-1, 1, height, width)
         log_score = log_score_filter(elevation_map, alpha=50.0).view(-1, height*width)
-        unsafe_region = log_score < 0.4
+        unsafe_region = log_score < 0.6
         
         grid_point_boundary = grid_point * unsafe_region[:, :, None].float()
         grid_point_boundary_in_body = grid_point_local * unsafe_region[:, :, None].float()
@@ -739,6 +739,7 @@ class MPCAction3(MPCAction):
         vx = self._processed_actions[:, 3]
         wz = self._processed_actions[:, 4]
         self.command[:, 0] = self.original_command[:, 0] * (1 + vx)
+        self.command[:, 1] = self.original_command[:, 1]
         self.command[:, 2] = self.original_command[:, 2] * (1 + wz)
         
         # update command

@@ -152,10 +152,11 @@ class HECTORRandomBlockEnvSACCfgPLAY(HECTORandomBlockEnvSACCfg):
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            "yaw": (-math.pi/6, math.pi/6),
+            # "yaw": (-math.pi/6, math.pi/6),
             # "yaw": (-math.pi/2, math.pi/2),
-            # "yaw": (0.0, 0.0),
+            "yaw": (0.0, 0.0),
         }
         
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
+        # self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
         self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)

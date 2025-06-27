@@ -488,8 +488,14 @@ def log_barrier_swing_foot_landing_penalty(
     penalty_x = penalty_x_lb + penalty_x_ub # (num_envs, n)
     penalty_y = -torch.log((dy.abs() + eps) / ((l_width / 2) + eps))
     penalty_x = torch.clamp(penalty_x, min=0.0)
-    penalty_y = torch.clamp(penalty_y, min=0.0) * 0.0
-    penalty = ((penalty_x + penalty_y) * mask.float()).sum(dim=1) * first_contact.sum(dim=1).float()
+    penalty_y = torch.clamp(penalty_y, min=0.0)
+    
+    # penalty_x_lb = (penalty_x_lb * mask.float()).sum(dim=1) * first_contact.sum(dim=1).float()
+    # penalty_x_ub = (penalty_x_ub * mask.float()).sum(dim=1) * first_contact.sum(dim=1).float()
+    
+    penalty_x = (penalty_x * mask.float()).sum(dim=1) * first_contact.sum(dim=1).float()
+    penalty_y = (penalty_y * mask.float()).sum(dim=1) * first_contact.sum(dim=1).float() * 0 # disable y penalty
+    penalty = penalty_x + penalty_y
     return penalty
     
 

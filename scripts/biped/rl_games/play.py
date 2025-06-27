@@ -18,7 +18,7 @@ parser.add_argument("--video_length", type=int, default=200, help="Length of the
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
-parser.add_argument("--video_speed", type=float, default=0.5, help="Speed of the recorded video.")
+parser.add_argument("--video_speed", type=float, default=1.0, help="Speed of the recorded video.")
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--checkpoint", type=str, default=None, help="Path to model checkpoint.")
@@ -213,7 +213,7 @@ def main():
             processed_actions = env.unwrapped.action_manager.get_term("mpc_action").processed_actions # type: ignore
             state = env.unwrapped.action_manager.get_term("mpc_action").state # type: ignore
             
-            reward_items = ["termination"] # add reward term you want to log here
+            reward_items = ["foot_landing_penalty"] # add reward term you want to log here
             # reward_items = ["foot_landing"] # add reward term you want to log here
             reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
             foot_landing_penalty = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
