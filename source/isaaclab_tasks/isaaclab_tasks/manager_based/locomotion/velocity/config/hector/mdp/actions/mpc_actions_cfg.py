@@ -36,11 +36,11 @@ class MPCActionCfg(ActionTermCfg):
     ### == construct gait in mpc dt == ###
     control_iteration_between_mpc: int = 10
     """Control iteration between MPC iterations."""
-    nominal_mpc_dt: float = 0.02
+    nominal_mpc_dt: float = 0.045
     """Nominal MPC dt of the robot."""
     double_support_duration: int = 0
     """Double support duration of the robot."""
-    single_support_duration: int = 10
+    single_support_duration: int = 5
     """Single support duration of the robot."""
 
 
