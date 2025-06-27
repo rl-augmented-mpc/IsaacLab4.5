@@ -170,7 +170,7 @@ class HECTORRewardsCfg(RewardsCfg):
     
     foot_landing_penalty = RewTerm(
         func=hector_mdp.log_barrier_swing_foot_landing_penalty,
-        weight=-1.0,
+        weight=-5.0,
         params={
             "action_name": "mpc_action",
             "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
