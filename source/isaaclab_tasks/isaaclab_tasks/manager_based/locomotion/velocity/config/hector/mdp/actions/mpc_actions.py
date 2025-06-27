@@ -414,14 +414,20 @@ class MPCAction(ActionTerm):
         world_to_odom_rot = self.robot_api._init_rot.clone()
         
         grid_point = sensor.data.ray_hits_w[..., :3]
-        grid_point_local = (world_to_odom_rot[:, None, :, :].transpose(2, 3) @ grid_point.unsqueeze(-1)).squeeze(-1) - world_to_odom_trans # sim world to odometry
+        grid_point_local = (world_to_odom_rot[:, None, :, :].transpose(2, 3) @ grid_point.unsqueeze(-1)).squeeze(-1) - world_to_odom_trans[:, None, :] # sim world to odometry
         grid_point_local = (self.root_rot_mat[:, None, :, :].transpose(2, 3) @ grid_point_local.unsqueeze(-1)).squeeze(-1) - self.root_pos[:, None, :] # odometry to body frame
         grid_point_local[:, :, 2] += self.root_pos[:, None, 2]
         elevation_map = sensor.data.ray_hits_w[..., 2].view(-1, 1, height, width)
         log_score = log_score_filter(elevation_map, alpha=50.0).view(-1, height*width)
-        safe_region = log_score < 0.4
-        grid_point_boundary = grid_point.view(-1, 3)[safe_region.view(-1)].view(self.num_envs, -1, 3) # (num_envs, num_grid_points, 3)
-        grid_point_boundary_in_body = grid_point_local.view(-1, 3)[safe_region.view(-1)].view(self.num_envs, -1, 3) # (num_envs, num_grid_points, 3)
+        unsafe_region = log_score < 0.4
+        
+        grid_point_boundary = grid_point * unsafe_region[:, :, None].float()
+        grid_point_boundary_in_body = grid_point_local * unsafe_region[:, :, None].float()
+        
+        # push safe region far from body
+        grid_point_boundary[:, :, 2] -= (1 - unsafe_region.float()) * 1.0
+        grid_point_boundary_in_body[:, :, 0] -= (1 - unsafe_region.float()) * 0.5
+        grid_point_boundary_in_body[:, :, 2] -= (1 - unsafe_region.float()) * 1.0
         
         self.grid_point_boundary = grid_point_boundary.clone()
         self.grid_point_boundary_in_body = grid_point_boundary_in_body.clone()
