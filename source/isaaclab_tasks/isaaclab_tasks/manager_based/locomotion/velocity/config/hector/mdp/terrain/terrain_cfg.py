@@ -267,9 +267,9 @@ CurriculumRandomBlockTerrain = TerrainImporterCfg(
             #         max_yx_angle=0.0, 
             #     ),
             # ), 
-            "terrain2": terrain_gen.MeshRandomGridTerrainCfg(
-            proportion=0.2, grid_width=0.35, 
-            grid_height_range=(0.005, 0.03), platform_width=0.6
+            "terrain2": terrain_gen.MeshRandomBlockTerrainCfg(
+            proportion=0.2, grid_width=0.3, 
+            grid_height_range=(0.01, 0.04), platform_width=1.5
             ),
         },
     ),
@@ -394,9 +394,9 @@ BoxRoughTerrain = TerrainImporterCfg(
         use_cache=False,
         curriculum=True,
         sub_terrains={
-            "boxes1": terrain_gen.MeshRandomGridTerrainCfg(
-            proportion=0.2, grid_width=0.35, 
-            grid_height_range=(0.03, 0.03), platform_width=0.6
+            "boxes1": terrain_gen.MeshRandomBlockTerrainCfg(
+            proportion=0.2, grid_width=0.3, 
+            grid_height_range=(0.03, 0.03), platform_width=1.5
             ),
         },
     ),

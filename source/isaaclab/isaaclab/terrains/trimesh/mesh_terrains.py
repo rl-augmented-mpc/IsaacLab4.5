@@ -48,36 +48,6 @@ def flat_terrain(
     return [plane_mesh], np.array(origin)
 
 
-def thick_terrain(
-    difficulty: float, cfg: mesh_terrains_cfg.MeshThickTerrainCfg
-    ) -> tuple[list[trimesh.Trimesh], np.ndarray]:
-    """Generate a planar terrain with some depth
-
-    Note:
-        The :obj:`difficulty` parameter is ignored for this terrain.
-
-    Args:
-        difficulty: The difficulty of the terrain. This is a value between 0 and 1.
-        cfg: The configuration for the terrain.
-
-    Returns:
-        A tuple containing the tri-mesh of the terrain and the origin of the terrain (in m).
-    """
-    meshes_list = list()
-    terrain_height = cfg.thickness
-    
-    # Generate the ground
-    pos = (0.5 * cfg.size[0], 0.5 * cfg.size[1], -terrain_height / 2)
-    dim = (cfg.size[0], cfg.size[1], terrain_height)
-    ground_mesh = trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
-    meshes_list.append(ground_mesh)
-
-    # specify the origin of the terrain
-    origin = np.array([pos[0], pos[1], pos[2]])
-
-    return meshes_list, origin
-
-
 def pyramid_stairs_terrain(
     difficulty: float, cfg: mesh_terrains_cfg.MeshPyramidStairsTerrainCfg
 ) -> tuple[list[trimesh.Trimesh], np.ndarray]:
@@ -375,8 +345,7 @@ def random_grid_terrain(
     num_boxes = len(vertices)
     # create noise for the z-axis
     h_noise = torch.zeros((num_boxes, 3), device=device)
-    # h_noise[:, 2].uniform_(-grid_height, grid_height)
-    h_noise[:, 2] = (2* torch.randint(0, 2, (num_boxes,), device=device) - 1) * grid_height # deterministic noise
+    h_noise[:, 2].uniform_(-grid_height, grid_height)
     # reshape noise to match the vertices (num_boxes, 4, 3)
     # only the top vertices of the box are affected
     vertices_noise = torch.zeros((num_boxes, 4, 3), device=device)
@@ -583,196 +552,6 @@ def box_terrain(
 
     # specify the origin of the terrain
     origin = np.array([pos[0], pos[1], total_height])
-
-    return meshes_list, origin
-
-def tiled_box_terrain(
-    difficulty: float, cfg: mesh_terrains_cfg.TiledMeshBoxTerrainCfg
-) -> tuple[list[trimesh.Trimesh], np.ndarray]:
-    """Generate a terrain with boxes (similar to a pyramid).
-
-    The terrain has a ground with boxes on top of it that are stacked on top of each other.
-    The boxes are created by extruding a rectangle along the z-axis. If :obj:`double_box` is True,
-    then two boxes of height :obj:`box_height` are stacked on top of each other.
-
-    .. image:: ../../_static/terrains/trimesh/box_terrain.jpg
-       :width: 40%
-
-    .. image:: ../../_static/terrains/trimesh/box_terrain_with_two_boxes.jpg
-       :width: 40%
-
-    Args:
-        difficulty: The difficulty of the terrain. This is a value between 0 and 1.
-        cfg: The configuration for the terrain.
-
-    Returns:
-        A tuple containing the tri-mesh of the terrain and the origin of the terrain (in m).
-    """
-    # resolve the terrain configuration
-    box_height = cfg.box_height_range[0] + difficulty * (cfg.box_height_range[1] - cfg.box_height_range[0])
-    platform_gap_0 = cfg.platform_gap_range_start[0] + difficulty * (cfg.platform_gap_range_end[0] - cfg.platform_gap_range_start[0])
-    platform_gap_1 = cfg.platform_gap_range_start[1] + difficulty * (cfg.platform_gap_range_end[1] - cfg.platform_gap_range_start[1])
-
-    # initialize list of meshes
-    meshes_list = list()
-    # extract quantities
-    total_height = box_height
-    # constants for terrain generation
-    terrain_height = 0.2
-    
-    step_sizes = np.random.uniform(platform_gap_0, platform_gap_1, size=cfg.num_box).cumsum()
-    box_origins_x = cfg.border_size + step_sizes
-    
-    # filter box origins
-    is_within_platform_1 = (cfg.border_size < box_origins_x)
-    is_within_platform_2 = (box_origins_x < cfg.size[0] / 2 - cfg.center_area_size / 2)
-    is_within_platform_3 = (box_origins_x > cfg.size[0] / 2 + cfg.center_area_size / 2)
-    is_within_platform_4 = (box_origins_x < cfg.size[0] - cfg.border_size)
-    valid_indices = np.logical_or(np.logical_and(is_within_platform_1, is_within_platform_2),
-                                  np.logical_and(is_within_platform_3, is_within_platform_4))
-    box_origins_x = box_origins_x[valid_indices]
-    valid_num_boxes = len(box_origins_x)
-    
-    height_noise = np.random.uniform(cfg.height_noise_range[0], cfg.height_noise_range[1], size=valid_num_boxes)
-    
-    for i in range(valid_num_boxes):
-        # Generate the top box
-        dim = (cfg.platform_length, cfg.platform_width, total_height+height_noise[i])
-        pos = (box_origins_x[i], 0.5 * cfg.size[1], (total_height+height_noise[i]) / 2)
-        box_mesh = trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
-        meshes_list.append(box_mesh)
-    
-    # Generate the ground
-    pos = (0.5 * cfg.size[0], 0.5 * cfg.size[1], -terrain_height / 2)
-    dim = (cfg.size[0], cfg.size[1], terrain_height)
-    ground_mesh = trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
-    meshes_list.append(ground_mesh)
-
-    # specify the origin of the terrain (z to be 0)
-    origin = np.array([pos[0], pos[1], 0.0])
-
-    return meshes_list, origin
-
-def stair_terrain(
-    difficulty: float, cfg: mesh_terrains_cfg.StairTerrainCfg
-) -> tuple[list[trimesh.Trimesh], np.ndarray]:
-    """Generate a terrain with multiple stairs with random up and downs.
-
-    .. image:: ../../_static/terrains/trimesh/box_terrain.jpg
-       :width: 40%
-
-    .. image:: ../../_static/terrains/trimesh/box_terrain_with_two_boxes.jpg
-       :width: 40%
-
-    Args:
-        difficulty: The difficulty of the terrain. This is a value between 0 and 1.
-        cfg: The configuration for the terrain.
-
-    Returns:
-        A tuple containing the tri-mesh of the terrain and the origin of the terrain (in m).
-    """
-    # resolve the terrain configuration
-    box_height = cfg.box_height_range[0] + difficulty * (cfg.box_height_range[1] - cfg.box_height_range[0])
-    platform_gap_0 = cfg.platform_gap_range_start[0] + difficulty * (cfg.platform_gap_range_end[0] - cfg.platform_gap_range_start[0]) # lower bound
-    platform_gap_1 = cfg.platform_gap_range_start[1] + difficulty * (cfg.platform_gap_range_end[1] - cfg.platform_gap_range_start[1]) # upper bound
-    platform_length_0 = cfg.platform_length_range_start[0] + difficulty * (cfg.platform_length_range_end[0] - cfg.platform_length_range_start[0]) # lower bound
-    platform_length_1 = cfg.platform_length_range_start[1] + difficulty * (cfg.platform_length_range_end[1] - cfg.platform_length_range_start[1]) # upper bound
-
-    # initialize list of meshes
-    meshes_list = list()
-    
-    # construct center block
-    dim = (cfg.center_area_size, cfg.platform_width, box_height)
-    pos = (0.5*cfg.size[0], 0.5 * cfg.size[1], -box_height / 2)
-    meshes_list.append(
-        trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
-    )
-    
-    # construct the left and right blocks
-    platform_gap_left_half = np.random.uniform(platform_gap_0, platform_gap_1, size=cfg.num_box//2)
-    platform_gap_right_half = np.random.uniform(platform_gap_0, platform_gap_1, size=cfg.num_box//2)
-    platform_length_left_half = np.random.uniform(platform_length_0, platform_length_1, size=cfg.num_box//2)
-    platform_length_right_half = np.random.uniform(platform_length_0, platform_length_1, size=cfg.num_box//2)
-    
-    # up
-    assert cfg.profile_mode in ["up", "down", "up_down", "random", "pyramid", "inv_pyramid"], "Invalid profile mode. Choose from 'up', 'down', 'up_down', 'random', 'pyramid', or 'inv_pyramid'."
-    if cfg.profile_mode == "up":
-        block_height_profile_left = np.ones(len(platform_gap_left_half))
-        block_height_profile_right = np.ones(len(platform_gap_right_half))
-    elif cfg.profile_mode == "down":
-        block_height_profile_left = -np.ones(len(platform_gap_left_half))
-        block_height_profile_right = -np.ones(len(platform_gap_right_half))
-    elif cfg.profile_mode == "up_down":
-        block_height_profile_left = np.ones(len(platform_gap_left_half))
-        block_height_profile_left[np.arange(1, len(platform_gap_left_half), 2)] = -1
-        block_height_profile_right = np.ones(len(platform_gap_right_half))
-        block_height_profile_right[np.arange(1, len(platform_gap_right_half), 2)] = -1
-    elif cfg.profile_mode == "random":
-        block_height_profile_left = np.random.choice([-1, 1], size=len(platform_gap_left_half))
-        block_height_profile_right = np.random.choice([-1, 1], size=len(platform_gap_right_half))
-    elif cfg.profile_mode == "pyramid":
-        left_up_number = len(platform_gap_left_half) // 2
-        left_down_number = len(platform_gap_left_half) - left_up_number
-        right_up_number = len(platform_gap_right_half) // 2
-        right_down_number = len(platform_gap_right_half) - right_up_number
-        block_height_profile_left = np.concatenate([np.ones(left_up_number), -np.ones(left_down_number)])
-        block_height_profile_right = np.concatenate([np.ones(right_up_number), -np.ones(right_down_number)])
-    elif cfg.profile_mode == "inv_pyramid":
-        left_up_number = len(platform_gap_left_half) // 2
-        left_down_number = len(platform_gap_left_half) - left_up_number
-        right_up_number = len(platform_gap_right_half) // 2
-        right_down_number = len(platform_gap_right_half) - right_up_number
-        block_height_profile_left = np.concatenate([-np.ones(left_down_number), np.ones(left_up_number)])
-        block_height_profile_right = np.concatenate([-np.ones(right_down_number), np.ones(right_up_number)])
-    
-    # left blocks
-    block_length_prev = cfg.center_area_size
-    h_prev = box_height
-    center_z = -box_height/2
-    height_noise = np.random.uniform(cfg.height_noise_range[0], cfg.height_noise_range[1], size=len(platform_gap_left_half))
-    block_center = (0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.0)
-    for i in range(len(platform_gap_left_half)):
-        block_length = platform_length_left_half[i]
-        h = box_height + height_noise[i]
-        center_z = center_z + (h_prev/2 + h/2)*block_height_profile_left[i]
-        dim = (block_length, cfg.platform_width, h)
-        block_center = (block_center[0]-block_length/2-block_length_prev/2 - platform_gap_left_half[i], block_center[1], center_z)
-        if block_center[0] < cfg.border_size:
-            break
-        
-        meshes_list.append(
-            trimesh.creation.box(dim, trimesh.transformations.translation_matrix(block_center))
-        )
-        
-        # update memory
-        h_prev = h
-        block_length_prev = block_length
-    
-    # right blocks
-    block_length_prev = cfg.center_area_size
-    h_prev = box_height
-    center_z = -box_height/2
-    height_noise = np.random.uniform(cfg.height_noise_range[0], cfg.height_noise_range[1], size=len(platform_gap_right_half))
-    block_center = (0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.0)
-    for i in range(len(platform_gap_right_half)):
-        block_length = platform_length_right_half[i]
-        h = box_height + height_noise[i]
-        center_z = center_z + (h_prev/2 + h/2)*block_height_profile_right[i]
-        dim = (block_length, cfg.platform_width, h)
-        block_center = (block_center[0]+block_length/2+block_length_prev/2 + platform_gap_right_half[i], block_center[1], center_z)
-        if block_center[0] > cfg.size[0] - cfg.border_size:
-            break
-        
-        meshes_list.append(
-            trimesh.creation.box(dim, trimesh.transformations.translation_matrix(block_center))
-        )
-        
-        # update memory
-        h_prev = h
-        block_length_prev = block_length
-    
-    pos = (0.5*cfg.size[0], 0.5 * cfg.size[1], 0.0)
-    origin = np.array([pos[0], pos[1], pos[2]])
 
     return meshes_list, origin
 
@@ -1080,6 +859,228 @@ def repeated_objects_terrain(
 
 
 
+"""
+Custom made terrain not in the original codebase.
+"""
+
+def thick_terrain(
+    difficulty: float, cfg: mesh_terrains_cfg.MeshThickTerrainCfg
+    ) -> tuple[list[trimesh.Trimesh], np.ndarray]:
+    """Generate a planar terrain with some depth
+
+    Note:
+        The :obj:`difficulty` parameter is ignored for this terrain.
+
+    Args:
+        difficulty: The difficulty of the terrain. This is a value between 0 and 1.
+        cfg: The configuration for the terrain.
+
+    Returns:
+        A tuple containing the tri-mesh of the terrain and the origin of the terrain (in m).
+    """
+    meshes_list = list()
+    terrain_height = cfg.thickness
+    
+    # Generate the ground
+    pos = (0.5 * cfg.size[0], 0.5 * cfg.size[1], -terrain_height / 2)
+    dim = (cfg.size[0], cfg.size[1], terrain_height)
+    ground_mesh = trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
+    meshes_list.append(ground_mesh)
+
+    # specify the origin of the terrain
+    origin = np.array([pos[0], pos[1], pos[2]])
+
+    return meshes_list, origin
+
+def tiled_box_terrain(
+    difficulty: float, cfg: mesh_terrains_cfg.TiledMeshBoxTerrainCfg
+) -> tuple[list[trimesh.Trimesh], np.ndarray]:
+    """Generate a terrain with boxes (similar to a pyramid).
+
+    The terrain has a ground with boxes on top of it that are stacked on top of each other.
+    The boxes are created by extruding a rectangle along the z-axis. If :obj:`double_box` is True,
+    then two boxes of height :obj:`box_height` are stacked on top of each other.
+
+    .. image:: ../../_static/terrains/trimesh/box_terrain.jpg
+       :width: 40%
+
+    .. image:: ../../_static/terrains/trimesh/box_terrain_with_two_boxes.jpg
+       :width: 40%
+
+    Args:
+        difficulty: The difficulty of the terrain. This is a value between 0 and 1.
+        cfg: The configuration for the terrain.
+
+    Returns:
+        A tuple containing the tri-mesh of the terrain and the origin of the terrain (in m).
+    """
+    # resolve the terrain configuration
+    box_height = cfg.box_height_range[0] + difficulty * (cfg.box_height_range[1] - cfg.box_height_range[0])
+    platform_gap_0 = cfg.platform_gap_range_start[0] + difficulty * (cfg.platform_gap_range_end[0] - cfg.platform_gap_range_start[0])
+    platform_gap_1 = cfg.platform_gap_range_start[1] + difficulty * (cfg.platform_gap_range_end[1] - cfg.platform_gap_range_start[1])
+
+    # initialize list of meshes
+    meshes_list = list()
+    # extract quantities
+    total_height = box_height
+    # constants for terrain generation
+    terrain_height = 0.2
+    
+    step_sizes = np.random.uniform(platform_gap_0, platform_gap_1, size=cfg.num_box).cumsum()
+    box_origins_x = cfg.border_size + step_sizes
+    
+    # filter box origins
+    is_within_platform_1 = (cfg.border_size < box_origins_x)
+    is_within_platform_2 = (box_origins_x < cfg.size[0] / 2 - cfg.center_area_size / 2)
+    is_within_platform_3 = (box_origins_x > cfg.size[0] / 2 + cfg.center_area_size / 2)
+    is_within_platform_4 = (box_origins_x < cfg.size[0] - cfg.border_size)
+    valid_indices = np.logical_or(np.logical_and(is_within_platform_1, is_within_platform_2),
+                                  np.logical_and(is_within_platform_3, is_within_platform_4))
+    box_origins_x = box_origins_x[valid_indices]
+    valid_num_boxes = len(box_origins_x)
+    
+    height_noise = np.random.uniform(cfg.height_noise_range[0], cfg.height_noise_range[1], size=valid_num_boxes)
+    
+    for i in range(valid_num_boxes):
+        # Generate the top box
+        dim = (cfg.platform_length, cfg.platform_width, total_height+height_noise[i])
+        pos = (box_origins_x[i], 0.5 * cfg.size[1], (total_height+height_noise[i]) / 2)
+        box_mesh = trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
+        meshes_list.append(box_mesh)
+    
+    # Generate the ground
+    pos = (0.5 * cfg.size[0], 0.5 * cfg.size[1], -terrain_height / 2)
+    dim = (cfg.size[0], cfg.size[1], terrain_height)
+    ground_mesh = trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
+    meshes_list.append(ground_mesh)
+
+    # specify the origin of the terrain (z to be 0)
+    origin = np.array([pos[0], pos[1], 0.0])
+
+    return meshes_list, origin
+
+def stair_terrain(
+    difficulty: float, cfg: mesh_terrains_cfg.StairTerrainCfg
+) -> tuple[list[trimesh.Trimesh], np.ndarray]:
+    """Generate a terrain with multiple stairs with random up and downs.
+
+    .. image:: ../../_static/terrains/trimesh/box_terrain.jpg
+       :width: 40%
+
+    .. image:: ../../_static/terrains/trimesh/box_terrain_with_two_boxes.jpg
+       :width: 40%
+
+    Args:
+        difficulty: The difficulty of the terrain. This is a value between 0 and 1.
+        cfg: The configuration for the terrain.
+
+    Returns:
+        A tuple containing the tri-mesh of the terrain and the origin of the terrain (in m).
+    """
+    # resolve the terrain configuration
+    box_height = cfg.box_height_range[0] + difficulty * (cfg.box_height_range[1] - cfg.box_height_range[0])
+    platform_gap_0 = cfg.platform_gap_range_start[0] + difficulty * (cfg.platform_gap_range_end[0] - cfg.platform_gap_range_start[0]) # lower bound
+    platform_gap_1 = cfg.platform_gap_range_start[1] + difficulty * (cfg.platform_gap_range_end[1] - cfg.platform_gap_range_start[1]) # upper bound
+    platform_length_0 = cfg.platform_length_range_start[0] + difficulty * (cfg.platform_length_range_end[0] - cfg.platform_length_range_start[0]) # lower bound
+    platform_length_1 = cfg.platform_length_range_start[1] + difficulty * (cfg.platform_length_range_end[1] - cfg.platform_length_range_start[1]) # upper bound
+
+    # initialize list of meshes
+    meshes_list = list()
+    
+    # construct center block
+    dim = (cfg.center_area_size, cfg.platform_width, box_height)
+    pos = (0.5*cfg.size[0], 0.5 * cfg.size[1], -box_height / 2)
+    meshes_list.append(
+        trimesh.creation.box(dim, trimesh.transformations.translation_matrix(pos))
+    )
+    
+    # construct the left and right blocks
+    platform_gap_left_half = np.random.uniform(platform_gap_0, platform_gap_1, size=cfg.num_box//2)
+    platform_gap_right_half = np.random.uniform(platform_gap_0, platform_gap_1, size=cfg.num_box//2)
+    platform_length_left_half = np.random.uniform(platform_length_0, platform_length_1, size=cfg.num_box//2)
+    platform_length_right_half = np.random.uniform(platform_length_0, platform_length_1, size=cfg.num_box//2)
+    
+    # up
+    assert cfg.profile_mode in ["up", "down", "up_down", "random", "pyramid", "inv_pyramid"], "Invalid profile mode. Choose from 'up', 'down', 'up_down', 'random', 'pyramid', or 'inv_pyramid'."
+    if cfg.profile_mode == "up":
+        block_height_profile_left = np.ones(len(platform_gap_left_half))
+        block_height_profile_right = np.ones(len(platform_gap_right_half))
+    elif cfg.profile_mode == "down":
+        block_height_profile_left = -np.ones(len(platform_gap_left_half))
+        block_height_profile_right = -np.ones(len(platform_gap_right_half))
+    elif cfg.profile_mode == "up_down":
+        block_height_profile_left = np.ones(len(platform_gap_left_half))
+        block_height_profile_left[np.arange(1, len(platform_gap_left_half), 2)] = -1
+        block_height_profile_right = np.ones(len(platform_gap_right_half))
+        block_height_profile_right[np.arange(1, len(platform_gap_right_half), 2)] = -1
+    elif cfg.profile_mode == "random":
+        block_height_profile_left = np.random.choice([-1, 1], size=len(platform_gap_left_half))
+        block_height_profile_right = np.random.choice([-1, 1], size=len(platform_gap_right_half))
+    elif cfg.profile_mode == "pyramid":
+        left_up_number = len(platform_gap_left_half) // 2
+        left_down_number = len(platform_gap_left_half) - left_up_number
+        right_up_number = len(platform_gap_right_half) // 2
+        right_down_number = len(platform_gap_right_half) - right_up_number
+        block_height_profile_left = np.concatenate([np.ones(left_up_number), -np.ones(left_down_number)])
+        block_height_profile_right = np.concatenate([np.ones(right_up_number), -np.ones(right_down_number)])
+    elif cfg.profile_mode == "inv_pyramid":
+        left_up_number = len(platform_gap_left_half) // 2
+        left_down_number = len(platform_gap_left_half) - left_up_number
+        right_up_number = len(platform_gap_right_half) // 2
+        right_down_number = len(platform_gap_right_half) - right_up_number
+        block_height_profile_left = np.concatenate([-np.ones(left_down_number), np.ones(left_up_number)])
+        block_height_profile_right = np.concatenate([-np.ones(right_down_number), np.ones(right_up_number)])
+    
+    # left blocks
+    block_length_prev = cfg.center_area_size
+    h_prev = box_height
+    center_z = -box_height/2
+    height_noise = np.random.uniform(cfg.height_noise_range[0], cfg.height_noise_range[1], size=len(platform_gap_left_half))
+    block_center = (0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.0)
+    for i in range(len(platform_gap_left_half)):
+        block_length = platform_length_left_half[i]
+        h = box_height + height_noise[i]
+        center_z = center_z + (h_prev/2 + h/2)*block_height_profile_left[i]
+        dim = (block_length, cfg.platform_width, h)
+        block_center = (block_center[0]-block_length/2-block_length_prev/2 - platform_gap_left_half[i], block_center[1], center_z)
+        if block_center[0] < cfg.border_size:
+            break
+        
+        meshes_list.append(
+            trimesh.creation.box(dim, trimesh.transformations.translation_matrix(block_center))
+        )
+        
+        # update memory
+        h_prev = h
+        block_length_prev = block_length
+    
+    # right blocks
+    block_length_prev = cfg.center_area_size
+    h_prev = box_height
+    center_z = -box_height/2
+    height_noise = np.random.uniform(cfg.height_noise_range[0], cfg.height_noise_range[1], size=len(platform_gap_right_half))
+    block_center = (0.5 * cfg.size[0], 0.5 * cfg.size[1], 0.0)
+    for i in range(len(platform_gap_right_half)):
+        block_length = platform_length_right_half[i]
+        h = box_height + height_noise[i]
+        center_z = center_z + (h_prev/2 + h/2)*block_height_profile_right[i]
+        dim = (block_length, cfg.platform_width, h)
+        block_center = (block_center[0]+block_length/2+block_length_prev/2 + platform_gap_right_half[i], block_center[1], center_z)
+        if block_center[0] > cfg.size[0] - cfg.border_size:
+            break
+        
+        meshes_list.append(
+            trimesh.creation.box(dim, trimesh.transformations.translation_matrix(block_center))
+        )
+        
+        # update memory
+        h_prev = h
+        block_length_prev = block_length
+    
+    pos = (0.5*cfg.size[0], 0.5 * cfg.size[1], 0.0)
+    origin = np.array([pos[0], pos[1], pos[2]])
+
+    return meshes_list, origin
 
 def random_block_terrain(
     difficulty: float, cfg: mesh_terrains_cfg.MeshRandomGridTerrainCfg
@@ -1178,12 +1179,13 @@ def random_block_terrain(
     num_boxes = len(vertices)
     # create noise for the z-axis
     h_noise = torch.zeros((num_boxes, 3), device=device)
-    h_noise[:, 2].uniform_(0, grid_height)
+    # h_noise[:, 2].uniform_(0, grid_height) # uniform noise
+    h_noise[:, 2] = (2* torch.randint(0, 2, (num_boxes,), device=device) - 1) * grid_height # deterministic noise (-1 or 1)
     
     # zero at the center
-    num_platform = int(cfg.platform_width / cfg.grid_width)
+    num_platform = int(cfg.platform_width / cfg.grid_width)//2
     h_noise = h_noise.reshape(num_boxes_y, num_boxes_x, 3)
-    h_noise[(num_boxes_y+1)//2-(num_platform+1)//2 : (num_boxes_y+1)//2+(num_platform+1)//2+1, (num_boxes_x+1)//2-(num_platform+1)//2 : (num_boxes_x+1)//2+(num_platform+1)//2+1, 2] = 0
+    h_noise[num_boxes_y//2 - num_platform : num_boxes_y//2 + num_platform, num_boxes_x//2 - num_platform : num_boxes_x//2 + num_platform, 2] = 0.0
     h_noise = h_noise.view(-1, 3)
     
     # reshape noise to match the vertices (num_boxes, 4, 3)
