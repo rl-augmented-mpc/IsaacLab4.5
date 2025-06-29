@@ -238,7 +238,7 @@ CurriculumRandomBlockTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="generator",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(30.0, 30.0), # size of sub-terrain
+        size=(20.0, 20.0), # size of sub-terrain
         border_width=0.0,
         num_rows=10,
         num_cols=5,
@@ -248,25 +248,29 @@ CurriculumRandomBlockTerrain = TerrainImporterCfg(
         use_cache=False,
         curriculum=True,
         sub_terrains={
-            "terrain1": terrain_gen.MeshRepeatedBoxesTerrainCfg(
-                object_type="box", 
-                # object_type="perturbed_box_with_triangle",
-                max_height_noise=0.00, 
-                platform_width=1.5,
-                proportion=0.2,
-                object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=1500, 
-                    height=0.02*2, 
-                    size=(0.3, 0.3),
-                    max_yx_angle=0.0,
-                ), 
-                object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=1500, 
-                    height=0.06*2, 
-                    size=(0.3, 0.3),
-                    max_yx_angle=0.0, 
-                ),
-            ), 
+            # "terrain1": terrain_gen.MeshRepeatedBoxesTerrainCfg(
+            #     object_type="box", 
+            #     # object_type="perturbed_box_with_triangle",
+            #     max_height_noise=0.00, 
+            #     platform_width=1.5,
+            #     proportion=0.2,
+            #     object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+            #         num_objects=1500, 
+            #         height=0.02*2, 
+            #         size=(0.3, 0.3),
+            #         max_yx_angle=0.0,
+            #     ), 
+            #     object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+            #         num_objects=1500, 
+            #         height=0.06*2, 
+            #         size=(0.3, 0.3),
+            #         max_yx_angle=0.0, 
+            #     ),
+            # ), 
+            "terrain2": terrain_gen.MeshRandomGridTerrainCfg(
+            proportion=0.2, grid_width=0.35, 
+            grid_height_range=(0.005, 0.03), platform_width=0.6
+            ),
         },
     ),
     collision_group=-1,
@@ -324,6 +328,84 @@ InferenceRandomBlockTerrain = TerrainImporterCfg(
         restitution_combine_mode="multiply",
         static_friction=2.0,
         dynamic_friction=2.0,
+    ),
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    debug_vis=False,
+    disable_colllider=False,
+)
+
+TripOverChallengeTerrain = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="generator",
+    terrain_generator= terrain_gen.TerrainGeneratorCfg(
+        size=(10.0, 10.0), # size of sub-terrain
+        border_width=0.0,
+        num_rows=1,
+        num_cols=1,
+        horizontal_scale=0.1,
+        vertical_scale=0.005,
+        slope_threshold=0.75,
+        use_cache=False,
+        curriculum=True,
+        sub_terrains={
+            "terrain1": terrain_gen.MeshRepeatedBoxesTerrainCfg(
+                object_type="box", 
+                max_height_noise=0.00, 
+                platform_width=0.6,
+                proportion=0.2,
+                object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+                    num_objects=260, 
+                    height=0.06*2, 
+                    size=(0.3, 0.3),
+                    max_yx_angle=0.0,
+                ), 
+                object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+                    num_objects=260, 
+                    height=0.06*2, 
+                    size=(0.3, 0.3),
+                    max_yx_angle=0.0, 
+                ),
+            ), 
+        },
+    ),
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=2.0,
+        dynamic_friction=2.0,
+    ),
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    debug_vis=False,
+    disable_colllider=False,
+)
+
+BoxRoughTerrain = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="generator",
+    terrain_generator= terrain_gen.TerrainGeneratorCfg(
+        size=(10.0, 10.0), # size of sub-terrain
+        border_width=0.0,
+        num_rows=1,
+        num_cols=1,
+        horizontal_scale=0.1,
+        vertical_scale=0.005,
+        slope_threshold=0.75,
+        use_cache=False,
+        curriculum=True,
+        sub_terrains={
+            "boxes1": terrain_gen.MeshRandomGridTerrainCfg(
+            proportion=0.2, grid_width=0.35, 
+            grid_height_range=(0.03, 0.03), platform_width=0.6
+            ),
+        },
+    ),
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=1.0,
+        dynamic_friction=1.0,
     ),
     visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
     debug_vis=False,

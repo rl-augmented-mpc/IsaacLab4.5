@@ -9,7 +9,8 @@ from .terrain.terrain_cfg import (
     InferenceSteppingStoneTerrain, CurriculumSteppingStoneTerrain, 
     RandomOrientationCubeTerrain, PyramidHfTerrain, FractalTerrain, BaseTerrain, 
     CurriculumFrictionPatchTerrain, FrictionPatchTerrain, 
-    InferenceRandomBlockTerrain, CurriculumRandomBlockTerrain
+    InferenceRandomBlockTerrain, CurriculumRandomBlockTerrain, 
+    TripOverChallengeTerrain, BoxRoughTerrain
 )
 
 # # only enable when using dynamic terrain 

@@ -375,7 +375,8 @@ def random_grid_terrain(
     num_boxes = len(vertices)
     # create noise for the z-axis
     h_noise = torch.zeros((num_boxes, 3), device=device)
-    h_noise[:, 2].uniform_(-grid_height, grid_height)
+    # h_noise[:, 2].uniform_(-grid_height, grid_height)
+    h_noise[:, 2] = (2* torch.randint(0, 2, (num_boxes,), device=device) - 1) * grid_height # deterministic noise
     # reshape noise to match the vertices (num_boxes, 4, 3)
     # only the top vertices of the box are affected
     vertices_noise = torch.zeros((num_boxes, 4, 3), device=device)

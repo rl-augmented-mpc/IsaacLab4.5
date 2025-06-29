@@ -33,7 +33,7 @@ class HECTORTerminationsCfg:
     
     terrain_out_of_bounds = DoneTerm(
         func=mdp.terrain_out_of_bounds,
-        params={"asset_cfg": SceneEntityCfg("robot"), "distance_buffer": 1.0},
+        params={"asset_cfg": SceneEntityCfg("robot"), "distance_buffer": 0.6},
         time_out=True,
     )
     

@@ -62,4 +62,10 @@ def log_score_filter(image_tensor:torch.Tensor, alpha:float) -> torch.Tensor:
     # image = gaussian_filter(image_tensor, kernel_size=5, sigma=0.5)
     image = laplacian_filter(image_tensor)
     image = torch.minimum(torch.exp(-alpha * image), torch.tensor(1.0))
+    
+    # filter edge of image (set to 1.0)
+    image[:, :, 0, :] = 1.0  # top edge
+    image[:, :, -1, :] = 1.0  # bottom edge
+    image[:, :, :, 0] = 1.0  # left edge
+    image[:, :, :, -1] = 1.0  # right edge
     return image
