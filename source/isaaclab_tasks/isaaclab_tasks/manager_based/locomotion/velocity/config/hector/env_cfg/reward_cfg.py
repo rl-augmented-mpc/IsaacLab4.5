@@ -86,7 +86,7 @@ class HECTORRewardsCfg(RewardsCfg):
             # "action_idx": [7],
             "action_name": "mpc_action",
             "sensor_cfg": SceneEntityCfg("height_scanner"),
-            "lookahead_distance": 0.2,
+            "lookahead_distance": 0.35,
             "lookback_distance": 0.0, 
             "patch_width": 0.15,
         }
@@ -99,7 +99,7 @@ class HECTORRewardsCfg(RewardsCfg):
             # "action_idx": [6, 8],
             "action_name": "mpc_action",
             "sensor_cfg": SceneEntityCfg("height_scanner"),
-            "lookahead_distance": 0.2,
+            "lookahead_distance": 0.35,
             "lookback_distance": 0.0, 
             "patch_width": 0.15,
         }
@@ -176,7 +176,7 @@ class HECTORRewardsCfg(RewardsCfg):
             "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
             "l_toe": 0.07,  # ankle to toe
             "l_heel": 0.04,  # ankle to heel
-            "l_width": 0.04,  # width of foot
+            "l_width": 0.03,  # width of foot
         },
     )
     

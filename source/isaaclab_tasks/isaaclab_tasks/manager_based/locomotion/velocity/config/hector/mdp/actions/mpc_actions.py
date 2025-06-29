@@ -110,6 +110,7 @@ class MPCAction(ActionTerm):
         # self.position_trajectory_visualizer = PositionTrajectoryVisualizer("/Visuals/position_trajectory")
         self.foot_trajectory_visualizer = PositionTrajectoryVisualizer("/Visuals/foot_trajectory", color=(0.0, 0.0, 1.0))
         self.grid_point_visualizer = GridPointVisualizer("/Visuals/safe_region", color=(1.0, 0.0, 0.0))
+        # self.attention_point_visualizer = GridPointVisualizer("/Visuals/attention", color=(1.0, 1.0, 0.0))
         
         # command
         self.command = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
@@ -118,6 +119,7 @@ class MPCAction(ActionTerm):
         # heightmap related
         self.grid_point_boundary = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
         self.grid_point_boundary_in_body = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
+        self.attention_point = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
     
     """
     Properties.
@@ -319,7 +321,7 @@ class MPCAction(ActionTerm):
         ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1)      # along y
         
         ground_level_odometry_frame = self.robot_api._init_pos[:, 2] #- self.robot_api.default_root_state[:, 2]
-        self.foot_placement_height = np.clip((ground_height - ground_level_odometry_frame).cpu().numpy(), 0.0, 1.0)
+        self.foot_placement_height = np.clip((ground_height - ground_level_odometry_frame).cpu().numpy(), -1.0, 1.0)
     
     def update_visual_marker(self):
         # create storag tensors
@@ -375,12 +377,12 @@ class MPCAction(ActionTerm):
             z0 = (1 - wx) * z00.unsqueeze(1) + wx * z10.unsqueeze(1)  # along x
             z1 = (1 - wx) * z01.unsqueeze(1) + wx * z11.unsqueeze(1)  # along x
             ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1).clip(-1.0, 1.0)      # along y
-            foot_height.append(ground_height)
+            foot_height.append(ground_height) # this is rel to simulation world frame
         
         fp[:, 0, :2] = self.foot_placement_w[:, :2]
         fp[:, 1, :2] = self.foot_placement_w[:, 2:]
-        fp[:, 0, 2] = foot_height[0]
-        fp[:, 1, 2] = foot_height[1]
+        fp[:, 0, 2] = foot_height[0] - world_to_odom_trans[:, 2] # to odom frame
+        fp[:, 1, 2] = foot_height[1] - world_to_odom_trans[:, 2] # to odom frame
         
         # convert from robot odometry frame to simulation global frame
         fp[:, 0, :] = (world_to_odom_rot @ fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
@@ -402,6 +404,7 @@ class MPCAction(ActionTerm):
         # self.position_trajectory_visualizer.visualize(position_traj_world)
         self.foot_trajectory_visualizer.visualize(foot_traj_world)
         self.grid_point_visualizer.visualize(self.grid_point_boundary)
+        # self.attention_point_visualizer.visualize(self.attention_point)
         
     def _process_heightmap(self):
         sensor= self._env.scene.sensors["height_scanner_fine"]
@@ -431,6 +434,15 @@ class MPCAction(ActionTerm):
         
         self.grid_point_boundary = grid_point_boundary.clone()
         self.grid_point_boundary_in_body = grid_point_boundary_in_body.clone()
+        
+        # # attention point
+        # window_front = int(0.4/scan_resolution)
+        # window_back = int(0.0/scan_resolution)
+        # window_side = int(0.15/scan_resolution)
+        # num_envs = grid_point_boundary.shape[0]
+        # attention_point = grid_point.reshape(-1, height, width, 3)[:, height//2-window_side: height//2+window_side+1, width//2-window_back:width//2+window_front+1, :].reshape(num_envs, -1, 3)
+        # # print("elev: ", attention_point[:, :, 2].max(dim=1).values - attention_point[:, :, 2].min(dim=1).values)
+        # self.attention_point = attention_point.clone()
         
 
     def apply_actions(self):
