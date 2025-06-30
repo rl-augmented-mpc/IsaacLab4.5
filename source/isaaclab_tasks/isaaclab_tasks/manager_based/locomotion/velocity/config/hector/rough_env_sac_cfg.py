@@ -96,15 +96,15 @@ class HECTORandomBlockEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.decimation = 5
         self.sim.render_interval = 10
         
-        self.viewer = ViewerCfg(
-            # eye=(-2.5, 0.0, 0.2), 
-            # lookat=(-1.0, 0.0, 0.0),
-            eye=(0.0, -2.5, 0.2), 
-            lookat=(0.0, -1.0, 0.0),
-            resolution=(1920, 1080), 
-            origin_type="asset_root", 
-            asset_name="robot"
-        )
+        # self.viewer = ViewerCfg(
+        #     # eye=(-2.5, 0.0, 0.2), 
+        #     # lookat=(-1.0, 0.0, 0.0),
+        #     eye=(0.0, -2.5, 0.2), 
+        #     lookat=(0.0, -1.0, 0.0),
+        #     resolution=(1920, 1080), 
+        #     origin_type="asset_root", 
+        #     asset_name="robot"
+        # )
         
         self.scene.terrain = hector_mdp.CurriculumRandomBlockTerrain
         
@@ -152,8 +152,8 @@ class HECTORRandomBlockEnvSACCfgPLAY(HECTORandomBlockEnvSACCfg):
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            "yaw": (-math.pi/6, math.pi/6),
-            # "yaw": (-math.pi/2, math.pi/2),
+            "yaw": (-math.pi/4, 0),
+            # "yaw": (-math.pi, 0),
             # "yaw": (0.0, 0.0),
         }
         
