@@ -496,6 +496,7 @@ def log_barrier_swing_foot_landing_penalty(
     penalty_x = (penalty_x * mask.float()).sum(dim=1) * first_contact.sum(dim=1).float()
     penalty_y = (penalty_y * mask.float()).sum(dim=1) * first_contact.sum(dim=1).float() * 0 # disable y penalty
     penalty = penalty_x + penalty_y
+    
     return penalty
     
 

@@ -179,11 +179,12 @@ class DictBenchmarkLogger:
             for item, data in item_dict.items():
                 if data is not None:
                     if len(data.shape) == 1:
-                        data = data[:, None] # add a new axis if data is 1D
+                        data = data[:, None] # (num_envs, 1)
+                        
                     if len(self.item_log_cache[item][idx]) == 0:
-                        self.item_log_cache[item][idx] = data[idx]
+                        self.item_log_cache[item][idx] = np.expand_dims(data[idx], axis=0)
                     else:
-                        self.item_log_cache[item][idx] = np.vstack([self.item_log_cache[item][idx], data[idx]]) # append new data
+                        self.item_log_cache[item][idx] = np.concatenate([self.item_log_cache[item][idx], np.expand_dims(data[idx], axis=0)], axis=0)
                         
     def save_to_buffer(self, trial_id:int=0, env_idx:int=0):
         for item in self.log_item:

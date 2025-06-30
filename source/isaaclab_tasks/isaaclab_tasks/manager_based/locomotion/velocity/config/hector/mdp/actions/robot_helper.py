@@ -81,9 +81,9 @@ class RobotCore:
         """
         root position wrt odom frame (i.e. initial frame)
         """
+        # transform from sim global frame to odom frame
         root_pos_w = self.root_pos_w.clone()
         root_pos_w[:, :] -= self._init_pos[:, :]
-        # root_pos_w[:, 2] += self.default_root_state[:, 2]
         return torch.bmm(torch.transpose(self._init_rot, 1, 2), root_pos_w.view(-1, 3, 1)).view(-1, 3)
     
     @property
@@ -290,9 +290,9 @@ class RobotCore:
         Returns:
             foot_depth (torch.Tensor): Foot penetration depth (num_envs, num_contact_points, 3, 3)
         """
+        # from sim global frame to odom frame
         foot_pos = self.foot_pos.clone()
         foot_pos[:, :, :3] -= self._init_pos[:, None, :3]
-        # foot_pos[:, :, 2] += self.default_root_state[:, 2]
         rot_mat = self._init_rot.clone().unsqueeze(1).repeat(1, self.total_contact_point, 1, 1).view(-1, 3, 3)
         return torch.bmm(rot_mat.transpose(1,2), foot_pos.view(-1, 3, 1)).view(-1, self.total_contact_point, 3)
     

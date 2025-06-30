@@ -101,7 +101,6 @@ def height_scan(env: ManagerBasedEnv, sensor_cfg: SceneEntityCfg, reshape_as_ima
         grid_x, grid_y = sensor.cfg.pattern_cfg.size
         width, height = int(grid_x/resolution + 1), int(grid_y/resolution + 1)
         height_scan_b = height_scan_b.reshape(-1, 1, height, width).clamp(-1.0, 0.0)
-    # print("height scan min, max:", height_scan_b.min(dim=1).values, height_scan_b.max(dim=1).values)
     return height_scan_b
 
 def depth_image(env: ManagerBasedEnv, sensor_cfg: SceneEntityCfg) -> torch.Tensor:
@@ -133,8 +132,8 @@ def foot_position_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> to
     """
     # extract the used quantities (to enable type-hinting)
     action_term = env.action_manager.get_term(action_name)
-    # foot_position_b = action_term.foot_pos_b # from mpc controller
-    foot_position_b = action_term.robot_api.foot_pos_b.reshape(-1, 6) # from simulation
+    foot_position_b = action_term.foot_pos_b # from mpc controller
+    # foot_position_b = action_term.robot_api.foot_pos_b.reshape(-1, 6) # from simulation
     return foot_position_b
 
 def foot_placement_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:

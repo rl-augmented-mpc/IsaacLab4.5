@@ -152,7 +152,7 @@ def main():
             num_envs=args_cli.num_envs, 
             max_trials=args_cli.max_trials, 
             max_episode_length=max_episode_length, 
-            log_item=["state", "obs", "raw_action", "action", "reward"])
+            log_item=["state", "obs", "raw_action", "action", "reward", "unsafe_zone"])
         
     # wrap around environment for rl-games
     env = RlGamesVecEnvWrapper(env, rl_device, clip_obs, clip_actions)
@@ -217,6 +217,7 @@ def main():
             # reward_items = ["foot_landing"] # add reward term you want to log here
             reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
             foot_landing_penalty = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
+            grid_point = env.unwrapped.action_manager.get_term("mpc_action").grid_point_boundary_in_body # type: ignore
             
             # perform operations for terminated episodes
             if len(dones) > 0:
@@ -232,6 +233,7 @@ def main():
                 "raw_action": action.cpu().numpy(),  # type: ignore
                 "action": processed_actions.cpu().numpy(),
                 "reward": foot_landing_penalty.cpu().numpy(),  # type: ignore
+                "unsafe_zone": grid_point.cpu().numpy(),  # type: ignore
             }
             logger.log(item_dict)
         # Incremenet episode length 
