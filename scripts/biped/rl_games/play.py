@@ -165,9 +165,9 @@ def main():
     env_configurations.register("rlgpu", {"vecenv_type": "IsaacRlgWrapper", "env_creator": lambda **kwargs: env})
 
     # load previously trained model
-    agent_cfg["params"]["load_checkpoint"] = True
-    agent_cfg["params"]["load_path"] = resume_path
-    print(f"[INFO]: Loading model checkpoint from: {agent_cfg['params']['load_path']}")
+    # agent_cfg["params"]["load_checkpoint"] = True
+    # agent_cfg["params"]["load_path"] = resume_path
+    # print(f"[INFO]: Loading model checkpoint from: {agent_cfg['params']['load_path']}")
 
     # set number of actors into agent config
     agent_cfg["params"]["config"]["num_actors"] = env.unwrapped.num_envs

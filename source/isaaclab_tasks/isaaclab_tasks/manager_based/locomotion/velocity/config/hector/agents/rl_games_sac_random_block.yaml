@@ -45,11 +45,12 @@ params:
       
     log_std_bounds: [-5, 2]
 
-  load_checkpoint: False # flag which sets whether to load the checkpoint
-  load_path: '' # path to the checkpoint to load
+  # load_checkpoint: False # flag which sets whether to load the checkpoint
+  # load_path: '' # path to the checkpoint to load
 
   config:
     name: manager_sac_rl_games_random_block_mlp
+    full_experiment_name: 2025-07-01_11-00-00 # 2025-07-01_02-19-28 # 2025-07-01_11-00-00 # 2025-06-28_15-00-00
     env_name: rlgpu
     device: 'cuda:0'
     device_name: 'cuda:0'

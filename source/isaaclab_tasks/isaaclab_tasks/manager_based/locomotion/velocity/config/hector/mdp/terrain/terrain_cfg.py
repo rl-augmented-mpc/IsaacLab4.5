@@ -241,7 +241,7 @@ CurriculumRandomBlockTerrain = TerrainImporterCfg(
         size=(20.0, 20.0), # size of sub-terrain
         border_width=0.0,
         num_rows=10,
-        num_cols=10,
+        num_cols=5,
         horizontal_scale=0.1,
         vertical_scale=0.005,
         slope_threshold=0.75,
@@ -267,12 +267,12 @@ CurriculumRandomBlockTerrain = TerrainImporterCfg(
                     max_yx_angle=0.0, 
                 ),
             ), 
-            # "terrain2": terrain_gen.MeshRandomBlockTerrainCfg(
-            # proportion=0.2, 
-            # grid_width=0.3, 
-            # grid_height_range=(0.01, 0.04), 
-            # platform_width=1.5, 
-            # ),
+            "terrain2": terrain_gen.MeshRandomBlockTerrainCfg(
+            proportion=0.2, 
+            grid_width=0.3, 
+            grid_height_range=(0.01, 0.03), 
+            platform_width=1.5, 
+            ),
         },
     ),
     collision_group=-1,
@@ -343,7 +343,7 @@ TripOverChallengeTerrain = TerrainImporterCfg(
         size=(10.0, 10.0), # size of sub-terrain
         border_width=0.0,
         num_rows=1,
-        num_cols=20,
+        num_cols=1,
         horizontal_scale=0.1,
         vertical_scale=0.005,
         slope_threshold=0.75,
@@ -397,7 +397,7 @@ BoxRoughTerrain = TerrainImporterCfg(
         curriculum=True,
         sub_terrains={
             "boxes1": terrain_gen.MeshRandomBlockTerrainCfg(
-            proportion=0.2, grid_width=0.4, 
+            proportion=0.2, grid_width=0.3, 
             grid_height_range=(0.03, 0.03), platform_width=1.5
             ),
         },
