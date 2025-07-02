@@ -37,7 +37,7 @@ BaseTerrain = TerrainImporterCfg(
     visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
     debug_vis=False,
     disable_colllider=False,
-    center_orientation=(quat[3], quat[0], quat[1], quat[2]),
+    # center_orientation=(quat[3], quat[0], quat[1], quat[2]),
 )
 
 """
@@ -356,13 +356,13 @@ TripOverChallengeTerrain = TerrainImporterCfg(
                 platform_width=0.6,
                 proportion=0.2,
                 object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=300, 
+                    num_objects=240, 
                     height=0.06*2, 
                     size=(0.3, 0.3),
                     max_yx_angle=0.0,
                 ), 
                 object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=300, 
+                    num_objects=240, 
                     height=0.06*2, 
                     size=(0.3, 0.3),
                     max_yx_angle=0.0, 

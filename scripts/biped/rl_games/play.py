@@ -152,7 +152,14 @@ def main():
             num_envs=args_cli.num_envs, 
             max_trials=args_cli.max_trials, 
             max_episode_length=max_episode_length, 
-            log_item=["state", "obs", "raw_action", "action", "reward", "unsafe_zone"])
+            log_item=[
+                "state", 
+                "obs", 
+                "raw_action", 
+                "action", 
+                "reward", 
+                "unsafe_zone"
+                ])
         
     # wrap around environment for rl-games
     env = RlGamesVecEnvWrapper(env, rl_device, clip_obs, clip_actions)
@@ -190,6 +197,10 @@ def main():
         obs = obs["obs"]
     # convert obs to agent format
     obs = agent.obs_to_torch(obs)
+    state = env.unwrapped.action_manager.get_term("mpc_action").state # type: ignore
+    
+    obs_prev = obs.clone()  # type: ignore
+    state_prev = state.clone()  # type: ignore
     
     # required: enables the flag for batched observations
     _ = agent.get_batch_size(obs, 1)
@@ -214,7 +225,7 @@ def main():
             state = env.unwrapped.action_manager.get_term("mpc_action").state # type: ignore
             
             reward_items = ["foot_landing_penalty"] # add reward term you want to log here
-            # reward_items = ["foot_landing"] # add reward term you want to log here
+            # reward_items = ["termination"] # add reward term you want to log here
             reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
             foot_landing_penalty = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
             grid_point = env.unwrapped.action_manager.get_term("mpc_action").grid_point_boundary_in_body # type: ignore
@@ -228,21 +239,25 @@ def main():
         
         if args_cli.log:
             item_dict = {
-                "state": state.cpu().numpy(),  # type: ignore
-                "obs": obs.cpu().numpy(), # type: ignore
+                "state": state_prev.cpu().numpy(),  # type: ignore
+                "obs": obs_prev.cpu().numpy(), # type: ignore
                 "raw_action": action.cpu().numpy(),  # type: ignore
                 "action": processed_actions.cpu().numpy(),
                 "reward": foot_landing_penalty.cpu().numpy(),  # type: ignore
                 "unsafe_zone": grid_point.cpu().numpy(),  # type: ignore
             }
             logger.log(item_dict)
+            
+        # update buffer
+        obs_prev = obs.clone()  # type: ignore
+        state_prev = state.clone()  # type: ignore
+        
         # Incremenet episode length 
         for i  in range(args_cli.num_envs):
             episode_length_log[i] += 1
         
         # Convert done flag to numpy
         dones_np = dones.cpu().numpy()
-
         # Check each agent's done flag
         for i, done_flag in enumerate(dones_np):
             if episode_counter[i] < max_trials: # only allow logging when episode counter is less than max trials to avoid memory overflow
