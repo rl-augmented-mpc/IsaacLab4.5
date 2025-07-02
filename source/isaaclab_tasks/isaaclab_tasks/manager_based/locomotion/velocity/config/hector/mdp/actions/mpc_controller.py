@@ -117,6 +117,9 @@ class MPCController:
     def reset(self)->None:
         self.hc.reset()
     
+    def switch_fsm(self, fsm_name: str) -> None:
+        self.hc.switch_fsm(fsm_name)
+    
     
     """
     helper functions

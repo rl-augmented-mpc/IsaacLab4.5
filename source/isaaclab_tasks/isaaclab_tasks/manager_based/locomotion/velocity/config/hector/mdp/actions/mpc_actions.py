@@ -147,7 +147,8 @@ class MPCAction(ActionTerm):
     """
     Operations.
     """
-
+    
+    # ** MDP loop **
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
         self._raw_actions[:] = actions
@@ -448,11 +449,9 @@ class MPCAction(ActionTerm):
         # # print("elev: ", attention_point[:, :, 2].max(dim=1).values - attention_point[:, :, 2].min(dim=1).values)
         # self.attention_point = attention_point.clone()
         
-
+    # ** physics loop **
     def apply_actions(self):
-        # obtain state
         self._get_state()
-        
         # compute mpc
         for i in range(self.num_envs):
             self.mpc_controller[i].update_state(self.state[i].cpu().numpy())
@@ -581,14 +580,21 @@ class MPCAction(ActionTerm):
         self.original_command[env_ids, :] = self._env.command_manager.get_command(self.cfg.command_name)[env_ids, :]
         
         # reset mpc controller
+        self.mpc_counter[env_ids] = 0
         self._get_state()
         for i in env_ids.cpu().numpy(): # type: ignore
             self.mpc_controller[i].reset()
             self.mpc_controller[i].update_gait_parameter(
                 np.array([self.cfg.double_support_duration, self.cfg.double_support_duration]), 
                 np.array([self.cfg.single_support_duration, self.cfg.single_support_duration]),)
+            self.mpc_controller[i].switch_fsm("passive")
             self.mpc_controller[i].update_state(self.state[i].cpu().numpy())
-        self.mpc_counter[env_ids] = 0
+            self.mpc_controller[i].run()
+        self._get_mpc_state()
+        
+        # switch to walking mode again
+        for i in range(self.num_envs):
+            self.mpc_controller[i].switch_fsm("walking")
 
 class MPCAction2(MPCAction):
     """

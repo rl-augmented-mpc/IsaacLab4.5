@@ -52,7 +52,7 @@ HECTOR_CFG = ArticulationCfg(
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 0.56),
+        pos=(0.0, 0.0, 0.55),
         rot=(1.0, 0.0, 0.0, 0.0),
         joint_vel={".*": 0.0},
         joint_pos={
@@ -94,14 +94,14 @@ HECTOR_CFG = ArticulationCfg(
                 "R_calf_joint": 0,
             },
             damping={
-                "L_hip_joint": 0.2,
-                "L_hip2_joint": 0.2,
-                "L_thigh_joint": 0.2,
-                "L_calf_joint": 0.2,
-                "R_hip_joint": 0.2,
-                "R_hip2_joint": 0.2,
-                "R_thigh_joint": 0.2,
-                "R_calf_joint": 0.2,
+                "L_hip_joint": 0.0,
+                "L_hip2_joint": 0.0,
+                "L_thigh_joint": 0.0,
+                "L_calf_joint": 0.0,
+                "R_hip_joint": 0.0,
+                "R_hip2_joint": 0.0,
+                "R_thigh_joint": 0.0,
+                "R_calf_joint": 0.0,
             },
             armature={
                 "L_hip_joint": 0,
@@ -128,8 +128,8 @@ HECTOR_CFG = ArticulationCfg(
                 "R_toe_joint": 0,
             },
             damping={
-                "L_toe_joint": 0.2,
-                "R_toe_joint": 0.2,
+                "L_toe_joint": 0.0,
+                "R_toe_joint": 0.0,
             },
             armature={
                 "L_toe_joint": 0.000,
