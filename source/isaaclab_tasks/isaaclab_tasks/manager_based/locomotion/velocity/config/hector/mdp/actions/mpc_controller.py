@@ -225,46 +225,79 @@ class MPCController:
     
     @property
     def grfm(self) -> np.ndarray:
+        """
+        return ground reaction wrench from MPC in body frame (12,)
+        """
         return self.hc.getGRFM().astype(np.float32)
 
     @property
     def contact_phase(self) -> np.ndarray:
+        """
+        contact sub-phase of each foot (2,)
+        """
         return self.hc.getContactPhase().astype(np.float32)
 
     @property
     def swing_phase(self) -> np.ndarray:
+        """
+        swing sub-phase of the robot (2,)
+        """
         return self.hc.getSwingPhase().astype(np.float32)
 
     @property
     def contact_state(self) -> np.ndarray:
+        """
+        contact state of each foot (2,)
+        """
         return self.hc.getContactState().astype(np.float32)
 
     @property
     def swing_state(self) -> np.ndarray:
+        """
+        swing state of each foot (2,)
+        """
         return self.hc.getSwingState().astype(np.float32)
 
-    @property
-    def reibert_foot_placement(self) -> np.ndarray:
-        return self.hc.getReibertFootPlacement().astype(np.float32)
+    # @property
+    # def reibert_foot_placement(self) -> np.ndarray:
+    #     return self.hc.getReibertFootPlacement().astype(np.float32)
 
     @property
     def foot_placement(self) -> np.ndarray:
+        """
+        planned foothold of each foot in body frame (2, 3)
+        """
         return self.hc.getFootPlacement().astype(np.float32)
 
     @property
     def ref_foot_pos_b(self) -> np.ndarray:
+        """
+        reference foot position at current swing phase in body frame (2, 3)
+        """
         return self.hc.getRefFootPosition().astype(np.float32)
 
     @property
     def foot_pos_b(self) -> np.ndarray:
+        """
+        current foot position in body frame (2, 3)
+        """
         return self.hc.getFootPosition().astype(np.float32)
     
     @property
     def mpc_cost(self) -> float:
+        """
+        MPC cost value
+        """
         return float(self.hc.getCost())
     
     @property
     def reference_trajectory(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        reference trajectories for torso position, orientation, and swing foot positions.
+        Returns:
+            Tuple[np.ndarray, np.ndarray, np.ndarray]: 
+                position trajectory (N, 3), orientation trajectory (N, 4), foot position trajectory (N, 3)
+        """
         position_traj = self.hc.getReferencePositionTrajectory().astype(np.float32)
         orientation_traj = self.hc.getReferenceOrientationTrajectory().astype(np.float32)
         foot_traj = self.hc.getReferenceFootPositionTrajectory().astype(np.float32)

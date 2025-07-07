@@ -158,7 +158,7 @@ def main():
                 "raw_action", 
                 "action", 
                 "reward", 
-                "unsafe_zone"
+                # "unsafe_zone"
                 ])
         
     # wrap around environment for rl-games
@@ -216,19 +216,21 @@ def main():
             else:
                 action = torch.zeros(env.unwrapped.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
                 action[:, 1] = -1.0
-                action[:, 3] = 3/4
-                action[:, 4] = 3/4
+                # action[:, 3] = 3/4
+                # action[:, 4] = 3/4
             obs, _, dones, _ = env.step(action)
             obs = agent.obs_to_torch(obs)
             
             processed_actions = env.unwrapped.action_manager.get_term("mpc_action").processed_actions # type: ignore
             state = env.unwrapped.action_manager.get_term("mpc_action").state # type: ignore
             
-            reward_items = ["foot_landing_penalty"] # add reward term you want to log here
-            # reward_items = ["termination"] # add reward term you want to log here
+            # reward_items = ["foot_landing_penalty"] # add reward term you want to log here
+            reward_items = ["termination"] # add reward term you want to log here
             reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
-            foot_landing_penalty = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
-            grid_point = env.unwrapped.action_manager.get_term("mpc_action").grid_point_boundary_in_body # type: ignore
+            reward = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
+
+            # extras
+            # grid_point = env.unwrapped.action_manager.get_term("mpc_action").grid_point_boundary_in_body # type: ignore
             
             # perform operations for terminated episodes
             if len(dones) > 0:
@@ -243,8 +245,8 @@ def main():
                 "obs": obs_prev.cpu().numpy(), # type: ignore
                 "raw_action": action.cpu().numpy(),  # type: ignore
                 "action": processed_actions.cpu().numpy(),
-                "reward": foot_landing_penalty.cpu().numpy(),  # type: ignore
-                "unsafe_zone": grid_point.cpu().numpy(),  # type: ignore
+                "reward": reward.cpu().numpy(),  # type: ignore
+                # "unsafe_zone": grid_point.cpu().numpy(),  # type: ignore
             }
             logger.log(item_dict)
             

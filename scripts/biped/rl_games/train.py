@@ -15,7 +15,7 @@ from isaaclab.app import AppLauncher
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Train an RL agent with RL-Games.")
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
-parser.add_argument("--video_length", type=int, default=200, help="Length of the recorded video (in steps).")
+parser.add_argument("--video_length", type=int, default=500, help="Length of the recorded video (in steps).")
 parser.add_argument("--video_interval", type=int, default=4000, help="Interval between video recordings (in steps).")
 parser.add_argument("--video_speed", type=float, default=1.0, help="Speed of the recorded video.")
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")

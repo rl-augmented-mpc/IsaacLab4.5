@@ -16,7 +16,7 @@ from .env_cfg import (
     HECTORCurriculumCfg,
     HECTOREventCfg,
     PPOHECTORObservationsCfg,
-    HECTORRewardsCfg,
+    HECTORBlindLocomotionRewardsCfg,
     HECTORTerminationsCfg,
     HECTORSceneCfg,
 )
@@ -25,7 +25,7 @@ from .env_cfg import (
 @configclass
 class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     scene: HECTORSceneCfg = HECTORSceneCfg(num_envs=4096, env_spacing=2.5)
-    rewards: HECTORRewardsCfg = HECTORRewardsCfg()
+    rewards: HECTORBlindLocomotionRewardsCfg = HECTORBlindLocomotionRewardsCfg()
     actions: HECTORActionsCfg = HECTORActionsCfg()
     commands: HECTORCommandsCfg = HECTORCommandsCfg()
     observations: PPOHECTORObservationsCfg = PPOHECTORObservationsCfg()
@@ -53,8 +53,7 @@ class HECTORRoughEnvCfgPLAY(HECTORRoughEnvCfg):
     def __post_init__(self):
         super().__post_init__()
         self.seed = 42
-        self.scene.terrain = hector_mdp.SteppingStoneTerrain
-        self.scene.height_scanner.debug_vis = True
+        # self.scene.height_scanner.debug_vis = True
         # self.events.reset_camera = None
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         self.curriculum.terrain_levels = None
