@@ -1180,20 +1180,20 @@ def random_block_terrain(
     # create noise for the z-axis
     h_noise = torch.zeros((num_boxes, 3), device=device)
     
-    # h_noise[:, 2].uniform_(0, grid_height) # uniform noise
+    h_noise[:, 2].uniform_(-grid_height, grid_height) # uniform noise
     
     # h_noise[:, 2] = (2* torch.randint(0, 2, (num_boxes,), device=device) - 1) * grid_height # deterministic noise (-1 or 1)
     
-    # checkerboard like noise
-    x_idx = torch.arange(num_boxes_x, device=device)
-    y_idx = torch.arange(num_boxes_y, device=device)
-    XX, YY = torch.meshgrid(x_idx, y_idx, indexing="ij")
-    X = XX.flatten().view(-1, 1)
-    Y = YY.flatten().view(-1, 1)
-    box_xy = torch.cat((X, Y), dim=1)
-    parity = (box_xy[:, 0] + box_xy[:, 1]) % 2  # 0 or 1
-    height_sign = 2 * parity - 1  # 0 -> -1, 1 -> +1
-    h_noise[:, 2] = height_sign * grid_height
+    # # checkerboard like noise
+    # x_idx = torch.arange(num_boxes_x, device=device)
+    # y_idx = torch.arange(num_boxes_y, device=device)
+    # XX, YY = torch.meshgrid(x_idx, y_idx, indexing="ij")
+    # X = XX.flatten().view(-1, 1)
+    # Y = YY.flatten().view(-1, 1)
+    # box_xy = torch.cat((X, Y), dim=1)
+    # parity = (box_xy[:, 0] + box_xy[:, 1]) % 2  # 0 or 1
+    # height_sign = 2 * parity - 1  # 0 -> -1, 1 -> +1
+    # h_noise[:, 2] = height_sign * grid_height
     
     # zero at the center
     num_platform = int(cfg.platform_width / cfg.grid_width)//2
@@ -1369,8 +1369,8 @@ def poisson_disk_sampling_terrain(
         # randomize shape parameters (length, width) or radius depending on the object type by changing ratio from 0.5 to 1.5
         if ob_height > 0.0:
             if isinstance(cfg, MeshRepeatedBoxesTerrainCfg):
-                object_width = (1 + np.random.uniform(-0.3, 0.2)) * object_kwargs["width"]
-                object_length = (1 + np.random.uniform(-0.3, 0.2)) * object_kwargs["length"]
+                object_width = (1 + np.random.uniform(-0.3, 0.0)) * object_kwargs["width"]
+                object_length = (1 + np.random.uniform(-0.3, 0.0)) * object_kwargs["length"]
                 object_mesh = object_func(
                     center=object_centers[index], 
                     height=ob_height, 

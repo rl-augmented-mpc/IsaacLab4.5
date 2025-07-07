@@ -15,11 +15,11 @@ BASE_CLASS = [
     "HECTOR-ManagerBased-RL",
     "HECTOR-ManagerBased-RL-PLAY",
     
-    "HECTOR-ManagerBased-RL-SAC",
-    "HECTOR-ManagerBased-RL-SAC-PLAY",
+    "HECTOR-ManagerBased-RL-SAC-Rough-Blind",
+    "HECTOR-ManagerBased-RL-SAC-Rough-Blind-PLAY",
     
-    "HECTOR-ManagerBased-RL-SAC-Block",
-    "HECTOR-ManagerBased-RL-SAC-Block-PLAY",
+    "HECTOR-ManagerBased-RL-SAC-Rough-Perceptive",
+    "HECTOR-ManagerBased-RL-SAC-Rough-Perceptive-PLAY",
     
     "HECTOR-ManagerBased-RL-SAC-SLIP",
     "HECTOR-ManagerBased-RL-SAC-SLIP-PLAY",
@@ -45,27 +45,29 @@ ARGS = [
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cnn_encoder.yaml",
     },
     
-    # SAC stepping stone env
+    # SAC blind rough env
     {
-        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvSACCfg",
-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
+        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvBlindLocomotionSACCfg",
+        # "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_st.yaml",
     },
     {
-        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvSACCfgPLAY",
-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
+        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvBlindLocomotionSACCfgPLAY",
+        # "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_st.yaml",
     },
     
-    # SAC random block env
+    # SAC percptive rough env
     {
-        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORandomBlockEnvSACCfg",
+        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvPerceptiveLocomotionSACCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_random_block.yaml",
     },
     {
-        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRandomBlockEnvSACCfgPLAY",
+        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvPerceptiveLocomotionSACCfgPLAY",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_random_block.yaml",
     },
     
-    # SAC slip env
+    # SAC slip blind env
     {
         "env_cfg_entry_point": f"{__name__}.slip_env_sac_cfg:HECTORSlipEnvSACCfg",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_slip.yaml",

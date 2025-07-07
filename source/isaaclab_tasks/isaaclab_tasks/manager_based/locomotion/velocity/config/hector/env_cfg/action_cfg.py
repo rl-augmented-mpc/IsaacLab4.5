@@ -8,10 +8,50 @@ import isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp as hec
 
 
 @configclass
-class HECTORActionsCfg:
+class HECTORBlindLocomotionActionsCfg:
     """Action specifications for the MDP."""
 
-    # mpc_action = hector_mdp.MPCActionCfg(
+    # mpc_action = hector_mdp.BlindLocomotionMPCActionCfg(
+    #     asset_name="robot", 
+    #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
+    #     action_range = (
+    #         (-0.6, 0.0, -0.6), 
+    #         (0.6, 0.1, 0.6)
+    #     )
+    # )
+
+    mpc_action = hector_mdp.BlindLocomotionMPCActionCfg2(
+        asset_name="robot", 
+        joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
+        action_range = (
+            (-2.0, -2.0, -4.0, -0.1, -1.0, -1.0, -0.3, 0.0, -0.33), 
+            (2.0, 2.0, 4.0, 0.1, 1.0, 1.0, 0.3, 0.1, 0.33)
+        )
+    )
+    
+    # mpc_action = hector_mdp.BlindLocomotionMPCActionCfg3(
+    #     asset_name="robot", 
+    #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
+    #     action_range = (
+    #         (-0.3, 0.0, -0.33, -0.0), 
+    #         (0.3, 0.1, 0.33, 0.0)
+    #     )
+    # )
+    
+    # mpc_action = hector_mdp.BlindLocomotionMPCActionCfg4(
+    #     asset_name="robot", 
+    #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
+    #     action_range = (
+    #         (-2.0, -2.0, -4.0, -0.1, -1.0, -1.0, -0.6, 0.0, -0.4, -1.5, -1.5), 
+    #         (2.0, 2.0, 4.0, 0.1, 1.0, 1.0, 0.6, 0.1, 0.4, 0.5, 0.5)
+    #     )
+    # )
+
+@configclass
+class HECTORPerceptiveLocomotionActionsCfg:
+    """Action specifications for the MDP."""
+
+    # mpc_action = hector_mdp.PerceptiveLocomotionMPCActionCfg(
     #     asset_name="robot", 
     #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
     #     action_range = (
@@ -20,16 +60,16 @@ class HECTORActionsCfg:
     #     )
     # )
     
-    mpc_action = hector_mdp.MPCActionCfgV3(
+    mpc_action = hector_mdp.PerceptiveLocomotionMPCActionCfg3(
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            (-0.3, 0.0, -0.33, -0.3, -0.3), 
-            (0.3, 0.1, 0.33, 0.3, 0.3)
+            (-0.3, 0.0, -0.0, -0.0, -0.3), 
+            (0.3, 0.1, 0.0, 0.0, 0.3)
         )
     )
     
-    # mpc_action = hector_mdp.MPCActionCfgV4(
+    # mpc_action = hector_mdp.PerceptiveLocomotionMPCActionCfg4(
     #     asset_name="robot", 
     #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
     #     action_range = (
@@ -42,7 +82,7 @@ class HECTORActionsCfg:
 class HECTORSlipActionsCfg:
     """Action specifications for the MDP."""
 
-    mpc_action = hector_mdp.MPCActionCfgV2(
+    mpc_action = hector_mdp.BlindLocomotionMPCActionCfg2(
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
@@ -55,7 +95,7 @@ class HECTORSlipActionsCfg:
 class HECTORL2TActionsCfg:
     """Action specifications for the MDP."""
 
-    mpc_action = hector_mdp.MPCActionCfg(
+    mpc_action = hector_mdp.PerceptiveLocomotionMPCActionCfg(
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (

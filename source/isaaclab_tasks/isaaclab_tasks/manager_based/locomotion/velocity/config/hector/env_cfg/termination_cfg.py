@@ -18,22 +18,32 @@ class HECTORTerminationsCfg:
     """Termination terms for the MDP."""
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True) # type: ignore
+
     # bad_orientation = DoneTerm(
     #     func=mdp.bad_orientation,  # type: ignore
     #     params={"asset_cfg": SceneEntityCfg("robot"), "limit_angle": math.pi/10},
     #     time_out=True,
     # )
+
     base_too_low = DoneTerm(
         func=hector_mdp.root_height_below_minimum_adaptive,  # type: ignore
         params={
-            "minimum_height": 0.3,
+            "minimum_height": 0.4,
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_sole"),
+        },
+    )
+
+    base_too_high = DoneTerm(
+        func=hector_mdp.root_height_above_maximum_adaptive,  # type: ignore
+        params={
+            "maximum_height": 0.65,
             "asset_cfg": SceneEntityCfg("robot", body_names=".*_sole"),
         },
     )
     
     terrain_out_of_bounds = DoneTerm(
         func=mdp.terrain_out_of_bounds,
-        params={"asset_cfg": SceneEntityCfg("robot"), "distance_buffer": 0.6},
+        params={"asset_cfg": SceneEntityCfg("robot"), "distance_buffer": 1.0},
         time_out=True,
     )
     

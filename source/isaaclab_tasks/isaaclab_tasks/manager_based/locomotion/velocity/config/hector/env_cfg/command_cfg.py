@@ -21,12 +21,12 @@ class HECTORCommandsCfg:
         rel_standing_envs=0.0,
         rel_heading_envs=1.0,
         heading_command=False,
-        heading_control_stiffness=1.0,
+        heading_control_stiffness=5.0,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges( # type: ignore
             lin_vel_x=(0.3, 0.6), 
             lin_vel_y=(0.0, 0.0), 
-            ang_vel_z=(0.0, 0.0),
+            ang_vel_z=(-0.0, 0.0),
             heading=(0.0, 0.0)
         ),
     )

@@ -1,11 +1,16 @@
 from .actions.mpc_actions_cfg import (
-    MPCActionCfg, 
-    MPCActionCfgV2, 
-    MPCActionCfgV3, 
-    MPCActionCfgV4, 
+    BlindLocomotionMPCActionCfg, 
+    BlindLocomotionMPCActionCfg2, 
+    BlindLocomotionMPCActionCfg3, 
+    BlindLocomotionMPCActionCfg4, 
+    PerceptiveLocomotionMPCActionCfg,
+    PerceptiveLocomotionMPCActionCfg2, 
+    PerceptiveLocomotionMPCActionCfg3, 
+    PerceptiveLocomotionMPCActionCfg4, 
     TorchMPCActionCfg, 
 )
 from .terrain.terrain_cfg import (
+    SteppingStoneTerrain, 
     InferenceSteppingStoneTerrain, CurriculumSteppingStoneTerrain, 
     RandomOrientationCubeTerrain, PyramidHfTerrain, FractalTerrain, BaseTerrain, 
     CurriculumFrictionPatchTerrain, FrictionPatchTerrain, 
@@ -44,5 +49,9 @@ from .events.events import (
     reset_root_state_orthogonal, apply_tangential_external_force_torque
 )
 from .curriculums.curriculums import terrain_levels_episode, custom_terrain_levels_episode
-from .termination.termination import root_height_below_minimum_adaptive, bad_foot_contact
+from .termination.termination import (
+    root_height_below_minimum_adaptive, 
+    root_height_above_maximum_adaptive, 
+    bad_foot_contact
+)
 from .commands.commands import TerrainAwareUniformVelocityCommand

@@ -137,13 +137,16 @@ def foot_position_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> to
     return foot_position_b
 
 def foot_placement_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:
-    """Foot placement of the robot.
-
-    The foot placement is defined as the position of the foot in the world frame.
+    """
+    Planned foothold calculated from heuristics planner. 
+    Exlude z position. 
+    
+    Return: 
+        foot_placement_b: torch.Tensor (num_envs, 4)
     """
     # extract the used quantities (to enable type-hinting)
     action_term = env.action_manager.get_term(action_name)
-    foot_placement_b = action_term.foot_placement_b
+    foot_placement_b = action_term.foot_placement_b[:, [0, 1, 3, 4]]
     return foot_placement_b
 
 def reference_foot_position_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:

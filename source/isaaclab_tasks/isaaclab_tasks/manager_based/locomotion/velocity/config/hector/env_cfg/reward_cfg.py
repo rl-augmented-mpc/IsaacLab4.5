@@ -12,7 +12,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Re
 import isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp as hector_mdp
 
 @configclass
-class HECTORRewardsCfg(RewardsCfg):
+class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
     """Reward terms for the MDP."""
     # -- rewards
     track_lin_vel_xy_exp = RewTerm(
@@ -53,20 +53,12 @@ class HECTORRewardsCfg(RewardsCfg):
         weight=-2.5e-4,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])}
     )
-    # dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7) # type: ignore
     dof_acc_l2 = None
     dof_torques_l2 = RewTerm(
         func=mdp.joint_torques_l2,  # type: ignore
         weight=-1.0e-5, 
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])}
         )
-    
-    # Penalize ankle joint limits
-    # dof_pos_limits = RewTerm(
-    #     func=mdp.joint_pos_limits, # type: ignore
-    #     weight=-0.1,
-    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_toe_joint"])},
-    # )
     
     # Penalize deviation from default of the joints that are not essential for locomotion
     joint_deviation = RewTerm(
@@ -76,14 +68,12 @@ class HECTORRewardsCfg(RewardsCfg):
     )
     # joint_deviation = None
     
-    dof_pos_limits = None
-    
     processed_action_l2_swing_height = RewTerm(
         func=hector_mdp.rough_terrain_processed_action_l2,
         weight=-0.5,
         params={
-            "action_idx": [1],
-            # "action_idx": [7],
+            # "action_idx": [1],
+            "action_idx": [7],
             "action_name": "mpc_action",
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "lookahead_distance": 0.35,
@@ -93,10 +83,10 @@ class HECTORRewardsCfg(RewardsCfg):
     )
     processed_action_l2_sampling_time = RewTerm(
         func=hector_mdp.rough_terrain_processed_action_l2,
-        weight=-2.0,
+        weight=-1.0,
         params={
-            "action_idx": [0, 2],
-            # "action_idx": [6, 8],
+            # "action_idx": [0, 2],
+            "action_idx": [6, 8],
             "action_name": "mpc_action",
             "sensor_cfg": SceneEntityCfg("height_scanner"),
             "lookahead_distance": 0.35,
@@ -105,32 +95,32 @@ class HECTORRewardsCfg(RewardsCfg):
         }
     )
     
-    processed_action_l2_ref_vel = RewTerm(
-        func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-2.0,
-        params={
-            "action_idx": [3, 4],
-            # "action_idx": [9, 10],
-            "action_name": "mpc_action",
-        }
-    )
-    
-    # processed_action_l2_lin_accel = RewTerm(
-    #     func=hector_mdp.individual_action_l2, # type: ignore
-    #     weight=-1.0,
-    #     params={
-    #         "action_idx": [0, 1, 2],
-    #         "action_name": "mpc_action",
-    #     }
-    # )
-    # processed_action_l2_ang_accel = RewTerm(
+    # processed_action_l2_ref_vel = RewTerm(
     #     func=hector_mdp.individual_action_l2, # type: ignore
     #     weight=-0.5,
     #     params={
-    #         "action_idx": [3, 4, 5],
+    #         "action_idx": [3],
+    #         # "action_idx": [9, 10],
     #         "action_name": "mpc_action",
     #     }
     # )
+    
+    processed_action_l2_lin_accel = RewTerm(
+        func=hector_mdp.individual_action_l2, # type: ignore
+        weight=-1.0,
+        params={
+            "action_idx": [0, 1, 2],
+            "action_name": "mpc_action",
+        }
+    )
+    processed_action_l2_ang_accel = RewTerm(
+        func=hector_mdp.individual_action_l2, # type: ignore
+        weight=-0.5,
+        params={
+            "action_idx": [3, 4, 5],
+            "action_name": "mpc_action",
+        }
+    )
     
     # body-leg angle penalties
     leg_body_angle_l2 = RewTerm(
@@ -167,39 +157,46 @@ class HECTORRewardsCfg(RewardsCfg):
         },
         )
     
+    dof_pos_limits = None
+    feet_air_time = None
+    flat_orientation_l2 = None
+    undesired_contacts = None
+
+
+@configclass
+class HECTORPerceptiveLocomotionRewardsCfg(HECTORBlindLocomotionRewardsCfg):
+    # foot_landing_penalty = RewTerm(
+    #     func=hector_mdp.log_barrier_swing_foot_landing_penalty,
+    #     weight=-2.0,
+    #     params={
+    #         "action_name": "mpc_action",
+    #         "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+    #         "l_toe": 0.07,  # ankle to toe
+    #         "l_heel": 0.04,  # ankle to heel
+    #         "l_width": 0.03,  # width of foot
+    #     },
+    # )
     
-    foot_landing_penalty = RewTerm(
-        func=hector_mdp.log_barrier_swing_foot_landing_penalty,
-        weight=-5.0,
+    # -- use height scanner atatached to foot
+    foot_landing_penalty_left = RewTerm(
+        func=hector_mdp.swing_foot_landing_penalty,
+        weight=-1.5,
         params={
-            "action_name": "mpc_action",
-            "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
-            "l_toe": 0.07,  # ankle to toe
-            "l_heel": 0.04,  # ankle to heel
-            "l_width": 0.03,  # width of foot
+            "sensor_cfg": SceneEntityCfg("height_scanner_L_foot"),
+            "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="L_toe"),
+            "std": 0.03, 
         },
     )
     
-    # -- use height scanner atatached to foot
-    # foot_landing_penalty_left = RewTerm(
-    #     func=hector_mdp.swing_foot_landing_penalty,
-    #     weight=-1.5,
-    #     params={
-    #         "sensor_cfg": SceneEntityCfg("height_scanner_L_foot"),
-    #         "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="L_toe"),
-    #         "std": 0.03, 
-    #     },
-    # )
-    
-    # foot_landing_penalty_right = RewTerm(
-    #     func=hector_mdp.swing_foot_landing_penalty,
-    #     weight=-1.5,
-    #     params={
-    #         "sensor_cfg": SceneEntityCfg("height_scanner_R_foot"),
-    #         "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="R_toe"),
-    #         "std": 0.03, 
-    #     },
-    # )
+    foot_landing_penalty_right = RewTerm(
+        func=hector_mdp.swing_foot_landing_penalty,
+        weight=-1.5,
+        params={
+            "sensor_cfg": SceneEntityCfg("height_scanner_R_foot"),
+            "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="R_toe"),
+            "std": 0.03, 
+        },
+    )
     
     # foot_placement = RewTerm(
     #     func=hector_mdp.foot_placement_penalty,
@@ -213,11 +210,6 @@ class HECTORRewardsCfg(RewardsCfg):
     #         "std": 0.03, 
     #     },
     # )
-    
-    feet_air_time = None
-    flat_orientation_l2 = None
-    undesired_contacts = None
-    
     
 @configclass
 class HECTORSlipRewardsCfg(RewardsCfg):
@@ -329,19 +321,6 @@ class HECTORSlipRewardsCfg(RewardsCfg):
         weight=-1.0,
         params={"action_name": "mpc_action"}
     )
-
-    # # contact penalties
-    # undesired_contacts_knee = RewTerm(
-    #     func=mdp.undesired_contacts, # type: ignore
-    #     weight=-5.0,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},
-    # )
-
-    # undesired_contacts_toe = RewTerm(
-    #     func=mdp.undesired_contacts, # type: ignore
-    #     weight=-5.0,
-    #     params={"sensor_cfg": SceneEntityCfg("toe_contact", body_names=".*_toe_tip"), "threshold": 1.0},
-    # )
     
     # -- MPC cost
     mpc_cost_l2 = RewTerm(

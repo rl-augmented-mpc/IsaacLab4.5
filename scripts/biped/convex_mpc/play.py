@@ -126,7 +126,7 @@ def main():
             
             reward_items = ["termination"] # add reward term you want to log here
             reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
-            foot_landing_penalty = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
+            reward = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
         
         if args_cli.log:
             item_dict = {
@@ -134,7 +134,7 @@ def main():
                 "obs": obs.cpu().numpy(),
                 "raw_action": action.cpu().numpy(),  # type: ignore
                 "action": processed_actions.cpu().numpy(),
-                "reward": foot_landing_penalty.cpu().numpy(),  # type: ignore
+                "reward": reward.cpu().numpy(),  # type: ignore
             }
             logger.log(item_dict)
         

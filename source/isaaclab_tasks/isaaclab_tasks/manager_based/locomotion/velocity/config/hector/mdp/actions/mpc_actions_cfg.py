@@ -12,10 +12,12 @@ from isaaclab.utils import configclass
 from . import mpc_actions
 from . import mpc_actions_torch
 
-
+"""
+Pybind controller
+"""
 @configclass
-class MPCActionCfg(ActionTermCfg):
-    class_type: type[ActionTerm] = mpc_actions.MPCAction
+class BlindLocomotionMPCActionCfg(ActionTermCfg):
+    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCAction
 
     joint_names: list[str] = MISSING # type: ignore
     """List of joint names or regex expressions that the action will be mapped to."""
@@ -54,19 +56,39 @@ class MPCActionCfg(ActionTermCfg):
     """Friction cone coefficient of the robot."""
 
 @configclass
-class MPCActionCfgV2(MPCActionCfg):
-    class_type: type[ActionTerm] = mpc_actions.MPCAction2
-    friction_cone_coef: float = 1.0
+class BlindLocomotionMPCActionCfg2(BlindLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCAction2
     
 @configclass
-class MPCActionCfgV3(MPCActionCfg):
-    class_type: type[ActionTerm] = mpc_actions.MPCAction3
+class BlindLocomotionMPCActionCfg3(BlindLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCAction3
     
 @configclass
-class MPCActionCfgV4(MPCActionCfg):
-    class_type: type[ActionTerm] = mpc_actions.MPCAction4
+class BlindLocomotionMPCActionCfg4(BlindLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCAction4
+
+
+@configclass
+class PerceptiveLocomotionMPCActionCfg(BlindLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.PerceptiveLocomotionMPCAction
+
+@configclass
+class PerceptiveLocomotionMPCActionCfg2(PerceptiveLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.PerceptiveLocomotionMPCAction2
     
+@configclass
+class PerceptiveLocomotionMPCActionCfg3(PerceptiveLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.PerceptiveLocomotionMPCAction3
     
+@configclass
+class PerceptiveLocomotionMPCActionCfg4(PerceptiveLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.PerceptiveLocomotionMPCAction4
+    
+
+"""
+PyTorch version of MPC controller
+"""
+
 @configclass
 class TorchMPCActionCfg(ActionTermCfg):
     class_type: type[ActionTerm] = mpc_actions_torch.TorchMPCAction

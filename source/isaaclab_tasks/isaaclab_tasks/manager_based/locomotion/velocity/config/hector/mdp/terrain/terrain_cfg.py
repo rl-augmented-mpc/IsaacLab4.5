@@ -140,11 +140,73 @@ FrictionPatchTerrain = TerrainImporterCfg(
 stepping stone terrain.
 """
 
+SteppingStoneTerrain = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="generator",
+    terrain_generator= terrain_gen.TerrainGeneratorCfg(
+        # size=(40.0, 15.0), # size of sub-terrain
+        size=(30.0, 30.0), # size of sub-terrain
+        border_width=0.0,
+        num_rows=1,
+        num_cols=5,
+        horizontal_scale=0.1,
+        vertical_scale=0.005,
+        slope_threshold=0.75,
+        use_cache=False,
+        curriculum=True,
+        sub_terrains={
+            "terrain1": terrain_gen.StairTerrainCfg(
+                profile_mode="random",
+                proportion=0.5, 
+                num_box=200,
+                box_height_range=(0.1, 0.1), 
+                platform_width=30.0, 
+                platform_length_range_start=(0.2, 0.4), platform_length_range_end=(0.2, 0.4),
+                platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
+                border_size=0.0, 
+                height_noise_range=(-0.01, 0.01), 
+                center_area_size=1.5,
+            ),
+            "terrain2": terrain_gen.MeshRepeatedBoxesTerrainCfg(
+                object_type="box", 
+                max_height_noise=0.00, 
+                platform_width=1.5,
+                proportion=0.5,
+                object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+                    num_objects=1500, 
+                    height=0.1*2, 
+                    size=(0.45, 0.45),
+                    max_yx_angle=0.0,
+                ), 
+                object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+                    num_objects=1500, 
+                    height=0.1*2, 
+                    size=(0.45, 0.45),
+                    max_yx_angle=0.0, 
+                ),
+            ), 
+        },
+    ),
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=2.0,
+        dynamic_friction=2.0,
+    ),
+    visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    max_init_terrain_level=0,
+    keep_max_terrain_level=True,
+    debug_vis=False,
+    disable_colllider=False,
+)
+
+
 InferenceSteppingStoneTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="generator",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(40.0, 15.0), # size of sub-terrain
+        size=(30.0, 30.0), # size of sub-terrain
         border_width=0.0,
         num_rows=1,
         num_cols=1,
@@ -156,20 +218,21 @@ InferenceSteppingStoneTerrain = TerrainImporterCfg(
         sub_terrains={
             
             "terrain1": terrain_gen.StairTerrainCfg(
-            profile_mode="random",
+            profile_mode="up",
             # profile_mode="up_down",
             proportion=0.2, 
-            num_box=60,
+            num_box=120,
             # box_height_range=(0.04, 0.04), 
-            # box_height_range=(0.06, 0.06), 
-            box_height_range=(0.08, 0.08), 
-            platform_width=15.0, 
-            platform_length_range_start=(0.5, 0.8), platform_length_range_end=(0.5, 0.8),
+            box_height_range=(0.095, 0.095), 
+            # box_height_range=(0.12, 0.12), 
+            platform_width=50.0, 
+            # platform_length_range_start=(0.5, 0.8), platform_length_range_end=(0.5, 0.8),
             # platform_length_range_start=(0.3, 0.6), platform_length_range_end=(0.3, 0.6),
+            platform_length_range_start=(0.2, 0.3), platform_length_range_end=(0.2, 0.3),
             platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
             border_size=0.0, 
             height_noise_range=(-0.01, 0.01), 
-            center_area_size=2.0,
+            center_area_size=1.5,
             ),
         },
     ),
@@ -240,13 +303,14 @@ CurriculumRandomBlockTerrain = TerrainImporterCfg(
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
         size=(20.0, 20.0), # size of sub-terrain
         border_width=0.0,
-        num_rows=10,
+        num_rows=1,
         num_cols=5,
         horizontal_scale=0.1,
         vertical_scale=0.005,
         slope_threshold=0.75,
         use_cache=False,
-        curriculum=True,
+        # curriculum=True,
+        curriculum=False,
         sub_terrains={
             "terrain1": terrain_gen.MeshRepeatedBoxesTerrainCfg(
                 object_type="box", 
@@ -255,24 +319,24 @@ CurriculumRandomBlockTerrain = TerrainImporterCfg(
                 platform_width=1.5,
                 proportion=0.2,
                 object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=1000, 
-                    height=0.02*2, 
+                    num_objects=1200, 
+                    height=0.1*2, 
                     size=(0.3, 0.3),
                     max_yx_angle=0.0,
                 ), 
                 object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=1000, 
-                    height=0.06*2, 
+                    num_objects=1200, 
+                    height=0.1*2, 
                     size=(0.3, 0.3),
                     max_yx_angle=0.0, 
                 ),
             ), 
-            "terrain2": terrain_gen.MeshRandomBlockTerrainCfg(
-            proportion=0.2, 
-            grid_width=0.3, 
-            grid_height_range=(0.01, 0.03), 
-            platform_width=1.5, 
-            ),
+            # "terrain2": terrain_gen.MeshRandomBlockTerrainCfg(
+            # proportion=0.2, 
+            # grid_width=0.3, 
+            # grid_height_range=(0.01, 0.03), 
+            # platform_width=1.5, 
+            # ),
         },
     ),
     collision_group=-1,
@@ -307,7 +371,7 @@ InferenceRandomBlockTerrain = TerrainImporterCfg(
                 object_type="box", 
                 # object_type="perturbed_box_with_triangle",
                 max_height_noise=0.00, 
-                platform_width=1.0,
+                platform_width=1.5,
                 proportion=0.2,
                 object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
                     num_objects=1500, 
@@ -339,8 +403,8 @@ InferenceRandomBlockTerrain = TerrainImporterCfg(
 TripOverChallengeTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="generator",
-    terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(10.0, 10.0), # size of sub-terrain
+    terrain_generator= terrain_gen.TerrainGeneratorCfg( 
+        size=(20.0, 20.0), # size of sub-terrain
         border_width=0.0,
         num_rows=1,
         num_cols=1,
@@ -353,18 +417,18 @@ TripOverChallengeTerrain = TerrainImporterCfg(
             "terrain1": terrain_gen.MeshRepeatedBoxesTerrainCfg(
                 object_type="box", 
                 max_height_noise=0.00, 
-                platform_width=0.6,
+                platform_width=1.5,
                 proportion=0.2,
                 object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=240, 
-                    height=0.06*2, 
-                    size=(0.3, 0.3),
+                    num_objects=900, 
+                    height=0.1*2, 
+                    size=(0.45, 0.45),
                     max_yx_angle=0.0,
                 ), 
                 object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
-                    num_objects=240, 
-                    height=0.06*2, 
-                    size=(0.3, 0.3),
+                    num_objects=900, 
+                    height=0.1*2, 
+                    size=(0.45, 0.45),
                     max_yx_angle=0.0, 
                 ),
             ), 
@@ -397,8 +461,8 @@ BoxRoughTerrain = TerrainImporterCfg(
         curriculum=True,
         sub_terrains={
             "boxes1": terrain_gen.MeshRandomBlockTerrainCfg(
-            proportion=0.2, grid_width=0.3, 
-            grid_height_range=(0.03, 0.03), platform_width=1.5
+            proportion=0.2, grid_width=0.45, 
+            grid_height_range=(0.1, 0.1), platform_width=1.5
             ),
         },
     ),
