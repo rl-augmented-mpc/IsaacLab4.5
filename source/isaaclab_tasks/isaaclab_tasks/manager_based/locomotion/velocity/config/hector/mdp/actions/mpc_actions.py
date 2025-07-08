@@ -297,7 +297,7 @@ class BlindLocomotionMPCAction(ActionTerm):
         # define height of floating base as torso - stance foot distance 
         fz = torch.abs(self.foot_pos_b.reshape(-1, 2, 3)[:, :, 2] * self.gait_contact) # (num_envs, 2)
         self.root_pos[:, 2] = fz.max(dim=1).values
-        
+
         self.root_lin_vel_b = self.robot_api.root_lin_vel_b
         self.root_ang_vel_b = self.robot_api.root_ang_vel_b
         

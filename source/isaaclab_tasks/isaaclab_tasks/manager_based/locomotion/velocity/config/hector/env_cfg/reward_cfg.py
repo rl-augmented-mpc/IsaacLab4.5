@@ -18,23 +18,25 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_yaw_frame_exp,
         weight=0.1,
+        # weight=0.3,
         params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_world_exp, 
         weight=0.1, 
+        # weight=0.3,
         params={"command_name": "base_velocity", "std": 0.5}, 
     )
-    track_height_exp = RewTerm(
-        func=hector_mdp.track_torso_height_exp, 
-        weight=0.1,
-        params={
-                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
-                "asset_cfg": SceneEntityCfg("robot", body_names=".*_sole"),
-                "std": 0.1,
-                "reference_height": 0.55,
-                },
-    )
+    # track_height_exp = RewTerm(
+    #     func=hector_mdp.track_torso_height_exp, 
+    #     weight=0.1,
+    #     params={
+    #             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+    #             "asset_cfg": SceneEntityCfg("robot", body_names=".*_sole"),
+    #             "std": 0.1,
+    #             "reference_height": 0.55,
+    #             },
+    # )
 
     # -- penalties
     termination = RewTerm(func=mdp.is_terminated, weight=-200.0) # type: ignore
@@ -107,7 +109,8 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
     
     processed_action_l2_lin_accel = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-1.0,
+        # weight=-1.0,
+        weight=-0.1,
         params={
             "action_idx": [0, 1, 2],
             "action_name": "mpc_action",
@@ -115,7 +118,8 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
     )
     processed_action_l2_ang_accel = RewTerm(
         func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-0.5,
+        # weight=-0.5,
+        weight=-0.1,
         params={
             "action_idx": [3, 4, 5],
             "action_name": "mpc_action",
@@ -136,17 +140,17 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
     )
 
     # contact penalties
-    undesired_contacts_knee = RewTerm(
-        func=mdp.undesired_contacts, # type: ignore
-        weight=-5.0,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},
-    )
+    # undesired_contacts_knee = RewTerm(
+    #     func=mdp.undesired_contacts, # type: ignore
+    #     weight=-5.0,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},
+    # )
 
-    undesired_contacts_toe = RewTerm(
-        func=mdp.undesired_contacts, # type: ignore
-        weight=-5.0,
-        params={"sensor_cfg": SceneEntityCfg("toe_contact", body_names=".*_toe_tip"), "threshold": 1.0},
-    )
+    # undesired_contacts_toe = RewTerm(
+    #     func=mdp.undesired_contacts, # type: ignore
+    #     weight=-5.0,
+    #     params={"sensor_cfg": SceneEntityCfg("toe_contact", body_names=".*_toe_tip"), "threshold": 1.0},
+    # )
     
     # -- MPC cost
     mpc_cost_l2 = RewTerm(
