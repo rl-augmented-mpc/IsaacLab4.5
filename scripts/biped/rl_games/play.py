@@ -215,7 +215,7 @@ def main():
                 action = agent.get_action(obs, is_deterministic=agent.is_deterministic)
             else:
                 action = torch.zeros(env.unwrapped.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
-                action[:, 1] = -1.0
+                action[:, 7] = -1.0
                 # action[:, 3] = 3/4
                 # action[:, 4] = 3/4
             obs, _, dones, _ = env.step(action)

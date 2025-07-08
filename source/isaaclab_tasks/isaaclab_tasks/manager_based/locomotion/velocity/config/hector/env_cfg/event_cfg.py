@@ -41,8 +41,8 @@ class HECTOREventCfg(EventCfg):
     
     # random initial noise added to default state defined in articulation cfg
     reset_base = EventTerm(
-        func=hector_mdp.reset_root_state_orthogonal, 
-        # func=mdp.reset_root_state_uniform, # type: ignore
+        # func=hector_mdp.reset_root_state_orthogonal, 
+        func=mdp.reset_root_state_uniform, # type: ignore
         mode="reset",
         params={
             "pose_range": {
