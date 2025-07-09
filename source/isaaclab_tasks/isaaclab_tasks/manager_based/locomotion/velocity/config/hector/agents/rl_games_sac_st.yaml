@@ -51,6 +51,7 @@ params:
   config:
     name: manager_sac_rl_games_stepping_stone_mlp_blind
     # full_experiment_name: 2025-07-06_20-53-13
+    # full_experiment_name: 2025-07-08_20-20-53
     env_name: rlgpu
     device: 'cuda:0'
     device_name: 'cuda:0'
@@ -90,17 +91,15 @@ params:
     num_steps_per_episode: 36
     horizon_length: ${.num_steps_per_episode}
     init_alpha: 1.0 # dual parameter initial value
-    # alpha_lr: 2e-4 # dual parameter learning rate
-    # actor_lr: 3e-4 # actor network learning rate
-    # critic_lr: 3e-4 # critic network learning rate
     alpha_lr: 1e-4 # dual parameter learning rate
     actor_lr: 1e-4 # actor network learning rate
     critic_lr: 1e-4 # critic network learning rate
     critic_tau: 5e-3 # soft update parameter
     learnable_temperature: True
     num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
-    # batch_size: 216
-    batch_size: 512
+    batch_size: 216 # 24 * 36 / 4 = 216
+    # batch_size: 576 # 64 * 36 / 4 = 576
+    # batch_size: 512
     replay_buffer_size: 1000000
   
   log:
