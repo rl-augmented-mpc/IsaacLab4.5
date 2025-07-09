@@ -50,11 +50,13 @@ ARGS = [
         "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvBlindLocomotionSACCfg",
         # "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_st.yaml",
+        "sb3_cfg_entry_point": f"{agents.__name__}:sb3_sac.yaml",
     },
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvBlindLocomotionSACCfgPLAY",
         # "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_st.yaml",
+        "sb3_cfg_entry_point": f"{agents.__name__}:sb3_sac.yaml",
     },
     
     # SAC percptive rough env
