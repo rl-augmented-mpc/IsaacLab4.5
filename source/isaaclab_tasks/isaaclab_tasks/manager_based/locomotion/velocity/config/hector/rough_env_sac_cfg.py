@@ -59,12 +59,13 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
 
         # event 
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0.5, 0.5), 
-            "y": (-0.5, 0.5), 
+            "x": (-0.5, -0.5), 
+            "y": (-0.5, -0.5), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
             "yaw": (-math.pi, math.pi),
+            # "yaw": (0.0, 0.0),
         }
         
         # command 
@@ -88,13 +89,13 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         
         # event 
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0.7, 0.7), 
-            "y": (-0.5, 0.5), 
+            "x": (-0.5, -0.5), 
+            "y": (-0.5, -0.5), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            "yaw": (-math.pi, math.pi),
-            # "yaw": (0.0, 0.0),
+            # "yaw": (-math.pi, math.pi),
+            "yaw": (0.0, 0.0),
         }
 
         # disable height scanner
