@@ -232,6 +232,7 @@ class BlindLocomotionMPCAction(ActionTerm):
         # fp[:, 0, :] = (world_to_odom_rot @ fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
         # fp[:, 1, :] = (world_to_odom_rot @ fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
 
+        # visualize foot placement
         fp[:, 0, :3] = self.foot_placement_b[:, :3]
         fp[:, 1, :3] = self.foot_placement_b[:, 3:]
         fp[:, 0, :] = (world_to_base_rot @ fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
