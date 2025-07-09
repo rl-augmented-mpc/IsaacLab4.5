@@ -70,12 +70,25 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
     )
     # joint_deviation = None
 
+    # energy_penalty_l2 = RewTerm(
+    #     func=hector_mdp.energy_penalty_l2, # type: ignore
+    #     weight=-0.2,
+    #     params={
+    #         "assymetric_indices": [7], 
+    #         "action_name": "mpc_action",
+    #     }
+    # )
+    
     energy_penalty_l2 = RewTerm(
-        func=hector_mdp.energy_penalty_l2, # type: ignore
+        func=hector_mdp.terrain_dependent_energy_penalty_l2, # type: ignore
         weight=-0.2,
         params={
             "assymetric_indices": [7], 
             "action_name": "mpc_action",
+            "sensor_cfg": SceneEntityCfg("height_scanner"),
+            "lookahead_distance": 0.3,
+            "lookback_distance": 0.0, 
+            "patch_width": 0.15,
         }
     )
 

@@ -515,6 +515,46 @@ def energy_penalty_l2(env: ManagerBasedRLEnv, assymetric_indices: int|list[int],
     actions[:, assymetric_indices] = 1 + actions[:, assymetric_indices]  # handle assymetry (enforcing 0 action means -1 raw action)
     return torch.sum(torch.square(actions), dim=1).view(-1)
 
+def terrain_dependent_energy_penalty_l2(
+    env: ManagerBasedRLEnv, 
+    assymetric_indices: int|list[int],
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("ray_caster"),
+    action_name: str = "mpc_action",
+    lookahead_distance: float=0.3, 
+    lookback_distance: float = 0.0,
+    patch_width: float = 0.15) -> torch.Tensor:
+    
+    """
+    Penalize the actions using L2 squared kernel.
+    This is different from standard L2 energy penalty as the penalty is non-zero only when terrain is flat. 
+    This means you penalize energy only when the robot is stepping on flat terrain, but actively apply action otherwise.
+    """
+    
+    raycaster: RayCaster = env.scene.sensors[sensor_cfg.name]
+    action_term = env.action_manager.get_term(action_name)
+    
+    # process height map
+    height_map = raycaster.data.ray_hits_w[..., 2]
+    num_envs = height_map.shape[0]
+    resolution = raycaster.cfg.pattern_cfg.resolution
+    grid_x, grid_y = raycaster.cfg.pattern_cfg.size
+    width, height = int(round(grid_x/resolution, 4)) + 1, int(round(grid_y/resolution, 4)) + 1
+    
+    # extract region-of-interest small patch
+    window_front = int(lookahead_distance/resolution)
+    window_back = int(lookback_distance/resolution)
+    window_side = int(patch_width/resolution)
+    height_map_patch = height_map.reshape(-1, height, width)[:, height//2-window_side: height//2+window_side+1, width//2-window_back:width//2+window_front+1].reshape(num_envs, -1)
+    roughness = height_map_patch.max(dim=1).values - height_map_patch.min(dim=1).values # (num_envs, )
+    mask = (roughness < 1e-2).float() # mask for flat terrain
+    
+    # process energy penalty
+    actions = action_term.raw_actions.clone()
+    actions[:, assymetric_indices] = 1 + actions[:, assymetric_indices]  # handle assymetry (enforcing 0 action means -1 raw action)
+    energy_penalty = torch.sum(torch.square(actions), dim=1).view(-1) * mask
+    
+    return energy_penalty
+
 def individual_action_l2(env: ManagerBasedRLEnv, action_idx:int|list[int], action_name: str = "mpc_action",) -> torch.Tensor:
     """Penalize the actions using L2 squared kernel."""
     action_term = env.action_manager.get_term(action_name)
