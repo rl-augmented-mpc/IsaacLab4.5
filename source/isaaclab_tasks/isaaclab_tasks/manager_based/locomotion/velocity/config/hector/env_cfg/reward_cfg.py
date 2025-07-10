@@ -46,8 +46,8 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
     # lin_accel_l2 = RewTerm(func=mdp.body_lin_acc_l2, weight=-5e-4, params={"asset_cfg": SceneEntityCfg("robot", body_names="base")}) # type: ignore
     action_rate_l2 = RewTerm(
         func=mdp.action_rate_l2, # type: ignore
-        weight=-0.15, 
-        ) 
+        weight=-0.015, 
+        )
     
     # -- joint penalties
     dof_vel_l2 = RewTerm(
@@ -79,80 +79,80 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
     #     }
     # )
     
-    # energy_penalty_l2 = RewTerm(
-    #     func=hector_mdp.terrain_dependent_energy_penalty_l2, # type: ignore
-    #     weight=-0.02,
+    energy_penalty_l2 = RewTerm(
+        func=hector_mdp.terrain_dependent_energy_penalty_l2, # type: ignore
+        weight=-0.005,
+        params={
+            "assymetric_indices": [7], 
+            "action_name": "mpc_action",
+            "sensor_cfg": SceneEntityCfg("height_scanner"),
+            "lookahead_distance": 0.3,
+            "lookback_distance": 0.0, 
+            "patch_width": 0.15,
+        }
+    )
+
+    # # terrain depenent energy penalty (not sure if this actually works)
+    # processed_action_l2_sampling_time = RewTerm(
+    #     func=hector_mdp.rough_terrain_processed_action_l2,
+    #     weight=-1.0,
     #     params={
-    #         "assymetric_indices": [7], 
+    #         # "action_idx": [0, 2],
+    #         "action_idx": [6],
     #         "action_name": "mpc_action",
     #         "sensor_cfg": SceneEntityCfg("height_scanner"),
-    #         "lookahead_distance": 0.3,
+    #         "lookahead_distance": 0.35,
+    #         "lookback_distance": 0.0, 
+    #         "patch_width": 0.15,
+    #     }
+    # )
+    
+    # processed_action_l2_swing_height = RewTerm(
+    #     func=hector_mdp.rough_terrain_processed_action_l2,
+    #     weight=-0.5,
+    #     params={
+    #         # "action_idx": [1],
+    #         "action_idx": [7],
+    #         "action_name": "mpc_action",
+    #         "sensor_cfg": SceneEntityCfg("height_scanner"),
+    #         "lookahead_distance": 0.35,
     #         "lookback_distance": 0.0, 
     #         "patch_width": 0.15,
     #     }
     # )
 
-    # terrain depenent energy penalty (not sure if this actually works)
-    processed_action_l2_sampling_time = RewTerm(
-        func=hector_mdp.rough_terrain_processed_action_l2,
-        weight=-1.0,
-        params={
-            # "action_idx": [0, 2],
-            "action_idx": [6],
-            "action_name": "mpc_action",
-            "sensor_cfg": SceneEntityCfg("height_scanner"),
-            "lookahead_distance": 0.35,
-            "lookback_distance": 0.0, 
-            "patch_width": 0.15,
-        }
-    )
-    
-    processed_action_l2_swing_height = RewTerm(
-        func=hector_mdp.rough_terrain_processed_action_l2,
-        weight=-0.5,
-        params={
-            # "action_idx": [1],
-            "action_idx": [7],
-            "action_name": "mpc_action",
-            "sensor_cfg": SceneEntityCfg("height_scanner"),
-            "lookahead_distance": 0.35,
-            "lookback_distance": 0.0, 
-            "patch_width": 0.15,
-        }
-    )
+    # processed_action_l2_cp = RewTerm(
+    #     func=hector_mdp.rough_terrain_processed_action_l2,
+    #     weight=-1.0,
+    #     params={
+    #         # "action_idx": [0, 2],
+    #         "action_idx": [8],
+    #         "action_name": "mpc_action",
+    #         "sensor_cfg": SceneEntityCfg("height_scanner"),
+    #         "lookahead_distance": 0.35,
+    #         "lookback_distance": 0.0, 
+    #         "patch_width": 0.15,
+    #     }
+    # )
 
-    processed_action_l2_cp = RewTerm(
-        func=hector_mdp.rough_terrain_processed_action_l2,
-        weight=-1.0,
-        params={
-            # "action_idx": [0, 2],
-            "action_idx": [8],
-            "action_name": "mpc_action",
-            "sensor_cfg": SceneEntityCfg("height_scanner"),
-            "lookahead_distance": 0.35,
-            "lookback_distance": 0.0, 
-            "patch_width": 0.15,
-        }
-    )
-
-    processed_action_l2_lin_accel = RewTerm(
-        func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-1.0,
-        # weight=-0.1,
-        params={
-            "action_idx": [0, 1, 2],
-            "action_name": "mpc_action",
-        }
-    )
-    processed_action_l2_ang_accel = RewTerm(
-        func=hector_mdp.individual_action_l2, # type: ignore
-        weight=-0.5,
-        # weight=-0.1,
-        params={
-            "action_idx": [3, 4, 5],
-            "action_name": "mpc_action",
-        }
-    )
+    # processed_action_l2_lin_accel = RewTerm(
+    #     func=hector_mdp.individual_action_l2, # type: ignore
+    #     weight=-1.0,
+    #     # weight=-0.1,
+    #     params={
+    #         "action_idx": [0, 1, 2],
+    #         "action_name": "mpc_action",
+    #     }
+    # )
+    # processed_action_l2_ang_accel = RewTerm(
+    #     func=hector_mdp.individual_action_l2, # type: ignore
+    #     weight=-0.5,
+    #     # weight=-0.1,
+    #     params={
+    #         "action_idx": [3, 4, 5],
+    #         "action_name": "mpc_action",
+    #     }
+    # )
     
     # processed_action_l2_ref_vel = RewTerm(
     #     func=hector_mdp.individual_action_l2, # type: ignore

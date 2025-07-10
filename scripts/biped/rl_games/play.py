@@ -86,7 +86,7 @@ def main():
         args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
     )
     agent_cfg = load_cfg_from_registry(args_cli.task, "rl_games_cfg_entry_point")
-    env_cfg.seed = agent_cfg["params"]["seed"]
+    # env_cfg.seed = agent_cfg["params"]["seed"] # set seed from agent config
     if args_cli.episode_length is not None:
         env_cfg.episode_length_s = args_cli.episode_length
     env_cfg.inference = True
@@ -160,6 +160,7 @@ def main():
                 "action", 
                 "reward", 
                 # "unsafe_zone"
+                "grw",
                 ])
         
     # wrap around environment for rl-games
@@ -217,8 +218,6 @@ def main():
             else:
                 action = torch.zeros(env.unwrapped.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
                 action[:, 7] = -1.0
-                # action[:, 3] = 3/4
-                # action[:, 4] = 3/4
             obs, _, dones, _ = env.step(action)
             obs = agent.obs_to_torch(obs)
             
@@ -226,17 +225,12 @@ def main():
             state = env.unwrapped.action_manager.get_term("mpc_action").state # type: ignore
             
             reward_items = ["termination"] # add reward term you want to log here
-            # reward_items = [
-            #     "processed_action_l2_swing_height", 
-            #     "processed_action_l2_sampling_time", 
-            #     "processed_action_l2_cp", 
-            #     "processed_action_l2_lin_accel", 
-            #     "processed_action_l2_ang_accel"]
             reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
             reward = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
 
             # extras
             # grid_point = env.unwrapped.action_manager.get_term("mpc_action").grid_point_boundary_in_body # type: ignore
+            grw = env.unwrapped.action_manager.get_term("mpc_action").grw # type: ignore
             
             # perform operations for terminated episodes
             if len(dones) > 0:
@@ -253,6 +247,7 @@ def main():
                 "action": processed_actions.cpu().numpy(),
                 "reward": reward.cpu().numpy(),  # type: ignore
                 # "unsafe_zone": grid_point.cpu().numpy(),  # type: ignore
+                "grw": grw.cpu().numpy(),  # type: ignore
             }
             logger.log(item_dict)
             

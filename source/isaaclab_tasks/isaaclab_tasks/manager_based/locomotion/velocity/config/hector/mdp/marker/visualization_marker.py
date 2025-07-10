@@ -199,11 +199,11 @@ class SwingFootVisualizer:
             prim_path=prim_path,
             markers={
                 "left": sim_utils.SphereCfg(
-                radius=0.015,
+                radius=0.02,
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
                 ),
                 "right": sim_utils.SphereCfg(
-                radius=0.015,
+                radius=0.02,
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
                 ),
             }
