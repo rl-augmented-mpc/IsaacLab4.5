@@ -221,16 +221,6 @@ class BlindLocomotionMPCAction(ActionTerm):
         world_to_odom_rot = self.robot_api._init_rot.clone()
         world_to_base_trans = self.robot_api.root_pos_w[:, :3].clone()
         world_to_base_rot = self.robot_api.root_rot_mat_w.clone()
-        
-        # visualize foot placement
-        # fp[:, 0, :2] = self.foot_placement_w[:, :2]
-        # fp[:, 1, :2] = self.foot_placement_w[:, 2:]
-        # fp[:, 0, 2] = 0.0 - world_to_odom_trans[:, 2] # to odom frame
-        # fp[:, 1, 2] = 0.0 - world_to_odom_trans[:, 2] # to odom frame
-        
-        # # convert from robot odometry frame to simulation global frame
-        # fp[:, 0, :] = (world_to_odom_rot @ fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
-        # fp[:, 1, :] = (world_to_odom_rot @ fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
 
         # visualize foot placement
         fp[:, 0, :3] = self.foot_placement_b[:, :3]
@@ -238,6 +228,7 @@ class BlindLocomotionMPCAction(ActionTerm):
         fp[:, 0, :] = (world_to_base_rot @ fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
         fp[:, 1, :] = (world_to_base_rot @ fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
         fp[:, :, 2] += 0.01 # better visibility
+        fp[:, :, 2] = fp[:, :, 2] * (1-self.gait_contact) - 100 * self.gait_contact # hide foot placement of stance foot
         orientation = self.robot_api.root_quat_w[:, None, :].repeat(1, 2, 1).view(-1, 4)
         self.foot_placement_visualizer.visualize(fp, orientation)
 
@@ -255,10 +246,6 @@ class BlindLocomotionMPCAction(ActionTerm):
             # from base to world frame
             position_traj[:, i, :] = (world_to_base_rot @ position_traj[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
             foot_traj[:, i, :] = (world_to_base_rot @ foot_traj[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
-            
-            # # from odom to world frame
-            # position_traj[:, i, :] = (world_to_odom_rot @ position_traj[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
-            # foot_traj[:, i, :] = (world_to_odom_rot @ foot_traj[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
 
         self.foot_trajectory_visualizer.visualize(foot_traj)
         

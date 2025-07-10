@@ -70,7 +70,7 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         
         # command 
         self.commands.base_velocity.heading_command = False
-        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.45, 0.65)
         self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
 
 @configclass
@@ -80,7 +80,7 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
-        self.seed = 0
+        self.seed = 42
         self.scene.terrain = hector_mdp.SteppingStoneTerrain
         # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         # self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
@@ -94,17 +94,16 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            # "yaw": (-math.pi, math.pi),
-            "yaw": (0.0, 0.0),
+            "yaw": (-math.pi, math.pi),
+            # "yaw": (0.0, 0.0),
         }
 
-        # disable height scanner
-        # self.scene.height_scanner = None
-        # self.rewards.processed_action_l2_swing_height = None
-        # self.rewards.processed_action_l2_sampling_time = None
+        # disable height scanner for lighter computation
+        self.scene.height_scanner = None
+        self.rewards.energy_penalty_l2 = None
 
         self.curriculum.terrain_levels = None
-        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.45, 0.65)
 
 @configclass
 class HECTORRoughEnvPerceptiveLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
