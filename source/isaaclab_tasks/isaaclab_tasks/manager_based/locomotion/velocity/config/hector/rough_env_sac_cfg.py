@@ -81,8 +81,8 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         # post init of parent
         super().__post_init__()
         self.seed = 42
-        self.scene.terrain = hector_mdp.SteppingStoneTerrain
-        # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        # self.scene.terrain = hector_mdp.SteppingStoneTerrain
+        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         # self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
         # self.scene.terrain = hector_mdp.TripOverChallengeTerrain
         # self.scene.terrain = hector_mdp.BoxRoughTerrain
@@ -103,7 +103,8 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         self.rewards.energy_penalty_l2 = None
 
         self.curriculum.terrain_levels = None
-        self.commands.base_velocity.ranges.lin_vel_x = (0.45, 0.65)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.45, 0.65)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
 
 @configclass
 class HECTORRoughEnvPerceptiveLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):

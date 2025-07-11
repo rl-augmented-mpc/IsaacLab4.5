@@ -417,6 +417,9 @@ class TerrainImporter:
         # update the env origins
         self.env_origins[env_ids] = self.terrain_origins[self.terrain_levels[env_ids], self.terrain_types[env_ids]]
     
+    """
+    Custom operations.
+    """
     def update_env_type(self, env_ids: torch.Tensor):
         if self.terrain_origins is None:
             return
