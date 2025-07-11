@@ -260,3 +260,130 @@ def process_data_with_height(data_dir:str):
         height_data, 
         episode_length_data, 
     )
+
+
+def load_processed_data(data_root, dt_policy=0.01):
+    """
+    Load and process data from a given root directory.
+    Returns a dictionary with standardized keys, prefixed by `label` (e.g., 'rl', 'mpc').
+    """
+    state_data, obs_data, action_data, reward_data, mpc_action_data, episode_length_data = process_data(data_root)
+
+    num_envs = obs_data.shape[0]
+
+    # data indices
+    height_indies = 0
+    linear_velocity_indies = slice(1, 4)
+    angular_velocity_indies = 6
+    orientation_indies = slice(7, 10)
+    desired_linear_velocity_indies = slice(10, 12)
+    desired_angular_velocity_indies = 12
+    joint_pos_indies = slice(13, 23)
+    joint_vel_indies = slice(23, 33)
+    jont_effort_indices = slice(33, 43)
+    swing_phase_indices = slice(43, 45)
+    foot_placement_b_indices = slice(45, 49)
+    foot_position_b_indices = slice(49, 55)
+    reference_foot_position_b_indices = slice(55, 61)
+
+    # state indices
+    state_position_indices = slice(0, 3)
+    state_quat_indices = slice(3, 7)
+    velocity_indices = slice(7, 10)
+    ang_velocity_indices = slice(10, 13)
+
+
+    # state indices
+    state_position_indices = slice(0, 3)
+    state_quat_indices = slice(3, 7)
+    velocity_indices = slice(7, 10)
+    ang_velocity_indices = slice(10, 13)
+
+    # --- Process as before ---
+    velocity = obs_data[:, :, linear_velocity_indies]
+    velocity_x = velocity[:, :, 0]
+    desired_velocity = obs_data[:, :, desired_linear_velocity_indies]
+    desired_velocity_x = desired_velocity[:, :, 0]
+    ang_velocity = obs_data[:, :, angular_velocity_indies]
+    desired_ang_velocity = obs_data[:, :, desired_angular_velocity_indies]
+
+    joint_pos = obs_data[:, :, joint_pos_indies]
+    joint_vel = obs_data[:, :, joint_vel_indies]
+    joint_effort = obs_data[:, :, jont_effort_indices]
+
+    swing_phase = obs_data[:, :, swing_phase_indices]
+    foot_placement_b = obs_data[:, :, foot_placement_b_indices]
+    foot_position_b = obs_data[:, :, foot_position_b_indices].reshape(num_envs, -1, 2, 3)
+    reference_foot_position_b = obs_data[:, :, reference_foot_position_b_indices].reshape(num_envs, -1, 2, 3)
+
+    # State
+    position = state_data[:, :, state_position_indices]
+    quat = state_data[:, :, state_quat_indices]
+    orientation = (180/np.pi) * quaternion_to_euler(quat.reshape(-1, 4)).reshape(num_envs, -1, 3)
+    velocity = state_data[:, :, velocity_indices]
+    ang_velocity = state_data[:, :, ang_velocity_indices]
+
+    position_des = np.zeros_like(position)
+    orientation_des = np.zeros_like(position)
+
+    orientation_des[:, :, 2] = np.cumsum(desired_ang_velocity*dt_policy, axis=1)
+    orientation_des[:, :, 2] = np.arctan2(np.sin(orientation_des[:, :, 2]), np.cos(orientation_des[:, :, 2]))
+
+    position_des[:, :, 0] = np.cumsum(desired_velocity_x*np.cos(orientation_des[:, :, 2])*dt_policy, axis=1)
+    position_des[:, :, 1] = np.cumsum(desired_velocity_x*np.sin(orientation_des[:, :, 2])*dt_policy, axis=1)
+    position_des[:, :, 2] = 0.55 * np.ones_like(position_des[:, :, 2])
+
+    orientation_des = (180/np.pi) * orientation_des
+
+    rot = quaternion_to_rotation_matrix(quat.reshape(-1, 4)).reshape(num_envs, -1, 3, 3)
+    velocity_w = (rot @ velocity.reshape(num_envs, -1, 3, 1)).reshape(num_envs, -1, 3)
+    ang_velocity_w = (rot @ ang_velocity.reshape(num_envs, -1, 3, 1)).reshape(num_envs, -1, 3)
+
+    foot_position_w = np.zeros_like(foot_position_b)
+    reference_foot_position_w = np.zeros_like(reference_foot_position_b)
+
+    foot_position_w[:, :, 0, :] = ((rot.reshape(-1, 3, 3) @ foot_position_b[:, :, 0, :].reshape(-1, 3, 1)).reshape(num_envs, -1, 3)) + position
+    foot_position_w[:, :, 1, :] = ((rot.reshape(-1, 3, 3) @ foot_position_b[:, :, 1, :].reshape(-1, 3, 1)).reshape(num_envs, -1, 3)) + position
+    reference_foot_position_w[:, :, 0, :] = ((rot.reshape(-1, 3, 3) @ reference_foot_position_b[:, :, 0, :].reshape(-1, 3, 1)).reshape(num_envs, -1, 3)) + position
+    reference_foot_position_w[:, :, 1, :] = ((rot.reshape(-1, 3, 3) @ reference_foot_position_b[:, :, 1, :].reshape(-1, 3, 1)).reshape(num_envs, -1, 3)) + position
+
+    mask = swing_phase == 0
+    mask[:, 0, 1] = False
+    stance_foot_position_w = (foot_position_w * mask[:, :, :, None]).sum(axis=2)
+    stance_foot_position_b = (foot_position_b.reshape(num_envs, -1, 2, 3) * mask[:, :, :, None]).sum(axis=2)
+
+    body_foot_angle = np.arctan2(np.abs(stance_foot_position_b[:, :, 0]), np.abs(stance_foot_position_b[:, :, 2]))
+    foot_lateral_distance = foot_position_b[:, :, 0, 1] - foot_position_b[:, :, 1, 1]
+
+
+    # extras
+    with open(os.path.join(data_root, "grw/grw.pkl"), "rb") as f:
+        grw = pickle.load(f)
+    grw = np.array(grw)
+    grw = grw.reshape(grw.shape[0]*grw.shape[1], -1, 12)
+
+    return {
+        "position": position,
+        "orientation": orientation,
+        "velocity": velocity,
+        "ang_velocity": ang_velocity,
+        "desired_position": position_des,
+        "desired_orientation": orientation_des,
+        "desired_velocity": desired_velocity,
+        "desired_ang_velocity": desired_ang_velocity,
+        "foot_position_w": foot_position_w,
+        "foot_position_b": foot_position_b,
+        "reference_foot_position_w": reference_foot_position_w,
+        "reference_foot_position_b": reference_foot_position_b,
+        "body_foot_angle": body_foot_angle,
+        "foot_lateral_distance": foot_lateral_distance,
+        "joint_pos": joint_pos,
+        "joint_vel": joint_vel,
+        "joint_effort": joint_effort,
+        "swing_phase": swing_phase,
+        "foot_placement_b": foot_placement_b,
+        "grw": grw,
+        "action": action_data,
+        "mpc_action": mpc_action_data,
+        "episode_length": episode_length_data,
+    }
