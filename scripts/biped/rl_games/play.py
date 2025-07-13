@@ -160,7 +160,7 @@ def main():
                 "action", 
                 "reward", 
                 # "unsafe_zone"
-                "grw",
+                "grf",
                 ])
         
     # wrap around environment for rl-games
@@ -229,8 +229,7 @@ def main():
             reward = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
 
             # extras
-            # grid_point = env.unwrapped.action_manager.get_term("mpc_action").grid_point_boundary_in_body # type: ignore
-            grw = env.unwrapped.action_manager.get_term("mpc_action").grw # type: ignore
+            grf = env.unwrapped.observation_manager._obs_buffer["extra"]
             
             # perform operations for terminated episodes
             if len(dones) > 0:
@@ -247,7 +246,7 @@ def main():
                 "action": processed_actions.cpu().numpy(),
                 "reward": reward.cpu().numpy(),  # type: ignore
                 # "unsafe_zone": grid_point.cpu().numpy(),  # type: ignore
-                "grw": grw.cpu().numpy(),  # type: ignore
+                "grf": grf.cpu().numpy(),  # type: ignore
             }
             logger.log(item_dict)
             

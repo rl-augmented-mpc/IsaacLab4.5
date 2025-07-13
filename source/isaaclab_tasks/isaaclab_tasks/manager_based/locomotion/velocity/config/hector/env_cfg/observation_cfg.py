@@ -181,8 +181,26 @@ class HECTORBlindLocomotionObservationsCfg:
             self.enable_corruption = True
             self.concatenate_terms = True
 
+    @configclass
+    class ExtraObsCfg(ObsGroup):
+        """Observations for extra like debug."""
+
+        # observation terms (order preserved !!!!)
+        
+        contact_force = ObsTerm(
+            func=hector_mdp.contact_forces, 
+            params={
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+                },
+            ) # type: ignore
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
     # observation groups
     policy: PolicyCfg = PolicyCfg()
+    extra: ExtraObsCfg = ExtraObsCfg() # <- only for data analysis
 
 @configclass
 class HECTORPerceptiveLocomotionObservationsCfg:
