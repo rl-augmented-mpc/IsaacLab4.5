@@ -356,11 +356,11 @@ def load_processed_data(data_root, dt_policy=0.01):
     foot_lateral_distance = foot_position_b[:, :, 0, 1] - foot_position_b[:, :, 1, 1]
 
 
-    # extras
-    with open(os.path.join(data_root, "grw/grw.pkl"), "rb") as f:
-        grw = pickle.load(f)
-    grw = np.array(grw)
-    grw = grw.reshape(grw.shape[0]*grw.shape[1], -1, 12)
+    # extras<
+    with open(os.path.join(data_root, "grf/grf.pkl"), "rb") as f:
+        grf = pickle.load(f)
+    grf = np.array(grf)
+    grf = grf.reshape(grf.shape[0]*grf.shape[1], -1, 6)
 
     return {
         "position": position,
@@ -382,7 +382,7 @@ def load_processed_data(data_root, dt_policy=0.01):
         "joint_effort": joint_effort,
         "swing_phase": swing_phase,
         "foot_placement_b": foot_placement_b,
-        "grw": grw,
+        "grf": grf,
         "action": action_data,
         "mpc_action": mpc_action_data,
         "episode_length": episode_length_data,

@@ -85,6 +85,14 @@ def reference_command(env: ManagerBasedEnv, action_name: str = "mpc_action") -> 
     action_term = env.action_manager.get_term(action_name)
     return action_term.original_command
 
+def contact_forces(
+    env: ManagerBasedRLEnv, 
+    sensor_cfg: SceneEntityCfg = SceneEntityCfg("sensor")
+    ) -> torch.Tensor:
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    contact_forces = contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :]
+    return contact_forces.reshape(-1, contact_forces.shape[1] * contact_forces.shape[2])
+
 """
 Exteroceptive observations
 """

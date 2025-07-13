@@ -189,12 +189,12 @@ SteppingStoneTerrain = TerrainImporterCfg(
 
             "random_grid_narrow": terrain_gen.MeshRandomBlockTerrainCfg(
             proportion=0.3, grid_width=0.2, 
-            grid_height_range=(0.07, 0.07), platform_width=2.0
+            grid_height_range=(0.06, 0.06), platform_width=2.0
             ),
 
             "random_grid_wide": terrain_gen.MeshRandomBlockTerrainCfg(
             proportion=0.2, grid_width=0.4, 
-            grid_height_range=(0.07, 0.07), platform_width=2.0
+            grid_height_range=(0.06, 0.06), platform_width=2.0
             ),
 
             "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
