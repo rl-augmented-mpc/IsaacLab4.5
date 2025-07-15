@@ -50,8 +50,8 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.terrain = hector_mdp.SteppingStoneTerrain
         
         self.viewer = ViewerCfg(
-            eye=(0.0, -2.0, 1.0), 
-            lookat=(0.0, -0.5, 0.2),
+            eye=(0.0, -2.0, 0.4), 
+            lookat=(0.0, -0.5, 0.1),
             resolution=(1920, 1080), 
             origin_type="asset_root", 
             asset_name="robot"
@@ -59,13 +59,12 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
 
         # event 
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0.5, -0.5), 
-            "y": (-0.5, -0.5), 
+            "x": (-0.5, 0.5), 
+            "y": (-0.5, 0.5), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
             "yaw": (-math.pi, math.pi),
-            # "yaw": (0.0, 0.0),
         }
         
         # command 
@@ -90,8 +89,8 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         
         # event 
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0.5, -0.5), 
-            "y": (-0.5, -0.5), 
+            "x": (-0.5, 0.5), 
+            "y": (-0.5, 0.5), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
