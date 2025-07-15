@@ -110,6 +110,7 @@ def main():
         else:
             # this loads the best checkpoint
             checkpoint_file = f"{agent_cfg['params']['config']['name']}.pth"
+        # checkpoint_file="last_manager_sac_rl_games_stepping_stone_mlp_blind_ep_13500_rew_9.7440195.pth"
         # get path to previous checkpoint
         resume_path = get_checkpoint_path(log_root_path, run_dir, checkpoint_file, other_dirs=["nn"])
     else:
