@@ -71,6 +71,7 @@ class BlindLocomotionMPCAction(ActionTerm):
         self.mpc_controller = [MPCController(mpc_conf) for _ in range(self.num_envs)]
         for i in range(self.num_envs):
             self.mpc_controller[i].set_planner(self.cfg.foot_placement_planner)
+            self.mpc_controller[i].set_swing_foot_reference(self.cfg.swing_foot_reference_frame)
             self.mpc_controller[i].set_terrain_friction(self.cfg.friction_cone_coef)
         
         # create tensors to store mpc state
@@ -91,7 +92,7 @@ class BlindLocomotionMPCAction(ActionTerm):
         self.swing_phase = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
         
         self.foot_placement_w = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32)
-        self.foot_placement_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # in body frame]
+        self.foot_placement = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # in body frame]
         self.foot_pos_w = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # foot position in world frame
         self.foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # foot position in body frame
         self.foot_pos_b[:, [2, 5]] = -self.cfg.nominal_height # set reasonable initial value
@@ -224,8 +225,8 @@ class BlindLocomotionMPCAction(ActionTerm):
         world_to_base_rot = self.robot_api.root_rot_mat_w.clone()
 
         # visualize foot placement
-        fp[:, 0, :3] = self.foot_placement_b[:, :3]
-        fp[:, 1, :3] = self.foot_placement_b[:, 3:]
+        fp[:, 0, :3] = self.foot_placement[:, :3]
+        fp[:, 1, :3] = self.foot_placement[:, 3:]
         fp[:, 0, :] = (world_to_base_rot @ fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
         fp[:, 1, :] = (world_to_base_rot @ fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
         fp[:, :, 2] += 0.01 # better visibility
@@ -311,7 +312,7 @@ class BlindLocomotionMPCAction(ActionTerm):
         grw = []
         gait_contact = []
         swing_phase = []
-        foot_placement_b = []
+        foot_placement = []
         foot_pos_b = []
         foot_ref_pos_b = []
         mpc_cost = []
@@ -325,7 +326,7 @@ class BlindLocomotionMPCAction(ActionTerm):
             grw.append(self.mpc_controller[i].grfm)
             gait_contact.append(self.mpc_controller[i].contact_state)
             swing_phase.append(self.mpc_controller[i].swing_phase)
-            foot_placement_b.append(self.mpc_controller[i].foot_placement)
+            foot_placement.append(self.mpc_controller[i].foot_placement_base)
             foot_pos_b.append(self.mpc_controller[i].foot_pos_b)
             foot_ref_pos_b.append(self.mpc_controller[i].ref_foot_pos_b)
             mpc_cost.append(self.mpc_controller[i].mpc_cost)
@@ -338,7 +339,7 @@ class BlindLocomotionMPCAction(ActionTerm):
         self.grw = torch.from_numpy(np.array(grw)).to(self.device).view(self.num_envs, 12).to(torch.float32)
         self.gait_contact = torch.from_numpy(np.array(gait_contact)).to(self.device).view(self.num_envs, 2).to(torch.float32)
         self.swing_phase = torch.from_numpy(np.array(swing_phase)).to(self.device).view(self.num_envs, 2).to(torch.float32)
-        self.foot_placement_b = torch.from_numpy(np.array(foot_placement_b)).to(self.device).view(self.num_envs, 6).to(torch.float32)
+        self.foot_placement = torch.from_numpy(np.array(foot_placement)).to(self.device).view(self.num_envs, 6).to(torch.float32)
         self.foot_pos_b = torch.from_numpy(np.array(foot_pos_b)).to(self.device).view(self.num_envs, 6).to(torch.float32)
         self.ref_foot_pos_b = torch.from_numpy(np.array(foot_ref_pos_b)).to(self.device).view(self.num_envs, 6).to(torch.float32)
         self.position_trajectory = torch.from_numpy(np.array(position_traj)).to(self.device).view(self.num_envs, 10, 3).to(torch.float32)
@@ -426,10 +427,10 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         super().__init__(cfg, env)
         
         # heightmap related
-        self.grid_point_visualizer = GridPointVisualizer("/Visuals/safe_region", color=(1.0, 0.0, 0.0))
-        self.grid_point_boundary = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
-        self.grid_point_boundary_in_body = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
-        self.attention_point = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
+        # self.grid_point_visualizer = GridPointVisualizer("/Visuals/safe_region", color=(1.0, 0.0, 0.0))
+        # self.grid_point_boundary = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
+        # self.grid_point_boundary_in_body = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
+        # self.attention_point = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
     
     """
     Operations.
@@ -499,7 +500,7 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         height = int(scan_height/scan_resolution + 1)
         scan_offset = (int(sensor.cfg.offset.pos[0]/scan_resolution), int(sensor.cfg.offset.pos[1]/scan_resolution))
         target_pos = (self.foot_pos_b.reshape(self.num_envs, 2, 3) * (self.gait_contact==1).unsqueeze(2)).sum(dim=1)
-        target_pos[:, 0] += 0.07
+        # target_pos[:, 0] += 0.07
         
         # bilinear interpolation
         x_img = target_pos[:, 0] / scan_resolution + (width // 2 - scan_offset[0])
@@ -550,7 +551,7 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         width = int(scan_width/scan_resolution + 1)
         height = int(scan_height/scan_resolution + 1)
         scan_offset = (int(sensor.cfg.offset.pos[0]/scan_resolution), int(sensor.cfg.offset.pos[1]/scan_resolution))
-        target_pos = (self.foot_placement_b.reshape(self.num_envs, 2, 2) * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
+        target_pos = (self.foot_placement.reshape(self.num_envs, 2, 3) * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
         
         # bilinear interpolation
         x_img = target_pos[:, 0] / scan_resolution + (width // 2 - scan_offset[0])
@@ -633,13 +634,11 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
     #     self.grid_point_boundary_in_body = grid_point_boundary_in_body.clone()
 
     def update_visual_marker(self):
-        # create storag tensors
-        fp = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
-        foot_pos = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
-        
         # prepare transformation matrices
         world_to_odom_trans = self.robot_api._init_pos[:, :3].clone()
         world_to_odom_rot = self.robot_api._init_rot.clone()
+        world_to_base_trans = self.robot_api.root_pos_w[:, :3].clone()
+        world_to_base_rot = self.robot_api.root_rot_mat_w.clone()
         
         sensor= self._env.scene.sensors["height_scanner"]
         height_map = sensor.data.ray_hits_w[..., 2]
@@ -651,7 +650,7 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         
         foot_height = []
         for foot in range(2):
-            target_pos = self.foot_placement_b[:, 2*foot:2*(foot+1)]    
+            target_pos = self.foot_placement[:, 3*foot:3*(foot+1)]    
             x_img = target_pos[:, 0] / scan_resolution + (width // 2 - scan_offset[0]) # col
             y_img = target_pos[:, 1] / scan_resolution + (height // 2 - scan_offset[1]) # row
 
@@ -689,29 +688,28 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
             ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1).clip(-1.0, 1.0)      # along y
             foot_height.append(ground_height) # this is rel to simulation world frame
         
-        # get foot
-        fp[:, 0, :2] = self.foot_placement_w[:, :2]
-        fp[:, 1, :2] = self.foot_placement_w[:, 2:]
-        fp[:, 0, 2] = foot_height[0] - world_to_odom_trans[:, 2] # to odom frame
-        fp[:, 1, 2] = foot_height[1] - world_to_odom_trans[:, 2] # to odom frame
-        
-        # convert from robot odometry frame to simulation global frame
-        fp[:, 0, :] = (world_to_odom_rot @ fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
-        fp[:, 1, :] = (world_to_odom_rot @ fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
+        # visualize foot placement
+        fp = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
+        fp[:, 0, :3] = self.foot_placement[:, :3]
+        fp[:, 1, :3] = self.foot_placement[:, 3:]
+        fp[:, 0, :] = (world_to_base_rot @ fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
+        fp[:, 1, :] = (world_to_base_rot @ fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
+        fp[:, :, 2] = fp[:, :, 2] * (1-self.gait_contact) - 100 * self.gait_contact # hide foot placement of stance foot
+        orientation = self.robot_api.root_quat_w[:, None, :].repeat(1, 2, 1).view(-1, 4)
+        self.foot_placement_visualizer.visualize(fp, orientation)
+
+        # visualize foot position
+        foot_pos = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
         foot_pos[:, 0, :] = (world_to_odom_rot @ self.foot_pos_w[:, :3].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
         foot_pos[:, 1, :] = (world_to_odom_rot @ self.foot_pos_w[:, 3:6].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
-        
-        # process mpc reference trajectory
+        self.foot_position_visualizer.visualize(foot_pos)
+
+        # visualize foot trajectory
         position_traj_world = self.position_trajectory.clone()
         foot_traj_world = self.foot_position_trajectory.clone()
         for i in range(10):
             position_traj_world[:, i, :] = (world_to_odom_rot @ position_traj_world[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
             foot_traj_world[:, i, :] = (world_to_odom_rot @ foot_traj_world[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
-        
-        # send quantities to visualizer
-        orientation = self.robot_api.root_quat_w[:, None, :].repeat(1, 2, 1).view(-1, 4)
-        self.foot_placement_visualizer.visualize(fp, orientation)
-        self.foot_position_visualizer.visualize(foot_pos)
         self.foot_trajectory_visualizer.visualize(foot_traj_world)
         # self.grid_point_visualizer.visualize(self.grid_point_boundary)
 
