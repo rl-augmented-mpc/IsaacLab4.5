@@ -27,12 +27,14 @@ class BlindLocomotionMPCActionCfg(ActionTermCfg):
     """Name of the command to be used for the action term."""
     nominal_height: float = 0.55
     """Reference height of the robot."""
-    nominal_swing_height : float = 0.12
+    nominal_swing_height : float = 0.1
     """Nominal swing height of the robot."""
     nominal_stepping_frequency: float = 1.0
     """Nominal stepping frequency of the robot."""
     horizon_length: int = 10
     """Horizon length of the robot."""
+    friction_cone_coef: float = 1.0
+    """Friction cone coefficient of the robot."""
 
 
     ### == construct gait in mpc dt == ###
@@ -52,8 +54,8 @@ class BlindLocomotionMPCActionCfg(ActionTermCfg):
     """Nominal cp2 coefficient of the robot."""
     foot_placement_planner: Literal["LIP", "Raibert"] = "Raibert"
     """Foot placement planner to be used. Can be either "LIP" or "Raibert"."""
-    friction_cone_coef: float = 1.0
-    """Friction cone coefficient of the robot."""
+    swing_foot_reference_frame: Literal["world", "base"] = "base"
+    """Swing foot reference frame to be used. Can be either "world" or "base"."""
 
 @configclass
 class BlindLocomotionMPCActionCfg2(BlindLocomotionMPCActionCfg):
@@ -71,6 +73,7 @@ class BlindLocomotionMPCActionCfg4(BlindLocomotionMPCActionCfg):
 @configclass
 class PerceptiveLocomotionMPCActionCfg(BlindLocomotionMPCActionCfg):
     class_type: type[ActionTerm] = mpc_actions.PerceptiveLocomotionMPCAction
+    swing_foot_reference_frame: Literal["world", "base"] = "world"
 
 @configclass
 class PerceptiveLocomotionMPCActionCfg2(PerceptiveLocomotionMPCActionCfg):

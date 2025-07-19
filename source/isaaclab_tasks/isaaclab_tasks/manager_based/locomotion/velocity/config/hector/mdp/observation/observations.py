@@ -154,8 +154,8 @@ def foot_placement_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> t
     """
     # extract the used quantities (to enable type-hinting)
     action_term = env.action_manager.get_term(action_name)
-    foot_placement_b = action_term.foot_placement_b[:, [0, 1, 3, 4]]
-    return foot_placement_b
+    foot_placement = action_term.foot_placement[:, [0, 1, 3, 4]]
+    return foot_placement
 
 def reference_foot_position_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:
     """Reference foot position of the robot.

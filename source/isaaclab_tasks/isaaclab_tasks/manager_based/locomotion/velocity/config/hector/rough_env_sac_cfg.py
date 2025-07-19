@@ -45,9 +45,9 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         # sim time
         self.sim.dt = 1/400
         self.decimation = 4
-        self.sim.render_interval = 8
+        self.sim.render_interval = 2*self.decimation
 
-        self.scene.terrain = hector_mdp.SteppingStoneTerrain
+        self.scene.terrain = hector_mdp.SteppingStoneTerrain 
         
         self.viewer = ViewerCfg(
             eye=(0.0, -2.0, 0.4), 
@@ -94,8 +94,8 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            "yaw": (-math.pi, math.pi),
-            # "yaw": (0.0, 0.0),
+            # "yaw": (-math.pi, math.pi),
+            "yaw": (0.0, 0.0),
         }
 
         # disable height scanner for lighter computation
@@ -123,17 +123,17 @@ class HECTORRoughEnvPerceptiveLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
         
         # sim time
-        self.sim.dt = 1/500
-        self.decimation = 5
-        self.sim.render_interval = self.decimation
+        self.sim.dt = 1/400
+        self.decimation = 4
+        self.sim.render_interval = 2*self.decimation
 
-        self.scene.terrain = hector_mdp.CurriculumRandomBlockTerrain
+        self.scene.terrain = hector_mdp.SteppingStoneTerrain
         
         self.viewer = ViewerCfg(
-            # eye=(-2.5, 0.0, 0.2), 
-            # lookat=(-1.0, 0.0, 0.0),
-            eye=(0.0, -2.2, 0.0), 
-            lookat=(0.0, -1.0, 0.0),
+            eye=(0.0, -2.2, 0.6), 
+            lookat=(0.0, -1.0, 0.2),
+            # eye=(0.0, -2.2, 0.0), 
+            # lookat=(0.0, -1.0, 0.0),
             resolution=(1920, 1080), 
             origin_type="asset_root", 
             asset_name="robot"
@@ -163,17 +163,20 @@ class HECTORRoughEnvPerceptiveLocomotionSACCfgPLAY(HECTORRoughEnvPerceptiveLocom
         super().__post_init__()
         self.seed = 42
 
+        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         # self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
-        self.scene.terrain = hector_mdp.TripOverChallengeTerrain
+        # self.scene.terrain = hector_mdp.TripOverChallengeTerrain
         # self.scene.terrain = hector_mdp.BoxRoughTerrain
         # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         
-        self.scene.height_scanner.debug_vis = True
+        # self.scene.height_scanner.debug_vis = True
         self.curriculum.terrain_levels = None
         
         # lower resolution of heightmap since we do not use these during inference
-        # self.scene.height_scanner_L_foot.pattern_cfg.resolution = 0.5
-        # self.scene.height_scanner_R_foot.pattern_cfg.resolution = 0.5
+        self.scene.height_scanner_L_foot = None
+        self.scene.height_scanner_R_foot = None
+        self.rewards.foot_landing_penalty_left = None
+        self.rewards.foot_landing_penalty_right = None
         
-        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)

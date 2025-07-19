@@ -43,6 +43,8 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.sim.dt = 1/500
         self.decimation = 5
         self.sim.render_interval = 10
+
+        # self.actions.mpc_action.friction_cone_coef = 0.5
         
         self.viewer = ViewerCfg(
             eye=(0.0, -2.5, 0.0), 
@@ -53,8 +55,10 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         )
         
         # command
-        self.commands.base_velocity.ranges.lin_vel_x = (0.3, 0.7)
-        self.commands.base_velocity.ranges.ang_vel_z = (-(20.0/180)*math.pi, (20.0/180)*math.pi)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.3, 0.6)
+        # self.commands.base_velocity.ranges.ang_vel_z = (-(20.0/180)*math.pi, (20.0/180)*math.pi)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
+        self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
         
         # event 
         self.events.reset_base.params["pose_range"] = {
@@ -76,5 +80,17 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
         self.seed = 42
         self.scene.terrain = hector_mdp.FrictionPatchTerrain
         self.curriculum.terrain_levels = None
+
         self.commands.base_velocity.ranges.lin_vel_x = (0.3, 0.5)
-        # self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)
+        self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
+
+        self.events.reset_base.params["pose_range"] = {
+            "x": (-0.0, 0.0), 
+            "y": (-0.0, 0.0), 
+            "z": (0.0, 0.0),
+            "roll": (0.0, 0.0),
+            "pitch": (0.0, 0.0),
+            # "yaw": (-math.pi, math.pi),
+            # "yaw": (-math.pi/4, 0),
+            "yaw": (-0, 0),
+        }

@@ -53,6 +53,9 @@ class MPCController:
     
     def set_planner(self, planner_name: str) -> None:
         self.hc.setFootPlacementPlanner(planner_name)
+
+    def set_swing_foot_reference(self, reference_frame:str)->None:
+        self.hc.setSwingFootReferenceFrame(reference_frame)
     
     def set_terrain_friction(self, friction: float) -> None:
         """
@@ -268,6 +271,13 @@ class MPCController:
         planned foothold of each foot in body frame (2, 3)
         """
         return self.hc.getFootPlacement().astype(np.float32)
+    
+    @property
+    def foot_placement_base(self) -> np.ndarray:
+        """
+        planned foothold of each foot in body frame (2, 3)
+        """
+        return self.hc.getFootPlacementBase().astype(np.float32)
 
     @property
     def ref_foot_pos_b(self) -> np.ndarray:

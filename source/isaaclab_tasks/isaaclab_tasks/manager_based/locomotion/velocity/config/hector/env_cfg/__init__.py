@@ -25,5 +25,6 @@ from .reward_cfg import (
 from .termination_cfg import HECTORTerminationsCfg
 from .scene_cfg import (
     HECTORBlindLocomotionSceneCfg, 
-    HECTORPerceptiveLocomotionSceneCfg
+    HECTORPerceptiveLocomotionSceneCfg, 
+    HECTORSlipSceneCfg,
 )
