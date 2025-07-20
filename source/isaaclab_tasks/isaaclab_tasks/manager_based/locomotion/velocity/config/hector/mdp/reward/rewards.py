@@ -369,23 +369,25 @@ def foot_placement_penalty(
     
     # if using foot placement 
     foot_selection = 1-action_term.gait_contact
-    foot_position_b = action_term.foot_placement_b.reshape(-1, 2, 2)
+    foothold_b = action_term.foot_placement.reshape(-1, 2, 3)
     
     # retrieves ground flatness where stance foot position is projected onto height map.
     roughness_at_foot, _ = get_ground_roughness_at_landing_point(
         env.num_envs,
         sensor_offset,
-        foot_position_b,
+        foothold_b,
         heightmap_2d, # heightmap
         resolution,
         l_toe,
         l_heel,
         l_width,
     )
+
+    roughness = (roughness_at_foot * foot_selection).sum(dim=1)
     
     # penalty = (foot_selection * (1 - torch.exp(-torch.abs(roughness_at_foot)/std))).max(dim=1).values # exponential reward
-    penalty = (foot_selection * (1 - torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6)))).max(dim=1).values # gaussian reward
-    
+    # penalty = (foot_selection * (1 - torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6)))).max(dim=1).values # gaussian reward
+    penalty = torch.log(roughness + 1e-6) # want to minimize roughness
     return penalty
 
 def stance_foot_position_penalty(
