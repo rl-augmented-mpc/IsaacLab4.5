@@ -232,7 +232,7 @@ class HECTORPerceptiveLocomotionObservationsCfg:
             # noise=Unoise(n_min=-0.05, n_max=0.05),
         )
         
-        user_velocity_commands = ObsTerm(func=hector_mdp.reference_command, params={"action_name": "mpc_action"}) # type: ignore
+        # user_velocity_commands = ObsTerm(func=hector_mdp.reference_command, params={"action_name": "mpc_action"}) # type: ignore
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
         
         joint_pos = ObsTerm(

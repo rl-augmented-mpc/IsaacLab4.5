@@ -62,11 +62,11 @@ ARGS = [
     # SAC percptive rough env
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvPerceptiveLocomotionSACCfg",
-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_random_block.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_st_perceptive.yaml",
     },
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvPerceptiveLocomotionSACCfgPLAY",
-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_random_block.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_st_perceptive.yaml",
     },
     
     # SAC slip blind env

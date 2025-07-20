@@ -130,10 +130,8 @@ class HECTORRoughEnvPerceptiveLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.terrain = hector_mdp.SteppingStoneTerrain
         
         self.viewer = ViewerCfg(
-            eye=(0.0, -2.2, 0.6), 
-            lookat=(0.0, -1.0, 0.2),
-            # eye=(0.0, -2.2, 0.0), 
-            # lookat=(0.0, -1.0, 0.0),
+            eye=(0.0, -2.0, 0.4), 
+            lookat=(0.0, -0.5, 0.1),
             resolution=(1920, 1080), 
             origin_type="asset_root", 
             asset_name="robot"
@@ -146,13 +144,11 @@ class HECTORRoughEnvPerceptiveLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            # "yaw": (-math.pi, math.pi),
-            # "yaw": (-math.pi/4, 0),
-            "yaw": (-0, 0),
+            "yaw": (-math.pi, math.pi),
         }
         
         # command 
-        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
 
 @configclass
 class HECTORRoughEnvPerceptiveLocomotionSACCfgPLAY(HECTORRoughEnvPerceptiveLocomotionSACCfg):
@@ -169,14 +165,25 @@ class HECTORRoughEnvPerceptiveLocomotionSACCfgPLAY(HECTORRoughEnvPerceptiveLocom
         # self.scene.terrain = hector_mdp.TripOverChallengeTerrain
         # self.scene.terrain = hector_mdp.BoxRoughTerrain
         # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+
+        # event 
+        self.events.reset_base.params["pose_range"] = {
+            "x": (-0.5, 0.5), 
+            "y": (-0.5, 0.5), 
+            "z": (0.0, 0.0),
+            "roll": (0.0, 0.0),
+            "pitch": (0.0, 0.0),
+            # "yaw": (-math.pi, math.pi),
+            "yaw": (0.0, 0.0),
+        }
         
         # self.scene.height_scanner.debug_vis = True
         self.curriculum.terrain_levels = None
         
         # lower resolution of heightmap since we do not use these during inference
-        self.scene.height_scanner_L_foot = None
-        self.scene.height_scanner_R_foot = None
-        self.rewards.foot_landing_penalty_left = None
-        self.rewards.foot_landing_penalty_right = None
+        # self.scene.height_scanner_L_foot = None
+        # self.scene.height_scanner_R_foot = None
+        # self.rewards.foot_landing_penalty_left = None
+        # self.rewards.foot_landing_penalty_right = None
         
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
