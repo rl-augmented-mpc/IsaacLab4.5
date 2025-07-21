@@ -536,14 +536,15 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
             z01 = heightmap[torch.arange(self.num_envs), idx01]
             z11 = heightmap[torch.arange(self.num_envs), idx11]
 
-            wx = (p[:, 0] % map_resolution) / map_resolution
-            wy = (p[:, 1] % map_resolution) / map_resolution
-            z0 = (1 - wx) * z00.unsqueeze(1) + wx * z10.unsqueeze(1)  # along x
-            z1 = (1 - wx) * z01.unsqueeze(1) + wx * z11.unsqueeze(1)  # along x
-            return ((1 - wy) * z0 + wy * z1).squeeze(1)  # along y
+            wx = (x_img - x0)
+            wy = (y_img - y0)
+
+            z0 = (1 - wx) * z00 + wx * z10  # along x
+            z1 = (1 - wx) * z01 + wx * z11  # along x
+            return (1 - wy) * z0 + wy * z1
 
         sensor= self._env.scene.sensors[sensor_name]
-        height_map = sensor.data.ray_hits_w[..., 2]
+        height_map = sensor.data.ray_hits_w[..., 2].clone()
         
         scan_width, scan_height = sensor.cfg.pattern_cfg.size
         scan_resolution = sensor.cfg.pattern_cfg.resolution
@@ -555,7 +556,8 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
 
         target_pos = (self.foot_pos_b.reshape(self.num_envs, 2, 3) * (self.gait_contact==1).unsqueeze(2)).sum(dim=1)
         target_pos[:, 0] += 0.07
-        # ground_height = bilinear_interpolation(height_map, target_pos, scan_resolution, width, height, scan_offset) - ground_level_odometry_frame
+        ground_height = bilinear_interpolation(height_map, target_pos, scan_resolution, width, height, scan_offset) - ground_level_odometry_frame
+        # print(ground_height.shape)
 
         # plane fitting
         target_pos_1 = self.foot_placement.reshape(self.num_envs, 2, 3)[:, 0, :].clone()
@@ -578,7 +580,7 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         
     def _get_footplacement_height(self, sensor_name: str = "height_scanner_fine"):
         sensor= self._env.scene.sensors[sensor_name]
-        height_map = sensor.data.ray_hits_w[..., 2]
+        height_map = sensor.data.ray_hits_w[..., 2].clone()
         
         scan_width, scan_height = sensor.cfg.pattern_cfg.size
         scan_resolution = sensor.cfg.pattern_cfg.resolution
@@ -673,7 +675,7 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         scan_resolution = sensor.cfg.pattern_cfg.resolution
         width = int(scan_width/scan_resolution + 1)
         height = int(scan_height/scan_resolution + 1)
-        height_scan = sensor.data.ray_hits_w[..., 2]
+        height_scan = sensor.data.ray_hits_w[..., 2].clone()
 
         start_point = self.foot_pos_b.reshape(self.num_envs, 2, 3).clone()
         end_point = self.foot_placement.reshape(self.num_envs, 2, 3).clone()
@@ -705,10 +707,10 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         y1 = y1.long()
 
         # Flattened index computation
-        idx00 = y0.unsqueeze(-1) * width + x0.unsqueeze(-1)
-        idx10 = y0.unsqueeze(-1) * width + x1.unsqueeze(-1)
-        idx01 = y1.unsqueeze(-1) * width + x0.unsqueeze(-1)
-        idx11 = y1.unsqueeze(-1) * width + x1.unsqueeze(-1)
+        idx00 = y0 * width + x0
+        idx10 = y0 * width + x1
+        idx01 = y1 * width + x0
+        idx11 = y1 * width + x1
 
         # Gather the four corner heights
         z00 = height_scan[torch.arange(self.num_envs)[:, None], idx00].squeeze(-1)  # [N, num_samples]
