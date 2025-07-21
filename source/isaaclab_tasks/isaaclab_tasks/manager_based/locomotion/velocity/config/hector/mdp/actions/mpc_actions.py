@@ -427,10 +427,13 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         super().__init__(cfg, env)
         
         # heightmap related
-        # self.grid_point_visualizer = GridPointVisualizer("/Visuals/safe_region", color=(1.0, 0.0, 0.0))
         self.grid_point_boundary = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
         self.grid_point_boundary_in_body = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
-        # self.attention_point = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
+
+        num_samples = 10
+        self.grid_point_world = torch.empty(self.num_envs, 2*num_samples, 3, device=self.device, dtype=torch.float32)
+        self.grid_point_height = torch.empty(self.num_envs, 2*num_samples, device=self.device, dtype=torch.float32)
+        self.grid_point_visualizer = GridPointVisualizer("/Visuals/safe_region", color=(0.0, 0.3, 0.0))
     
     """
     Operations.
@@ -480,9 +483,13 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         self._process_heightmap()
         
     def _get_reference_velocity(self):
-        ramp_up_duration = 1.2/self._env.physics_dt
-        ramp_up_coef = torch.clip(self.mpc_counter/ramp_up_duration, 0.0, 1.0).unsqueeze(1)
-        command = ramp_up_coef * self.original_command
+        # # ramp up
+        # ramp_up_duration = 1.2/self._env.physics_dt
+        # ramp_up_coef = torch.clip(self.mpc_counter/ramp_up_duration, 0.0, 1.0).unsqueeze(1)
+        # command = ramp_up_coef * self.original_command
+
+        # no ramp up
+        command = self.original_command
         
         # update command
         self.twist[:, :] = command.cpu().numpy()
@@ -491,6 +498,50 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         
     
     def _get_reference_height(self, sensor_name: str = "height_scanner_fine"):
+        """
+        project current stance foot position to heightmap and sample the height.
+        Then, add this value to nominal height H which gives reference height 
+        z_ref = H + z_ground.
+        """
+
+        def bilinear_interpolation(heightmap: torch.Tensor, p: torch.Tensor, map_resolution:float, width:int, height:int, scan_offset:tuple[int, int]=(0, 0)) -> torch.Tensor:
+            x_img = p[:, 0] / map_resolution + (width // 2 - scan_offset[0])
+            y_img = p[:, 1] / map_resolution + (height // 2 - scan_offset[1])
+
+            # Clamp to valid range before ceil/floor to avoid out-of-bounds
+            x0 = x_img.floor().clamp(0, width - 2)
+            x1 = (x0 + 1).clamp(0, width - 1)
+            y0 = y_img.floor().clamp(0, height - 2)
+            y1 = (y0 + 1).clamp(0, height - 1)
+
+            # Calculate weights for interpolation
+            wx = (x_img - x0).unsqueeze(1)  # [N]
+            wy = (y_img - y0).unsqueeze(1)  # [N]
+
+            # Convert to long for indexing
+            x0 = x0.long()
+            x1 = x1.long()
+            y0 = y0.long()
+            y1 = y1.long()
+
+            # Flattened index computation
+            idx00 = y0 * width + x0
+            idx10 = y0 * width + x1
+            idx01 = y1 * width + x0
+            idx11 = y1 * width + x1
+
+            # Gather the four corner heights
+            z00 = heightmap[torch.arange(self.num_envs), idx00]
+            z10 = heightmap[torch.arange(self.num_envs), idx10]
+            z01 = heightmap[torch.arange(self.num_envs), idx01]
+            z11 = heightmap[torch.arange(self.num_envs), idx11]
+
+            wx = (p[:, 0] % map_resolution) / map_resolution
+            wy = (p[:, 1] % map_resolution) / map_resolution
+            z0 = (1 - wx) * z00.unsqueeze(1) + wx * z10.unsqueeze(1)  # along x
+            z1 = (1 - wx) * z01.unsqueeze(1) + wx * z11.unsqueeze(1)  # along x
+            return ((1 - wy) * z0 + wy * z1).squeeze(1)  # along y
+
         sensor= self._env.scene.sensors[sensor_name]
         height_map = sensor.data.ray_hits_w[..., 2]
         
@@ -499,48 +550,31 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         width = int(scan_width/scan_resolution + 1)
         height = int(scan_height/scan_resolution + 1)
         scan_offset = (int(sensor.cfg.offset.pos[0]/scan_resolution), int(sensor.cfg.offset.pos[1]/scan_resolution))
+
+        ground_level_odometry_frame = self.robot_api._init_pos[:, 2] # type: ignore
+
         target_pos = (self.foot_pos_b.reshape(self.num_envs, 2, 3) * (self.gait_contact==1).unsqueeze(2)).sum(dim=1)
         target_pos[:, 0] += 0.07
-        
-        # bilinear interpolation
-        x_img = target_pos[:, 0] / scan_resolution + (width // 2 - scan_offset[0])
-        y_img = target_pos[:, 1] / scan_resolution + (height // 2 - scan_offset[1])
+        # ground_height = bilinear_interpolation(height_map, target_pos, scan_resolution, width, height, scan_offset) - ground_level_odometry_frame
 
-        # Clamp to valid range before ceil/floor to avoid out-of-bounds
-        x0 = x_img.floor().clamp(0, width - 2)     # [N]
-        x1 = (x0 + 1).clamp(0, width - 1)          # [N]
-        y0 = y_img.floor().clamp(0, height - 2)    # [N]
-        y1 = (y0 + 1).clamp(0, height - 1)         # [N]
+        # plane fitting
+        target_pos_1 = self.foot_placement.reshape(self.num_envs, 2, 3)[:, 0, :].clone()
+        # target_pos_1[:, 0] += 0.07
+        ground_height_1 = bilinear_interpolation(height_map, target_pos_1, scan_resolution, width, height, scan_offset) - ground_level_odometry_frame
+        target_pos_2 = self.foot_placement.reshape(self.num_envs, 2, 3)[:, 1, :].clone()
+        # target_pos_2[:, 0] += 0.07
+        ground_height_2 = bilinear_interpolation(height_map, target_pos_2, scan_resolution, width, height, scan_offset) - ground_level_odometry_frame
+        dx = target_pos_2[:, 0] - target_pos_1[:, 0]
+        dy = target_pos_2[:, 1] - target_pos_1[:, 1]
+        dz = ground_height_2 - ground_height_1
+        a = dz * dx / (dx**2 + dy**2 + 1e-6)
+        b = dz * dy / (dx**2 + dy**2 + 1e-6)
+        c = ground_height_1 - a * target_pos_1[:, 0] - b * target_pos_1[:, 1]
+        # query height
+        xq, yq = target_pos[:, 0], target_pos[:, 1]
+        ground_height = a * xq + b * yq + c
 
-        # Calculate weights for interpolation
-        wx = (x_img - x0).unsqueeze(1)             # [N, 1]
-        wy = (y_img - y0).unsqueeze(1)             # [N, 1]
-
-        # Convert to long for indexing
-        x0 = x0.long()
-        x1 = x1.long()
-        y0 = y0.long()
-        y1 = y1.long()
-
-        # Flattened index computation
-        idx00 = y0 * width + x0
-        idx10 = y0 * width + x1
-        idx01 = y1 * width + x0
-        idx11 = y1 * width + x1
-
-        # Gather the four corner heights
-        z00 = height_map[torch.arange(self.num_envs), idx00]
-        z10 = height_map[torch.arange(self.num_envs), idx10]
-        z01 = height_map[torch.arange(self.num_envs), idx01]
-        z11 = height_map[torch.arange(self.num_envs), idx11]
-
-        # Bilinear interpolation
-        z0 = (1 - wx) * z00.unsqueeze(1) + wx * z10.unsqueeze(1)  # along x
-        z1 = (1 - wx) * z01.unsqueeze(1) + wx * z11.unsqueeze(1)  # along x
-        ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1)      # along y
-        
-        ground_level_odometry_frame = self.robot_api._init_pos[:, 2] #- self.robot_api.default_root_state[:, 2]
-        self.reference_height = self.cfg.nominal_height + (ground_height - ground_level_odometry_frame).cpu().numpy()
+        self.reference_height = self.cfg.nominal_height + ground_height.cpu().numpy()
         
     def _get_footplacement_height(self, sensor_name: str = "height_scanner_fine"):
         sensor= self._env.scene.sensors[sensor_name]
@@ -593,45 +627,112 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         ground_level_odometry_frame = self.robot_api._init_pos[:, 2]
         self.foot_placement_height = (ground_height - ground_level_odometry_frame).cpu().numpy()
     
+    # def _process_heightmap(self):
+    #     sensor= self._env.scene.sensors["height_scanner_fine"]
+    #     scan_width, scan_height = sensor.cfg.pattern_cfg.size
+    #     scan_resolution = sensor.cfg.pattern_cfg.resolution
+    #     width = int(scan_width/scan_resolution + 1)
+    #     height = int(scan_height/scan_resolution + 1)
+        
+    #     world_to_odom_trans = self.robot_api._init_pos[:, :3].clone()
+    #     world_to_odom_rot = self.robot_api._init_rot.clone()
+        
+    #     grid_point = sensor.data.ray_hits_w[..., :3] # in sim world frame
+    #     grid_point_local = (world_to_odom_rot[:, None, :, :].transpose(2, 3) @ (grid_point - world_to_odom_trans[:, None, :]).unsqueeze(-1)).squeeze(-1) # sim world to odometry
+    #     grid_point_local = grid_point_local - self.root_pos[:, None, :3] # offset to odometry frame
+    #     grid_point_local[:, :, 2] += self.root_pos[:, None, 2] # add nominal height offset
+    #     grid_point_local = (self.root_rot_mat[:, None, :, :].transpose(2, 3) @ grid_point_local.unsqueeze(-1)).squeeze(-1) # odometry to body frame
+        
+    #     elevation_map = sensor.data.ray_hits_w[..., 2].view(-1, 1, height, width)
+    #     log_score = log_score_filter(elevation_map, alpha=50.0).view(-1, height*width)
+    #     unsafe_region = log_score < 0.6
+        
+    #     grid_point_boundary = grid_point.clone()
+    #     grid_point_boundary_in_body = grid_point_local.clone()
+        
+    #     # flatten 
+    #     N = grid_point_boundary.shape[1]
+    #     grid_point_boundary = grid_point_boundary.view(-1, 3)
+    #     grid_point_boundary_in_body = grid_point_boundary_in_body.view(-1, 3)
+    #     unsafe_region = unsafe_region.view(-1)
+        
+    #     # push safe region to edge of elev map
+    #     grid_point_boundary[~unsafe_region, 2] = -1.0
+    #     grid_point_boundary_in_body[~unsafe_region, :2] = -0.5
+        
+    #     # reshape
+    #     grid_point_boundary = grid_point_boundary.view(self.num_envs, N, 3)
+    #     grid_point_boundary_in_body = grid_point_boundary_in_body.view(self.num_envs, N, 3)
+        
+    #     self.grid_point_boundary = grid_point_boundary.clone()
+    #     self.grid_point_boundary_in_body = grid_point_boundary_in_body.clone()
+
     def _process_heightmap(self):
         sensor= self._env.scene.sensors["height_scanner_fine"]
         scan_width, scan_height = sensor.cfg.pattern_cfg.size
         scan_resolution = sensor.cfg.pattern_cfg.resolution
         width = int(scan_width/scan_resolution + 1)
         height = int(scan_height/scan_resolution + 1)
+        height_scan = sensor.data.ray_hits_w[..., 2]
+
+        start_point = self.foot_pos_b.reshape(self.num_envs, 2, 3).clone()
+        end_point = self.foot_placement.reshape(self.num_envs, 2, 3).clone()
+        e_vec = end_point - start_point # (num_envs, 2, 3)
+        num_samples = 10
+        sample_points = start_point[:, :, None, :] + \
+            e_vec[:, :, None, :] * torch.linspace(0, 1, num_samples, device=self.device).unsqueeze(0).unsqueeze(1).unsqueeze(-1) # (num_envs, 2, num_samples, 3)
+        sample_points = sample_points.reshape(self.num_envs, 2 * num_samples, 3) # (num_envs, num_samples*2, 3)
+
+        # get height of sample points x, y
+        sample_points_xy = sample_points[:, :, :2].clone() # (num_envs, num_samples, 2)
+        sample_points_xy[:, :, 0] = sample_points_xy[:, :, 0] / scan_resolution + (width // 2 - int(sensor.cfg.offset.pos[0]/scan_resolution))
+        sample_points_xy[:, :, 1] = sample_points_xy[:, :, 1] / scan_resolution + (height // 2 - int(sensor.cfg.offset.pos[1]/scan_resolution))
+
+        # Clamp to valid range before ceil/floor to avoid out-of-bounds
+        x0 = sample_points_xy[:, :, 0].floor().clamp(0, width - 2)     # [N, num_samples]
+        x1 = (x0 + 1).clamp(0, width - 1)          # [N, num_samples]
+        y0 = sample_points_xy[:, :, 1].floor().clamp(0, height - 2)    # [N, num_samples]
+        y1 = (y0 + 1).clamp(0, height - 1)         # [N, num_samples]
+
+        # Calculate weights for interpolation
+        wx = (sample_points_xy[:, :, 0] - x0)  # [N, num_samples]
+        wy = (sample_points_xy[:, :, 1] - y0)  # [N, num_samples]
+
+        # Convert to long for indexing
+        x0 = x0.long()
+        x1 = x1.long()
+        y0 = y0.long()
+        y1 = y1.long()
+
+        # Flattened index computation
+        idx00 = y0.unsqueeze(-1) * width + x0.unsqueeze(-1)
+        idx10 = y0.unsqueeze(-1) * width + x1.unsqueeze(-1)
+        idx01 = y1.unsqueeze(-1) * width + x0.unsqueeze(-1)
+        idx11 = y1.unsqueeze(-1) * width + x1.unsqueeze(-1)
+
+        # Gather the four corner heights
+        z00 = height_scan[torch.arange(self.num_envs)[:, None], idx00].squeeze(-1)  # [N, num_samples]
+        z10 = height_scan[torch.arange(self.num_envs)[:, None], idx10].squeeze(-1)
+        z01 = height_scan[torch.arange(self.num_envs)[:, None], idx01].squeeze(-1)
+        z11 = height_scan[torch.arange(self.num_envs)[:, None], idx11].squeeze(-1)
+
+        # Bilinear interpolation
+        z0 = (1 - wx) * z00 + wx * z10  # along x
+        z1 = (1 - wx) * z01 + wx * z11  # along x
+        ground_height = ((1 - wy) * z0 + wy * z1).squeeze(-1)  # along y
+        offset = 0.56
+        self.grid_point_height = sensor.data.pos_w[:, 2].unsqueeze(1) - ground_height - offset
+
+        # form samples for visualization
+        height_samples = torch.cat([sample_points[:, :, :2], torch.zeros_like(sample_points[:, :, 2:])], dim=-1)  # (num_envs, num_samples*2, 3)
         
-        world_to_odom_trans = self.robot_api._init_pos[:, :3].clone()
-        world_to_odom_rot = self.robot_api._init_rot.clone()
-        
-        grid_point = sensor.data.ray_hits_w[..., :3] # in sim world frame
-        grid_point_local = (world_to_odom_rot[:, None, :, :].transpose(2, 3) @ (grid_point - world_to_odom_trans[:, None, :]).unsqueeze(-1)).squeeze(-1) # sim world to odometry
-        grid_point_local = grid_point_local - self.root_pos[:, None, :3] # offset to odometry frame
-        grid_point_local[:, :, 2] += self.root_pos[:, None, 2] # add nominal height offset
-        grid_point_local = (self.root_rot_mat[:, None, :, :].transpose(2, 3) @ grid_point_local.unsqueeze(-1)).squeeze(-1) # odometry to body frame
-        
-        elevation_map = sensor.data.ray_hits_w[..., 2].view(-1, 1, height, width)
-        log_score = log_score_filter(elevation_map, alpha=50.0).view(-1, height*width)
-        unsafe_region = log_score < 0.6
-        
-        grid_point_boundary = grid_point.clone()
-        grid_point_boundary_in_body = grid_point_local.clone()
-        
-        # flatten 
-        N = grid_point_boundary.shape[1]
-        grid_point_boundary = grid_point_boundary.view(-1, 3)
-        grid_point_boundary_in_body = grid_point_boundary_in_body.view(-1, 3)
-        unsafe_region = unsafe_region.view(-1)
-        
-        # push safe region to edge of elev map
-        grid_point_boundary[~unsafe_region, 2] = -1.0
-        grid_point_boundary_in_body[~unsafe_region, :2] = -0.5
-        
-        # reshape
-        grid_point_boundary = grid_point_boundary.view(self.num_envs, N, 3)
-        grid_point_boundary_in_body = grid_point_boundary_in_body.view(self.num_envs, N, 3)
-        
-        self.grid_point_boundary = grid_point_boundary.clone()
-        self.grid_point_boundary_in_body = grid_point_boundary_in_body.clone()
+        # from body frame to world frame 
+        world_to_base_trans = self.robot_api.root_pos_w[:, :3].clone()
+        world_to_base_rot = self.robot_api.root_rot_mat_w.clone()
+        height_samples = (world_to_base_rot.repeat(2*num_samples, 1, 1) @ height_samples.reshape(-1, 3, 1)).reshape(self.num_envs, 2*num_samples, 3) + world_to_base_trans[:, None, :]
+        height_samples[:, :, 2] = ground_height
+        self.grid_point_world = height_samples.clone()
+
 
     def update_visual_marker(self):
         # prepare transformation matrices
@@ -711,7 +812,9 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
             position_traj_world[:, i, :] = (world_to_odom_rot @ position_traj_world[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
             foot_traj_world[:, i, :] = (world_to_odom_rot @ foot_traj_world[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
         self.foot_trajectory_visualizer.visualize(foot_traj_world)
-        # self.grid_point_visualizer.visualize(self.grid_point_boundary)
+        
+        # visualize grid points
+        self.grid_point_visualizer.visualize(self.grid_point_world)
 
     # ** physics loop **
     def _get_state(self) -> None:

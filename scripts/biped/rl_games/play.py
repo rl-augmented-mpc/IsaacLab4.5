@@ -162,6 +162,7 @@ def main():
                 "reward", 
                 # "unsafe_zone"
                 "grf",
+                "ref_height",
                 ])
         
     # wrap around environment for rl-games
@@ -226,12 +227,13 @@ def main():
             processed_actions = env.unwrapped.action_manager.get_term("mpc_action").processed_actions # type: ignore
             state = env.unwrapped.action_manager.get_term("mpc_action").state # type: ignore
             
-            reward_items = ["termination"] # add reward term you want to log here
+            reward_items = ["track_lin_vel_xy_exp"] # add reward term you want to log here
             reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
             reward = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
 
             # extras
             grf = env.unwrapped.observation_manager._obs_buffer["extra"]
+            ref_height = env.unwrapped.action_manager.get_term("mpc_action").reference_height # type: ignore
             
             # perform operations for terminated episodes
             if len(dones) > 0:
@@ -249,6 +251,7 @@ def main():
                 "reward": reward.cpu().numpy(),  # type: ignore
                 # "unsafe_zone": grid_point.cpu().numpy(),  # type: ignore
                 "grf": grf.cpu().numpy(),  # type: ignore
+                "ref_height": ref_height,  # type: ignore
             }
             logger.log(item_dict)
             

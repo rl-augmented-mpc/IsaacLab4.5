@@ -211,6 +211,8 @@ class HECTORPerceptiveLocomotionObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved !!!!)
+
+        # -- proprioception 
         base_pos_z = ObsTerm(
             func=hector_mdp.base_pos_z, # type: ignore
             params={
@@ -219,6 +221,11 @@ class HECTORPerceptiveLocomotionObservationsCfg:
                 },
             # noise=Unoise(n_min=-0.1, n_max=0.1)
             )
+        # projected_gravity = ObsTerm(
+        #     func=mdp.projected_gravity, # type: ignore
+        #     # noise=Unoise(n_min=-0.05, n_max=0.05),
+        # )
+
         base_lin_vel = ObsTerm(
             func=mdp.base_lin_vel, # type: ignore
             # noise=Unoise(n_min=-0.1, n_max=0.1)
@@ -251,6 +258,7 @@ class HECTORPerceptiveLocomotionObservationsCfg:
             # noise=Unoise(n_min=-1.5, n_max=1.5),
             )
         
+        # -- MPC state
         swing_phase = ObsTerm(
             func=hector_mdp.swing_phase, 
             params={"action_name": "mpc_action"}
@@ -270,15 +278,23 @@ class HECTORPerceptiveLocomotionObservationsCfg:
         
         actions = ObsTerm(func=mdp.last_action) # type: ignore
         
+        # height_scan = ObsTerm(
+        #     func=mdp.height_scan, # type: ignore
+        #     params={
+        #         "sensor_cfg": SceneEntityCfg("height_scanner"),
+        #         "offset": 0.56,
+        #         },
+        #     # noise=Unoise(n_min=-0.1, n_max=0.1),
+        #     clip=(-1.0, 1.0),
+        # )
+
         height_scan = ObsTerm(
-            func=mdp.height_scan, # type: ignore
-            params={
-                "sensor_cfg": SceneEntityCfg("height_scanner"),
-                "offset": 0.56,
-                },
+            func=hector_mdp.foot_centric_height_scan, # type: ignore
+            params={"action_name": "mpc_action"}, 
             # noise=Unoise(n_min=-0.1, n_max=0.1),
             clip=(-1.0, 1.0),
         )
+
         
         # depth_image = ObsTerm(
         #     func=hector_mdp.depth_image, # type: ignore

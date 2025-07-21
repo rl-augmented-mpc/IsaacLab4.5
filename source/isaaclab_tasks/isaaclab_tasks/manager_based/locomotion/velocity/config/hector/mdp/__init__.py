@@ -29,7 +29,7 @@ from .observation.observations import (
     base_pos_z,
     joint_pos, joint_vel, joint_torque, 
     contact_forces,  
-    height_scan, depth_image,
+    height_scan, depth_image, foot_centric_height_scan,
     swing_phase, foot_placement_b, 
     foot_position_b, reference_foot_position_b, 
     reference_command, 
