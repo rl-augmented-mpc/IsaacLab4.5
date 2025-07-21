@@ -119,6 +119,10 @@ def depth_image(env: ManagerBasedEnv, sensor_cfg: SceneEntityCfg) -> torch.Tenso
     depth_image_flat = depth_image.reshape(num_envs, -1)
     return depth_image_flat 
 
+def foot_centric_height_scan(env: ManagerBasedEnv, action_name: str = "mpc_action")->torch.Tensor:
+    action_term = env.action_manager.get_term(action_name)
+    return action_term.grid_point_height
+
 """
 MPC states
 """

@@ -183,12 +183,6 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
         weight=-5.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},
     )
-
-    # undesired_contacts_toe = RewTerm(
-    #     func=mdp.undesired_contacts, # type: ignore
-    #     weight=-5.0,
-    #     params={"sensor_cfg": SceneEntityCfg("toe_contact", body_names=".*_toe_tip"), "threshold": 1.0},
-    # )
     
     # -- MPC cost
     mpc_cost_l2 = RewTerm(
@@ -208,9 +202,13 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
 @configclass
 class HECTORPerceptiveLocomotionRewardsCfg(HECTORBlindLocomotionRewardsCfg):
 
+    termination = None
+    leg_body_angle_l2 = None
+
+    # -- energy penalty
     energy_penalty_l2 = RewTerm(
         func=hector_mdp.terrain_dependent_energy_penalty_l2, # type: ignore
-        weight=-0.005,
+        weight=-0.01,
         params={
             "assymetric_indices": [1],
             "action_name": "mpc_action",
@@ -219,6 +217,13 @@ class HECTORPerceptiveLocomotionRewardsCfg(HECTORBlindLocomotionRewardsCfg):
             "lookback_distance": 0.0, 
             "patch_width": 0.15,
         }
+    )
+
+    # -- contact penalty
+    undesired_contacts_toe = RewTerm(
+        func=mdp.undesired_contacts, # type: ignore
+        weight=-5.0,
+        params={"sensor_cfg": SceneEntityCfg("toe_contact", body_names=".*_toe_tip"), "threshold": 1.0},
     )
 
     # foot_landing_penalty = RewTerm(
@@ -254,19 +259,19 @@ class HECTORPerceptiveLocomotionRewardsCfg(HECTORBlindLocomotionRewardsCfg):
     #     },
     # )
     
-    # -- penalize foot placement
-    foot_placement = RewTerm(
-        func=hector_mdp.foot_placement_penalty,
-        weight=-0.01,
-        params={
-            "sensor_cfg": SceneEntityCfg("height_scanner_fine"),
-            "action_name": "mpc_action",
-            "l_toe": 0.091+0.02,
-            "l_heel": 0.054+0.02,
-            "l_width": 0.073+0.04,
-            "std": 0.03, 
-        },
-    )
+    # # -- penalize foot placement
+    # foot_placement = RewTerm(
+    #     func=hector_mdp.foot_placement_penalty,
+    #     weight=-0.01,
+    #     params={
+    #         "sensor_cfg": SceneEntityCfg("height_scanner_fine"),
+    #         "action_name": "mpc_action",
+    #         "l_toe": 0.091+0.02,
+    #         "l_heel": 0.054+0.02,
+    #         "l_width": 0.073+0.04,
+    #         "std": 0.03, 
+    #     },
+    # )
     
 @configclass
 class HECTORSlipRewardsCfg(RewardsCfg):

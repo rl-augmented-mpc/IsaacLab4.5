@@ -127,16 +127,24 @@ class FootPlacementVisualizer:
         self.markers_cfg = VisualizationMarkersCfg(
             prim_path=prim_path,
             markers={
-                "left_fps":
-                sim_utils.UsdFileCfg(
-                usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/props/left_foot_print.usd",
-                scale=(1.0, 1.0, 1.0),
-                ), 
-                "right_fps":
-                sim_utils.UsdFileCfg(
-                usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/props/right_foot_print.usd",
-                scale=(1.0, 1.0, 1.0),
-                ), 
+                # "left_fps":
+                # sim_utils.UsdFileCfg(
+                # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/props/left_foot_print.usd",
+                # scale=(1.0, 1.0, 1.0),
+                # ), 
+                # "right_fps":
+                # sim_utils.UsdFileCfg(
+                # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/props/right_foot_print.usd",
+                # scale=(1.0, 1.0, 1.0),
+                # ), 
+                "left_fps": sim_utils.SphereCfg(
+                radius=0.02,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.17212, 0.96911)),
+                ),
+                "right_fps": sim_utils.SphereCfg(
+                radius=0.02,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.88305, 0.0, 0.96911)),
+                ),
             }
         )
         self.marker = VisualizationMarkers(self.markers_cfg)

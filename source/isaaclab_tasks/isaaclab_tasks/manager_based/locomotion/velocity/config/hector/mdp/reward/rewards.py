@@ -388,6 +388,7 @@ def foot_placement_penalty(
     # penalty = (foot_selection * (1 - torch.exp(-torch.abs(roughness_at_foot)/std))).max(dim=1).values # exponential reward
     # penalty = (foot_selection * (1 - torch.exp(-torch.square(roughness_at_foot)/(std**2 + 1e-6)))).max(dim=1).values # gaussian reward
     penalty = torch.log(roughness + 1e-6) # want to minimize roughness
+    # print("penalty: ", -0.01*penalty)
     return penalty
 
 def stance_foot_position_penalty(
