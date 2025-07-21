@@ -213,18 +213,18 @@ class HECTORPerceptiveLocomotionObservationsCfg:
         # observation terms (order preserved !!!!)
 
         # -- proprioception 
-        base_pos_z = ObsTerm(
-            func=hector_mdp.base_pos_z, # type: ignore
-            params={
-                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
-                "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
-                },
-            # noise=Unoise(n_min=-0.1, n_max=0.1)
-            )
-        # projected_gravity = ObsTerm(
-        #     func=mdp.projected_gravity, # type: ignore
-        #     # noise=Unoise(n_min=-0.05, n_max=0.05),
-        # )
+        # base_pos_z = ObsTerm(
+        #     func=hector_mdp.base_pos_z, # type: ignore
+        #     params={
+        #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+        #         "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
+        #         },
+        #     # noise=Unoise(n_min=-0.1, n_max=0.1)
+        #     )
+        projected_gravity = ObsTerm(
+            func=mdp.projected_gravity, # type: ignore
+            # noise=Unoise(n_min=-0.05, n_max=0.05),
+        )
 
         base_lin_vel = ObsTerm(
             func=mdp.base_lin_vel, # type: ignore
@@ -234,10 +234,10 @@ class HECTORPerceptiveLocomotionObservationsCfg:
             func=mdp.base_ang_vel, # type: ignore
             # noise=Unoise(n_min=-0.2, n_max=0.2)
             )
-        projected_gravity = ObsTerm(
-            func=mdp.projected_gravity, # type: ignore
-            # noise=Unoise(n_min=-0.05, n_max=0.05),
-        )
+        # projected_gravity = ObsTerm(
+        #     func=mdp.projected_gravity, # type: ignore
+        #     # noise=Unoise(n_min=-0.05, n_max=0.05),
+        # )
         
         # user_velocity_commands = ObsTerm(func=hector_mdp.reference_command, params={"action_name": "mpc_action"}) # type: ignore
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
