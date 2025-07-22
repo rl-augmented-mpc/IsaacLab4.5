@@ -670,68 +670,73 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
     #     self.grid_point_boundary_in_body = grid_point_boundary_in_body.clone()
 
     def _process_heightmap(self):
-        sensor= self._env.scene.sensors["height_scanner_fine"]
+        """
+        Get height samples along lines connecting current foot position and planned footholds.
+        """
+        sensor = self._env.scene.sensors["height_scanner_fine"]
         scan_width, scan_height = sensor.cfg.pattern_cfg.size
         scan_resolution = sensor.cfg.pattern_cfg.resolution
-        width = int(scan_width/scan_resolution + 1)
-        height = int(scan_height/scan_resolution + 1)
-        height_scan = sensor.data.ray_hits_w[..., 2].clone()
+        width = int(scan_width / scan_resolution + 1)
+        height = int(scan_height / scan_resolution + 1)
+        height_scan = sensor.data.ray_hits_w[..., 2].clone().reshape(self.num_envs, -1)  # shape: (num_envs, width * height)
 
+        # Start and end points for sampling
         start_point = self.foot_pos_b.reshape(self.num_envs, 2, 3).clone()
         end_point = self.foot_placement.reshape(self.num_envs, 2, 3).clone()
-        e_vec = end_point - start_point # (num_envs, 2, 3)
+        vec = end_point - start_point  # (num_envs, 2, 3)
         num_samples = 10
-        sample_points = start_point[:, :, None, :] + \
-            e_vec[:, :, None, :] * torch.linspace(0, 1, num_samples, device=self.device).unsqueeze(0).unsqueeze(1).unsqueeze(-1) # (num_envs, 2, num_samples, 3)
-        sample_points = sample_points.reshape(self.num_envs, 2 * num_samples, 3) # (num_envs, num_samples*2, 3)
 
-        # get height of sample points x, y
-        sample_points_xy = sample_points[:, :, :2].clone() # (num_envs, num_samples, 2)
-        sample_points_xy[:, :, 0] = sample_points_xy[:, :, 0] / scan_resolution + (width // 2 - int(sensor.cfg.offset.pos[0]/scan_resolution))
-        sample_points_xy[:, :, 1] = sample_points_xy[:, :, 1] / scan_resolution + (height // 2 - int(sensor.cfg.offset.pos[1]/scan_resolution))
+        # Generate sample points between foot and foothold
+        sample_steps = torch.linspace(0, 1, num_samples, device=self.device).reshape(1, 1, num_samples, 1)
+        sample_points = start_point[:, :, None, :] + vec[:, :, None, :] * sample_steps
+        sample_points = sample_points.reshape(self.num_envs, 2 * num_samples, 3)  # (num_envs, num_samples*2, 3)
 
-        # Clamp to valid range before ceil/floor to avoid out-of-bounds
-        x0 = sample_points_xy[:, :, 0].floor().clamp(0, width - 2)     # [N, num_samples]
-        x1 = (x0 + 1).clamp(0, width - 1)          # [N, num_samples]
-        y0 = sample_points_xy[:, :, 1].floor().clamp(0, height - 2)    # [N, num_samples]
-        y1 = (y0 + 1).clamp(0, height - 1)         # [N, num_samples]
+        # Convert xy to grid indices
+        sample_points_xy = sample_points[:, :, :2].clone()
+        sample_points_xy[:, :, 0] = sample_points_xy[:, :, 0] / scan_resolution + (width // 2 - int(sensor.cfg.offset.pos[0] / scan_resolution))
+        sample_points_xy[:, :, 1] = sample_points_xy[:, :, 1] / scan_resolution + (height // 2 - int(sensor.cfg.offset.pos[1] / scan_resolution))
 
-        # Calculate weights for interpolation
-        wx = (sample_points_xy[:, :, 0] - x0)  # [N, num_samples]
-        wy = (sample_points_xy[:, :, 1] - y0)  # [N, num_samples]
+        # Clamp and compute surrounding pixel indices
+        x0 = sample_points_xy[:, :, 0].floor().clamp(0, width - 2)
+        x1 = (x0 + 1).clamp(0, width - 1)
+        y0 = sample_points_xy[:, :, 1].floor().clamp(0, height - 2)
+        y1 = (y0 + 1).clamp(0, height - 1)
 
-        # Convert to long for indexing
+        wx = (sample_points_xy[:, :, 0] - x0)
+        wy = (sample_points_xy[:, :, 1] - y0)
+
         x0 = x0.long()
         x1 = x1.long()
         y0 = y0.long()
         y1 = y1.long()
 
-        # Flattened index computation
+        # Compute flattened indices
         idx00 = y0 * width + x0
         idx10 = y0 * width + x1
         idx01 = y1 * width + x0
         idx11 = y1 * width + x1
 
-        # Gather the four corner heights
-        z00 = height_scan[torch.arange(self.num_envs)[:, None], idx00].squeeze(-1)  # [N, num_samples]
-        z10 = height_scan[torch.arange(self.num_envs)[:, None], idx10].squeeze(-1)
-        z01 = height_scan[torch.arange(self.num_envs)[:, None], idx01].squeeze(-1)
-        z11 = height_scan[torch.arange(self.num_envs)[:, None], idx11].squeeze(-1)
+        # Use torch.gather for batched index access
+        z00 = torch.gather(height_scan, 1, idx00)
+        z10 = torch.gather(height_scan, 1, idx10)
+        z01 = torch.gather(height_scan, 1, idx01)
+        z11 = torch.gather(height_scan, 1, idx11)
 
         # Bilinear interpolation
-        z0 = (1 - wx) * z00 + wx * z10  # along x
-        z1 = (1 - wx) * z01 + wx * z11  # along x
-        ground_height = ((1 - wy) * z0 + wy * z1).squeeze(-1)  # along y
+        z0 = (1 - wx) * z00 + wx * z10
+        z1 = (1 - wx) * z01 + wx * z11
+        ground_height = (1 - wy) * z0 + wy * z1  # shape: (num_envs, num_samples * 2)
+
         offset = 0.56
         self.grid_point_height = sensor.data.pos_w[:, 2].unsqueeze(1) - ground_height - offset
 
-        # form samples for visualization
-        height_samples = torch.cat([sample_points[:, :, :2], torch.zeros_like(sample_points[:, :, 2:])], dim=-1)  # (num_envs, num_samples*2, 3)
-        
-        # from body frame to world frame 
+        # Form samples for visualization
+        height_samples = torch.cat([sample_points[:, :, :2], torch.zeros_like(sample_points[:, :, 2:])], dim=2)  # (num_envs, num_samples*2, 3)
+
+        # Transform to world frame
         world_to_base_trans = self.robot_api.root_pos_w[:, :3].clone()
-        world_to_base_rot = self.robot_api.root_rot_mat_w.clone()
-        height_samples = (world_to_base_rot.repeat(2*num_samples, 1, 1) @ height_samples.reshape(-1, 3, 1)).reshape(self.num_envs, 2*num_samples, 3) + world_to_base_trans[:, None, :]
+        world_to_base_rot = self.robot_api.root_rot_mat_w.clone()  # shape: (num_envs, 3, 3)
+        height_samples = (world_to_base_rot[:, None, :, :] @ height_samples.unsqueeze(-1)).squeeze(-1) + world_to_base_trans[:, None, :]
         height_samples[:, :, 2] = ground_height
         self.grid_point_world = height_samples.clone()
 
