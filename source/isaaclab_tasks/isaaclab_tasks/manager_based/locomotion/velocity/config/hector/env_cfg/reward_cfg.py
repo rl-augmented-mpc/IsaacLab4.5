@@ -238,26 +238,26 @@ class HECTORPerceptiveLocomotionRewardsCfg(HECTORBlindLocomotionRewardsCfg):
     #     },
     # )
     
-    # # -- use height scanner atatached to foot
-    # foot_landing_penalty_left = RewTerm(
-    #     func=hector_mdp.swing_foot_landing_penalty,
-    #     weight=-1.5,
-    #     params={
-    #         "sensor_cfg": SceneEntityCfg("height_scanner_L_foot"),
-    #         "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="L_toe"),
-    #         "std": 0.03, 
-    #     },
-    # )
+    # -- use height scanner atatached to foot
+    foot_landing_penalty_left = RewTerm(
+        func=hector_mdp.swing_foot_landing_penalty,
+        weight=-5.0,
+        params={
+            "sensor_cfg": SceneEntityCfg("height_scanner_L_foot"),
+            "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="L_toe"),
+            "std": 0.03, 
+        },
+    )
     
-    # foot_landing_penalty_right = RewTerm(
-    #     func=hector_mdp.swing_foot_landing_penalty,
-    #     weight=-1.5,
-    #     params={
-    #         "sensor_cfg": SceneEntityCfg("height_scanner_R_foot"),
-    #         "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="R_toe"),
-    #         "std": 0.03, 
-    #     },
-    # )
+    foot_landing_penalty_right = RewTerm(
+        func=hector_mdp.swing_foot_landing_penalty,
+        weight=-5.0,
+        params={
+            "sensor_cfg": SceneEntityCfg("height_scanner_R_foot"),
+            "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names="R_toe"),
+            "std": 0.03, 
+        },
+    )
     
     # # -- penalize foot placement
     # foot_placement = RewTerm(
