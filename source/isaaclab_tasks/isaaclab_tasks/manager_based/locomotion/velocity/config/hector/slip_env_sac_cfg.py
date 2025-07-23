@@ -42,7 +42,7 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         # sim time
         self.sim.dt = 1/500
         self.decimation = 5
-        self.sim.render_interval = 10
+        self.sim.render_interval = self.decimation
 
         # self.actions.mpc_action.friction_cone_coef = 0.5
         

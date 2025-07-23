@@ -162,6 +162,7 @@ def main():
                 "reward", 
                 # "unsafe_zone"
                 "grf",
+                "heightmap",
                 "ref_height",
                 ])
         
@@ -219,20 +220,22 @@ def main():
                 action = agent.get_action(obs, is_deterministic=agent.is_deterministic)
             else:
                 action = torch.zeros(env.unwrapped.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
-                # action[:, 7] = -1.0
-                action[:, 1] = -1.0
+                # action[:, 7] = -1.0 # blind policy
+                action[:, 1] = -1.0 # perceptive policy
             obs, _, dones, _ = env.step(action)
             obs = agent.obs_to_torch(obs)
             
             processed_actions = env.unwrapped.action_manager.get_term("mpc_action").processed_actions # type: ignore
             state = env.unwrapped.action_manager.get_term("mpc_action").state # type: ignore
             
-            reward_items = ["undesired_contacts_toe", "foot_landing_penalty_left", "foot_landing_penalty_right"] # add reward term you want to log here
+            # reward_items = ["energy_penalty_l2"] # blind policy
+            reward_items = ["undesired_contacts_toe", "foot_landing_penalty_left", "foot_landing_penalty_right"] # perceptive policy
             reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
             reward = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
 
             # extras
-            grf = env.unwrapped.observation_manager._obs_buffer["extra"]
+            grf = env.unwrapped.observation_manager._obs_buffer["force"]
+            exteroception = env.unwrapped.observation_manager._obs_buffer["exteroception"]
             ref_height = env.unwrapped.action_manager.get_term("mpc_action").reference_height # type: ignore
             
             # perform operations for terminated episodes
@@ -251,6 +254,7 @@ def main():
                 "reward": reward.cpu().numpy(),  # type: ignore
                 # "unsafe_zone": grid_point.cpu().numpy(),  # type: ignore
                 "grf": grf.cpu().numpy(),  # type: ignore
+                "heightmap": exteroception.cpu().numpy(),  # type: ignore
                 "ref_height": ref_height,  # type: ignore
             }
             logger.log(item_dict)

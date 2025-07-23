@@ -39,7 +39,8 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
     )
 
     # -- penalties
-    termination = RewTerm(func=mdp.is_terminated, weight=-200.0) # type: ignore
+    # termination = RewTerm(func=mdp.is_terminated, weight=-200.0) # type: ignore
+    termination = None
     # lin_vel_y_l2 = RewTerm(func=hector_mdp.lin_vel_y_l2, weight=-0.5) # type: ignore
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01) # type: ignore
@@ -91,78 +92,6 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
             "patch_width": 0.15,
         }
     )
-
-    # # terrain depenent energy penalty (not sure if this actually works)
-    # processed_action_l2_sampling_time = RewTerm(
-    #     func=hector_mdp.rough_terrain_processed_action_l2,
-    #     weight=-1.0,
-    #     params={
-    #         # "action_idx": [0, 2],
-    #         "action_idx": [6],
-    #         "action_name": "mpc_action",
-    #         "sensor_cfg": SceneEntityCfg("height_scanner"),
-    #         "lookahead_distance": 0.35,
-    #         "lookback_distance": 0.0, 
-    #         "patch_width": 0.15,
-    #     }
-    # )
-    
-    # processed_action_l2_swing_height = RewTerm(
-    #     func=hector_mdp.rough_terrain_processed_action_l2,
-    #     weight=-0.5,
-    #     params={
-    #         # "action_idx": [1],
-    #         "action_idx": [7],
-    #         "action_name": "mpc_action",
-    #         "sensor_cfg": SceneEntityCfg("height_scanner"),
-    #         "lookahead_distance": 0.35,
-    #         "lookback_distance": 0.0, 
-    #         "patch_width": 0.15,
-    #     }
-    # )
-
-    # processed_action_l2_cp = RewTerm(
-    #     func=hector_mdp.rough_terrain_processed_action_l2,
-    #     weight=-1.0,
-    #     params={
-    #         # "action_idx": [0, 2],
-    #         "action_idx": [8],
-    #         "action_name": "mpc_action",
-    #         "sensor_cfg": SceneEntityCfg("height_scanner"),
-    #         "lookahead_distance": 0.35,
-    #         "lookback_distance": 0.0, 
-    #         "patch_width": 0.15,
-    #     }
-    # )
-
-    # processed_action_l2_lin_accel = RewTerm(
-    #     func=hector_mdp.individual_action_l2, # type: ignore
-    #     weight=-1.0,
-    #     # weight=-0.1,
-    #     params={
-    #         "action_idx": [0, 1, 2],
-    #         "action_name": "mpc_action",
-    #     }
-    # )
-    # processed_action_l2_ang_accel = RewTerm(
-    #     func=hector_mdp.individual_action_l2, # type: ignore
-    #     weight=-0.5,
-    #     # weight=-0.1,
-    #     params={
-    #         "action_idx": [3, 4, 5],
-    #         "action_name": "mpc_action",
-    #     }
-    # )
-    
-    # processed_action_l2_ref_vel = RewTerm(
-    #     func=hector_mdp.individual_action_l2, # type: ignore
-    #     weight=-0.5,
-    #     params={
-    #         "action_idx": [3],
-    #         # "action_idx": [9, 10],
-    #         "action_name": "mpc_action",
-    #     }
-    # )
     
     # body-leg angle penalties
     leg_body_angle_l2 = RewTerm(
