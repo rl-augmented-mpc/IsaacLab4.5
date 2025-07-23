@@ -138,8 +138,8 @@ def main():
     if args_cli.video:
         video_kwargs = {
             "video_folder": os.path.join(log_root_path, log_dir, "videos", name), # type: ignore
-            # "step_trigger": lambda step: step == 0,
-            "step_trigger": lambda step: step % 2000 == 0,
+            "step_trigger": lambda step: step == 0,
+            # "step_trigger": lambda step: step % 2000 == 0,
             "video_length": args_cli.video_length,
             "disable_logger": True,
         }
@@ -227,7 +227,7 @@ def main():
             processed_actions = env.unwrapped.action_manager.get_term("mpc_action").processed_actions # type: ignore
             state = env.unwrapped.action_manager.get_term("mpc_action").state # type: ignore
             
-            reward_items = ["track_lin_vel_xy_exp"] # add reward term you want to log here
+            reward_items = ["undesired_contacts_toe", "foot_landing_penalty_left", "foot_landing_penalty_right"] # add reward term you want to log here
             reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
             reward = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
 

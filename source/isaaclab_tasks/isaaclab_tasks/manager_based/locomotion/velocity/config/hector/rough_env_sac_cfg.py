@@ -174,6 +174,7 @@ class HECTORRoughEnvPerceptiveLocomotionSACCfgPLAY(HECTORRoughEnvPerceptiveLocom
             "pitch": (0.0, 0.0),
             # "yaw": (-math.pi, math.pi),
             "yaw": (0.0, 0.0),
+            # "yaw": (-math.pi/4, 0.0),
         }
         
         # self.scene.height_scanner.debug_vis = True

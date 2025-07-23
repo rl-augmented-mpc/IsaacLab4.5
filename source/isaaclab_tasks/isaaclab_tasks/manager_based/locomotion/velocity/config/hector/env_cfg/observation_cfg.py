@@ -278,22 +278,22 @@ class HECTORPerceptiveLocomotionObservationsCfg:
         
         actions = ObsTerm(func=mdp.last_action) # type: ignore
         
-        # height_scan = ObsTerm(
-        #     func=mdp.height_scan, # type: ignore
-        #     params={
-        #         "sensor_cfg": SceneEntityCfg("height_scanner"),
-        #         "offset": 0.56,
-        #         },
-        #     # noise=Unoise(n_min=-0.1, n_max=0.1),
-        #     clip=(-1.0, 1.0),
-        # )
-
         height_scan = ObsTerm(
-            func=hector_mdp.foot_centric_height_scan, # type: ignore
-            params={"action_name": "mpc_action"}, 
+            func=mdp.height_scan, # type: ignore
+            params={
+                "sensor_cfg": SceneEntityCfg("height_scanner"),
+                "offset": 0.56,
+                },
             # noise=Unoise(n_min=-0.1, n_max=0.1),
             clip=(-1.0, 1.0),
         )
+
+        # height_scan = ObsTerm(
+        #     func=hector_mdp.foot_centric_height_scan, # type: ignore
+        #     params={"action_name": "mpc_action"}, 
+        #     # noise=Unoise(n_min=-0.1, n_max=0.1),
+        #     clip=(-1.0, 1.0),
+        # ) # -- does not have effect on performance
 
         
         # depth_image = ObsTerm(

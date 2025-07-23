@@ -426,14 +426,14 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         # initialize the action term
         super().__init__(cfg, env)
         
-        # heightmap related
-        self.grid_point_boundary = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
-        self.grid_point_boundary_in_body = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
+        # # heightmap related
+        # self.grid_point_boundary = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
+        # self.grid_point_boundary_in_body = torch.empty(self.num_envs, 1, 3, device=self.device, dtype=torch.float32)
 
-        num_samples = 10
-        self.grid_point_world = torch.empty(self.num_envs, 2*num_samples, 3, device=self.device, dtype=torch.float32)
-        self.grid_point_height = torch.empty(self.num_envs, 2*num_samples, device=self.device, dtype=torch.float32)
-        self.grid_point_visualizer = GridPointVisualizer("/Visuals/safe_region", color=(0.0, 0.3, 0.0))
+        # num_samples = 10
+        # self.grid_point_world = torch.empty(self.num_envs, 2*num_samples, 3, device=self.device, dtype=torch.float32)
+        # self.grid_point_height = torch.empty(self.num_envs, 2*num_samples, device=self.device, dtype=torch.float32)
+        # self.grid_point_visualizer = GridPointVisualizer("/Visuals/safe_region", color=(0.0, 0.3, 0.0))
     
     """
     Operations.
@@ -480,7 +480,7 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         self._get_reference_velocity()
         self._get_reference_height(sensor_name=sensor_name)
         self._get_footplacement_height(sensor_name=sensor_name)
-        self._process_heightmap()
+        # self._process_heightmap(sensor_name="height_scanner_fine")
         
     def _get_reference_velocity(self):
         # # ramp up
@@ -669,11 +669,11 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
     #     self.grid_point_boundary = grid_point_boundary.clone()
     #     self.grid_point_boundary_in_body = grid_point_boundary_in_body.clone()
 
-    def _process_heightmap(self):
+    def _process_heightmap(self, sensor_name: str = "height_scanner_fine"):
         """
         Get height samples along lines connecting current foot position and planned footholds.
         """
-        sensor = self._env.scene.sensors["height_scanner_fine"]
+        sensor = self._env.scene.sensors[sensor_name]
         scan_width, scan_height = sensor.cfg.pattern_cfg.size
         scan_resolution = sensor.cfg.pattern_cfg.resolution
         width = int(scan_width / scan_resolution + 1)
@@ -820,8 +820,8 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
             foot_traj_world[:, i, :] = (world_to_odom_rot @ foot_traj_world[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
         self.foot_trajectory_visualizer.visualize(foot_traj_world)
         
-        # visualize grid points
-        self.grid_point_visualizer.visualize(self.grid_point_world)
+        # # visualize grid points
+        # self.grid_point_visualizer.visualize(self.grid_point_world)
 
     # ** physics loop **
     def _get_state(self) -> None:
