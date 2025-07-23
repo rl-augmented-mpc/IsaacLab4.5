@@ -45,7 +45,7 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         # sim time
         self.sim.dt = 1/400
         self.decimation = 4
-        self.sim.render_interval = 2*self.decimation
+        self.sim.render_interval = self.decimation
 
         self.scene.terrain = hector_mdp.SteppingStoneTerrain 
         
@@ -98,9 +98,9 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
             "yaw": (0.0, 0.0),
         }
 
-        # disable height scanner for lighter computation
-        self.scene.height_scanner = None
-        self.rewards.energy_penalty_l2 = None
+        # # disable height scanner for lighter computation
+        # self.scene.height_scanner = None
+        # self.rewards.energy_penalty_l2 = None
 
         self.curriculum.terrain_levels = None
         # self.commands.base_velocity.ranges.lin_vel_x = (0.45, 0.65)

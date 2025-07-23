@@ -270,6 +270,7 @@ def load_processed_data(data_root, dt_policy=0.01):
     state_data, obs_data, action_data, reward_data, mpc_action_data, episode_length_data = process_data(data_root)
 
     num_envs = obs_data.shape[0]
+    num_episodes = obs_data.shape[1]
 
     # data indices
     height_indies = 0
@@ -356,11 +357,16 @@ def load_processed_data(data_root, dt_policy=0.01):
     foot_lateral_distance = foot_position_b[:, :, 0, 1] - foot_position_b[:, :, 1, 1]
 
 
-    # extras<
+    # extras
     with open(os.path.join(data_root, "grf/grf.pkl"), "rb") as f:
         grf = pickle.load(f)
     grf = np.array(grf)
     grf = grf.reshape(grf.shape[0]*grf.shape[1], -1, 6)
+
+    with open(os.path.join(data_root, "heightmap/heightmap.pkl"), "rb") as f:
+        height_map = pickle.load(f)
+    height_map = np.array(height_map)
+    height_map = height_map.reshape(height_map.shape[0]*height_map.shape[1], num_episodes, -1)
 
     return {
         "position": position,
@@ -386,6 +392,7 @@ def load_processed_data(data_root, dt_policy=0.01):
         "action": action_data,
         "mpc_action": mpc_action_data,
         "episode_length": episode_length_data,
+        "height_data": height_map,
     }
 
 def load_processed_data_perceptive(data_root, dt_policy=0.01):
