@@ -556,22 +556,21 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
 
         target_pos = (self.foot_pos_b.reshape(self.num_envs, 2, 3) * (self.gait_contact==1).unsqueeze(2)).sum(dim=1)
         target_pos[:, 0] += 0.07
-        ground_height = bilinear_interpolation(height_map, target_pos, scan_resolution, width, height, scan_offset) - ground_level_odometry_frame
-        # print(ground_height.shape)
+        # ground_height = bilinear_interpolation(height_map, target_pos, scan_resolution, width, height, scan_offset) - ground_level_odometry_frame
 
         # plane fitting
         target_pos_1 = self.foot_placement.reshape(self.num_envs, 2, 3)[:, 0, :].clone()
-        # target_pos_1[:, 0] += 0.07
-        ground_height_1 = bilinear_interpolation(height_map, target_pos_1, scan_resolution, width, height, scan_offset) - ground_level_odometry_frame
         target_pos_2 = self.foot_placement.reshape(self.num_envs, 2, 3)[:, 1, :].clone()
-        # target_pos_2[:, 0] += 0.07
+        ground_height_1 = bilinear_interpolation(height_map, target_pos_1, scan_resolution, width, height, scan_offset) - ground_level_odometry_frame
         ground_height_2 = bilinear_interpolation(height_map, target_pos_2, scan_resolution, width, height, scan_offset) - ground_level_odometry_frame
         dx = target_pos_2[:, 0] - target_pos_1[:, 0]
         dy = target_pos_2[:, 1] - target_pos_1[:, 1]
         dz = ground_height_2 - ground_height_1
+        
         a = dz * dx / (dx**2 + dy**2 + 1e-6)
         b = dz * dy / (dx**2 + dy**2 + 1e-6)
         c = ground_height_1 - a * target_pos_1[:, 0] - b * target_pos_1[:, 1]
+
         # query height
         xq, yq = target_pos[:, 0], target_pos[:, 1]
         ground_height = a * xq + b * yq + c

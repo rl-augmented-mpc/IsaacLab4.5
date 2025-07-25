@@ -38,6 +38,7 @@ parser.add_argument("--log", action="store_true", default=False, help="Log the e
 parser.add_argument("--episode_length", type=float, default=None, help="Length of the episode in second.")
 parser.add_argument("--use_rl", action="store_true", default=False, help="Use RL agent to play. Otherwise, MPC is used.")
 parser.add_argument("--max_trials", type=int, default=1, help="Number of trials to run.")
+parser.add_argument("--perceptive", action="store_true", default=False, help="Use perceptive policy. Otherwise, blind policy is used.")
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -220,16 +221,21 @@ def main():
                 action = agent.get_action(obs, is_deterministic=agent.is_deterministic)
             else:
                 action = torch.zeros(env.unwrapped.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
-                # action[:, 7] = -1.0 # blind policy
-                action[:, 1] = -1.0 # perceptive policy
+                if args_cli.perceptive:
+                    action[:, 1] = -1.0 # perceptive policy
+                else:
+                    action[:, 7] = -1.0 # blind policy
             obs, _, dones, _ = env.step(action)
             obs = agent.obs_to_torch(obs)
             
             processed_actions = env.unwrapped.action_manager.get_term("mpc_action").processed_actions # type: ignore
             state = env.unwrapped.action_manager.get_term("mpc_action").state # type: ignore
             
-            reward_items = ["energy_penalty_l2"] # blind policy
-            # reward_items = ["undesired_contacts_toe", "foot_landing_penalty_left", "foot_landing_penalty_right"] # perceptive policy
+            if args_cli.perceptive:
+                # reward_items = ["undesired_contacts_toe"] # perceptive policy
+                reward_items = ["undesired_contacts_toe", "foot_landing_penalty_left", "foot_landing_penalty_right"] # perceptive policy
+            else:
+                reward_items = ["energy_penalty_l2"] # blind policy
             reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
             reward = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
 

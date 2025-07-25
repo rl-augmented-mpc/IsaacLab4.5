@@ -181,7 +181,7 @@ class HECTORPerceptiveLocomotionSceneCfg(InteractiveSceneCfg):
     #     },
     # )
     
-    
+    # TODO: figure out foot centric elevation map fuck up simulation (Nan in simulation results) during headless inference
     height_scanner_L_foot = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/L_toe",
         # offset=RayCasterCfg.OffsetCfg(pos=(0.04, 0.0, 0.0)),
