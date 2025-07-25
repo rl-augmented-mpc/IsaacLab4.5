@@ -11,7 +11,6 @@ from .observation_cfg import (
     PPOHECTORObservationsCfg, 
     HECTORBlindLocomotionObservationsCfg, 
     HECTORPerceptiveLocomotionObservationsCfg,
-    SACHECTORSlipObservationsCfg
 )
 from .observation_cfg import (
     TeacherObsCfg, 

@@ -1181,7 +1181,7 @@ def random_block_terrain(
     h_noise = torch.zeros((num_boxes, 3), device=device)
     
     # h_noise[:, 2].uniform_(-grid_height, grid_height) # uniform noise
-    h_noise[:, 2].uniform_(0.5, 1.0) # uniform noise
+    h_noise[:, 2].uniform_(0.7, 1.0) # uniform noise
     h_noise[:, 2] *= torch.from_numpy(np.random.choice([-1, 1], size=num_boxes)).to(device) * grid_height # random sign
     
     # h_noise[:, 2] = (2* torch.randint(0, 2, (num_boxes,), device=device) - 1) * grid_height # deterministic noise (-1 or 1)

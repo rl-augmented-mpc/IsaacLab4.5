@@ -47,15 +47,19 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         self.decimation = 4
         self.sim.render_interval = 2*self.decimation
 
+        # terain
         self.scene.terrain = hector_mdp.SteppingStoneTerrain 
+
+        # sensor
+        self.scene.height_scanner = None
         
-        self.viewer = ViewerCfg(
-            eye=(0.0, -2.0, 0.4), 
-            lookat=(0.0, -0.5, 0.1),
-            resolution=(1920, 1080), 
-            origin_type="asset_root", 
-            asset_name="robot"
-        )
+        # self.viewer = ViewerCfg(
+        #     eye=(0.0, -2.0, 0.4), 
+        #     lookat=(0.0, -0.5, 0.1),
+        #     resolution=(1920, 1080), 
+        #     origin_type="asset_root", 
+        #     asset_name="robot"
+        # )
 
         # event 
         self.events.reset_base.params["pose_range"] = {
@@ -69,7 +73,6 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         
         # command 
         self.commands.base_velocity.heading_command = False
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.45, 0.65)
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
 
@@ -81,30 +84,25 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         # post init of parent
         super().__post_init__()
         self.seed = 42
-        # self.scene.terrain = hector_mdp.SteppingStoneTerrain
+
         self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         # self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
         # self.scene.terrain = hector_mdp.TripOverChallengeTerrain
         # self.scene.terrain = hector_mdp.BoxRoughTerrain
         
         # event 
-        self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
+        # self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0.7, 0.7), 
-            "y": (-0.7, 0.7), 
+            "x": (-0.3, 0.3), 
+            "y": (-0.3, 0.3), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            # "yaw": (-math.pi, math.pi),
-            "yaw": (0.0, 0.0),
+            "yaw": (-math.pi, math.pi),
+            # "yaw": (0.0, 0.0),
         }
 
-        # # disable height scanner for lighter computation
-        # self.scene.height_scanner = None
-        # self.rewards.energy_penalty_l2 = None
-
         self.curriculum.terrain_levels = None
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.45, 0.65)
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
 
 @configclass

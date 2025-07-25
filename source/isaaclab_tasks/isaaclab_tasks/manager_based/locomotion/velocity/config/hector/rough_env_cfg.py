@@ -11,24 +11,23 @@ import isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp as hec
 
 
 from .env_cfg import (
-    HECTORActionsCfg, 
+    HECTORBlindLocomotionActionsCfg, 
+    HECTORBlindLocomotionSceneCfg,
+    HECTORBlindLocomotionRewardsCfg,
+    HECTORBlindLocomotionObservationsCfg,
     HECTORCommandsCfg,
     HECTORCurriculumCfg,
     HECTOREventCfg,
-    PPOHECTORObservationsCfg,
-    HECTORBlindLocomotionRewardsCfg,
     HECTORTerminationsCfg,
-    HECTORSceneCfg,
 )
-
 
 @configclass
 class HECTORRoughEnvCfg(LocomotionVelocityRoughEnvCfg):
-    scene: HECTORSceneCfg = HECTORSceneCfg(num_envs=4096, env_spacing=2.5)
+    scene: HECTORBlindLocomotionSceneCfg = HECTORBlindLocomotionSceneCfg(num_envs=4096, env_spacing=2.5)
     rewards: HECTORBlindLocomotionRewardsCfg = HECTORBlindLocomotionRewardsCfg()
-    actions: HECTORActionsCfg = HECTORActionsCfg()
+    actions: HECTORBlindLocomotionActionsCfg = HECTORBlindLocomotionActionsCfg()
     commands: HECTORCommandsCfg = HECTORCommandsCfg()
-    observations: PPOHECTORObservationsCfg = PPOHECTORObservationsCfg()
+    observations: HECTORBlindLocomotionObservationsCfg = HECTORBlindLocomotionObservationsCfg()
     terminations: HECTORTerminationsCfg = HECTORTerminationsCfg()
     events: HECTOREventCfg = HECTOREventCfg()
     curriculum: HECTORCurriculumCfg = HECTORCurriculumCfg()

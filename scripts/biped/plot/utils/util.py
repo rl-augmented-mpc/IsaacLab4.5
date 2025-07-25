@@ -273,32 +273,32 @@ def load_processed_data(data_root, dt_policy=0.01):
     num_episodes = obs_data.shape[1]
 
     # data indices
-    height_indies = 0
-    linear_velocity_indices = slice(1, 4)
-    angular_velocity_indices = 6
-    orientation_indices = slice(7, 10)
-    desired_linear_velocity_indices = slice(10, 12)
-    desired_angular_velocity_indices = 12
-    joint_pos_indices = slice(13, 23)
-    joint_vel_indices = slice(23, 33)
-    joint_effort_indices = slice(33, 43)  # corrected from jont_effort_indices
-    swing_phase_indices = slice(43, 45)
-    foot_placement_b_indices = slice(45, 49)
-    foot_position_b_indices = slice(49, 55)
-    reference_foot_position_b_indices = slice(55, 61)
+    # height_indies = 0
+    # linear_velocity_indices = slice(1, 4)
+    # angular_velocity_indices = 6
+    # orientation_indices = slice(7, 10)
+    # desired_linear_velocity_indices = slice(10, 12)
+    # desired_angular_velocity_indices = 12
+    # joint_pos_indices = slice(13, 23)
+    # joint_vel_indices = slice(23, 33)
+    # joint_effort_indices = slice(33, 43)  # corrected from jont_effort_indices
+    # swing_phase_indices = slice(43, 45)
+    # foot_placement_b_indices = slice(45, 49)
+    # foot_position_b_indices = slice(49, 55)
+    # reference_foot_position_b_indices = slice(55, 61)
 
-    # orientation_indices = slice(0, 3)
-    # linear_velocity_indices = slice(3, 6)
-    # angular_velocity_indices = 8
-    # desired_linear_velocity_indices = slice(9, 11)
-    # desired_angular_velocity_indices = 11
-    # joint_pos_indices = slice(12, 22)
-    # joint_vel_indices = slice(22, 32)
-    # joint_effort_indices = slice(32, 42)
-    # swing_phase_indices = slice(42, 44)
-    # foot_placement_b_indices = slice(44, 48)
-    # foot_position_b_indices = slice(48, 54)
-    # reference_foot_position_b_indices = slice(54, 60)
+    orientation_indices = slice(0, 3)
+    linear_velocity_indices = slice(3, 6)
+    angular_velocity_indices = 8
+    desired_linear_velocity_indices = slice(9, 11)
+    desired_angular_velocity_indices = 11
+    joint_pos_indices = slice(12, 22)
+    joint_vel_indices = slice(22, 32)
+    joint_effort_indices = slice(32, 42)
+    swing_phase_indices = slice(42, 44)
+    foot_placement_b_indices = slice(44, 48)
+    foot_position_b_indices = slice(48, 54)
+    reference_foot_position_b_indices = slice(54, 60)
 
     # state indices
     state_position_indices = slice(0, 3)
