@@ -45,7 +45,7 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         # sim time
         self.sim.dt = 1/400
         self.decimation = 4
-        self.sim.render_interval = self.decimation
+        self.sim.render_interval = 2*self.decimation
 
         self.scene.terrain = hector_mdp.SteppingStoneTerrain 
         
@@ -88,9 +88,10 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         # self.scene.terrain = hector_mdp.BoxRoughTerrain
         
         # event 
+        self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0.5, 0.5), 
-            "y": (-0.5, 0.5), 
+            "x": (-0.7, 0.7), 
+            "y": (-0.7, 0.7), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
@@ -159,22 +160,21 @@ class HECTORRoughEnvPerceptiveLocomotionSACCfgPLAY(HECTORRoughEnvPerceptiveLocom
         super().__post_init__()
         self.seed = 42
 
-        # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         # self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
         # self.scene.terrain = hector_mdp.TripOverChallengeTerrain
         # self.scene.terrain = hector_mdp.BoxRoughTerrain
         self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
 
         # event 
+        self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0.5, 0.5), 
-            "y": (-0.5, 0.5), 
+            "x": (-0.7, 0.7), 
+            "y": (-0.7, 0.7), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
             # "yaw": (-math.pi, math.pi),
             "yaw": (0.0, 0.0),
-            # "yaw": (-math.pi/4, 0.0),
         }
         
         # self.scene.height_scanner.debug_vis = True

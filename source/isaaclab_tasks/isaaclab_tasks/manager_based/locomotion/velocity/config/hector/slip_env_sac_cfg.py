@@ -18,7 +18,7 @@ from .env_cfg import (
     HECTORSlipEventCfg,
     HECTORTerminationsCfg,
     HECTORSlipActionsCfg, 
-    SACHECTORSlipObservationsCfg,
+    HECTORBlindLocomotionObservationsCfg,
     HECTORSlipRewardsCfg,
     HECTORSlipSceneCfg,
 )
@@ -29,7 +29,7 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
     rewards: HECTORSlipRewardsCfg = HECTORSlipRewardsCfg()
     actions: HECTORSlipActionsCfg = HECTORSlipActionsCfg()
     commands: HECTORCommandsCfg = HECTORCommandsCfg()
-    observations: SACHECTORSlipObservationsCfg = SACHECTORSlipObservationsCfg()
+    observations: HECTORBlindLocomotionObservationsCfg = HECTORBlindLocomotionObservationsCfg()
     terminations: HECTORTerminationsCfg = HECTORTerminationsCfg()
     events: HECTORSlipEventCfg = HECTORSlipEventCfg()
     curriculum: HECTORSlipCurriculumCfg = HECTORSlipCurriculumCfg()
@@ -40,9 +40,9 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
         
         # sim time
-        self.sim.dt = 1/500
-        self.decimation = 5
-        self.sim.render_interval = self.decimation
+        self.sim.dt = 1/400
+        self.decimation = 4
+        self.sim.render_interval = 2*self.decimation
 
         # self.actions.mpc_action.friction_cone_coef = 0.5
         
