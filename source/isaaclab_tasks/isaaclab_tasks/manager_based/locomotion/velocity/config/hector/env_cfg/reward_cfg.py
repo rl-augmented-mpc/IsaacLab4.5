@@ -228,7 +228,7 @@ class HECTORSlipRewardsCfg(RewardsCfg):
     )
 
     # -- penalties
-    termination = RewTerm(func=mdp.is_terminated, weight=-200.0) # type: ignore
+    # termination = RewTerm(func=mdp.is_terminated, weight=-200.0) # type: ignore
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01) # type: ignore
     # lin_accel_l2 = RewTerm(func=mdp.body_lin_acc_l2, weight=-5e-4, params={"asset_cfg": SceneEntityCfg("robot", body_names="base")}) # type: ignore
