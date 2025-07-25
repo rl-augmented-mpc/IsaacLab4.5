@@ -123,6 +123,19 @@ def foot_centric_height_scan(env: ManagerBasedEnv, action_name: str = "mpc_actio
     action_term = env.action_manager.get_term(action_name)
     return action_term.grid_point_height
 
+def terrain_roughness(
+        env: ManagerBasedEnv, 
+        left_raycaster_cfg: SceneEntityCfg = SceneEntityCfg("height_scanner_L_foot"),
+        right_raycaster_cfg: SceneEntityCfg = SceneEntityCfg("height_scanner_R_foot")
+        ) -> torch.Tensor:
+    left_foot_raycaster: RayCaster = env.scene.sensors[left_raycaster_cfg.name]
+    right_foot_raycaster: RayCaster = env.scene.sensors[right_raycaster_cfg.name]
+    left_foot_height_map = left_foot_raycaster.data.ray_hits_w[..., 2]
+    right_foot_height_map = right_foot_raycaster.data.ray_hits_w[..., 2]
+    roughness_left = left_foot_height_map.max(dim=1).values - left_foot_height_map.min(dim=1).values # (num_envs, )
+    roughness_right = right_foot_height_map.max(dim=1).values - right_foot_height_map.min(dim=1).values # (num_envs, )
+    return torch.stack([roughness_left, roughness_right], dim=1)  # (num_envs, 2)
+
 """
 MPC states
 """

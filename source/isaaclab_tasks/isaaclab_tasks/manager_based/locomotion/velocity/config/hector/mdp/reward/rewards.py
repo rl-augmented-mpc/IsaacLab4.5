@@ -558,6 +558,38 @@ def terrain_dependent_energy_penalty_l2(
     
     return energy_penalty
 
+def foot_elevation_dependent_energy_penalty_l2(
+    env: ManagerBasedRLEnv, 
+    assymetric_indices: int|list[int],
+    left_raycaster_cfg: SceneEntityCfg = SceneEntityCfg("height_scanner_L_foot"),
+    right_raycaster_cfg: SceneEntityCfg = SceneEntityCfg("height_scanner_R_foot"),
+    action_name: str = "mpc_action", 
+    roughness_threshold: float = 0.01) -> torch.Tensor:
+    
+    """
+    Penalize the actions using L2 squared kernel.
+    This is different from standard L2 energy penalty as the penalty is non-zero only when terrain is flat. 
+    This means you penalize energy only when the robot is stepping on flat terrain, but actively apply action otherwise.
+    """
+    
+    left_foot_raycaster: RayCaster = env.scene.sensors[left_raycaster_cfg.name]
+    right_foot_raycaster: RayCaster = env.scene.sensors[right_raycaster_cfg.name]
+    left_foot_height_map = left_foot_raycaster.data.ray_hits_w[..., 2]
+    right_foot_height_map = right_foot_raycaster.data.ray_hits_w[..., 2]
+
+    action_term = env.action_manager.get_term(action_name)
+    
+    roughness_left = left_foot_height_map.max(dim=1).values - left_foot_height_map.min(dim=1).values # (num_envs, )
+    roughness_right = right_foot_height_map.max(dim=1).values - right_foot_height_map.min(dim=1).values # (num_envs, )
+    terrain_mask = torch.logical_or(roughness_left < roughness_threshold, roughness_right < roughness_threshold).float() # mask for flat terrain
+    
+    # process energy penalty
+    actions = action_term.raw_actions.clone()
+    actions[:, assymetric_indices] = 1 + actions[:, assymetric_indices]  # handle assymetry (enforcing 0 action means -1 raw action)
+    energy_penalty = torch.sum(torch.square(actions), dim=1).view(-1) * terrain_mask
+    
+    return energy_penalty
+
 def individual_action_l2(env: ManagerBasedRLEnv, action_idx:int|list[int], action_name: str = "mpc_action",) -> torch.Tensor:
     """Penalize the actions using L2 squared kernel."""
     action_term = env.action_manager.get_term(action_name)

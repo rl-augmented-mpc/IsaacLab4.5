@@ -85,12 +85,11 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
         self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
 
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0.0, 0.0), 
-            "y": (-0.0, 0.0), 
+            "x": (-1.0, 1.0), 
+            "y": (-1.0, 1.0), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
             # "yaw": (-math.pi, math.pi),
-            # "yaw": (-math.pi/4, 0),
             "yaw": (-0, 0),
         }

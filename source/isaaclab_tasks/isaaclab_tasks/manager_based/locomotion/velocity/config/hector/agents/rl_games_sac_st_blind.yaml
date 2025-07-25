@@ -53,7 +53,7 @@ params:
     # full_experiment_name: 2025-07-06_20-53-13
     # full_experiment_name: 2025-07-08_20-20-53
     # full_experiment_name: 2025-07-10_10-00-00
-    # full_experiment_name: 2025-07-12_10-00-00
+    full_experiment_name: 2025-07-23_16-46-25
     env_name: rlgpu
     device: 'cuda:0'
     device_name: 'cuda:0'

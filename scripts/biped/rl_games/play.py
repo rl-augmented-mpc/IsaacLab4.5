@@ -161,7 +161,6 @@ def main():
                 "raw_action", 
                 "action", 
                 "reward", 
-                # "unsafe_zone"
                 "grf",
                 "heightmap",
                 "ref_height",
@@ -258,7 +257,6 @@ def main():
                 "raw_action": action.cpu().numpy(),  # type: ignore
                 "action": processed_actions.cpu().numpy(),
                 "reward": reward.cpu().numpy(),  # type: ignore
-                # "unsafe_zone": grid_point.cpu().numpy(),  # type: ignore
                 "grf": grf.cpu().numpy(),  # type: ignore
                 "heightmap": exteroception.cpu().numpy(),  # type: ignore
                 "ref_height": ref_height,  # type: ignore
