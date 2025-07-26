@@ -127,7 +127,8 @@ class HECTORBlindLocomotionSceneCfg(InteractiveSceneCfg):
     # )
     
     # --lights
-    ## gray studio ##
+
+    # distant_light
     distant_light = AssetBaseCfg(
         prim_path="/World/DistantLight",
         spawn=sim_utils.DistantLightCfg(
@@ -135,14 +136,23 @@ class HECTORBlindLocomotionSceneCfg(InteractiveSceneCfg):
             angle=34.3
         ),
     )
-    dome_light = AssetBaseCfg(
-        prim_path="/World/DomeLight",
-        spawn=sim_utils.DomeLightCfg(
-            intensity=1003.29999,
-            exposure=0.4, 
+
+    # ## gray studio ##
+    # distant_light = AssetBaseCfg(
+    #     prim_path="/World/DistantLight",
+    #     spawn=sim_utils.DistantLightCfg(
+    #         intensity=3000.0,
+    #         angle=34.3
+    #     ),
+    # )
+    # dome_light = AssetBaseCfg(
+    #     prim_path="/World/DomeLight",
+    #     spawn=sim_utils.DomeLightCfg(
+    #         intensity=1003.29999,
+    #         exposure=0.4, 
             
-        ),
-    )
+    #     ),
+    # )
 
     # sky_light = AssetBaseCfg(
     #     prim_path="/World/skyLight",

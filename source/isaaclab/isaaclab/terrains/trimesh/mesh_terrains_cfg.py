@@ -272,7 +272,7 @@ class MeshRepeatedObjectsTerrainCfg(SubTerrainBaseCfg):
         """The height (along z) of the object (in m)."""
 
     # function = mesh_terrains.repeated_objects_terrain # uniform sampling
-    function = mesh_terrains.poisson_disk_sampling_terrain # poisson disk sampling
+    function = mesh_terrains.poisson_disk_sampling_terrain # poisson disk sampling (also width and length of box is multiplied by 0.7 - 1.3 random numbers)
 
     object_type: Literal["cylinder", "box", "cone"] | callable = MISSING
     """The type of object to generate.

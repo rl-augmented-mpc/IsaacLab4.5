@@ -98,6 +98,7 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
     energy_penalty_l2 = RewTerm(
         func=hector_mdp.foot_elevation_dependent_energy_penalty_l2, # type: ignore
         weight=-0.005,
+        # weight=-0.025,
         params={
             "assymetric_indices": [7], 
             "action_name": "mpc_action",
