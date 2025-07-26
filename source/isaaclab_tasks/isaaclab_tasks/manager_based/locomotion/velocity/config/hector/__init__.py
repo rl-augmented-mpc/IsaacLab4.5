@@ -55,7 +55,7 @@ ARGS = [
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvBlindLocomotionSACCfgPLAY",
         # "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac.yaml",
-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_st_blind.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_st_blind_inference.yaml",
         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_sac.yaml",
     },
     
@@ -66,7 +66,7 @@ ARGS = [
     },
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORRoughEnvPerceptiveLocomotionSACCfgPLAY",
-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_st_perceptive.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_st_perceptive_inference.yaml",
     },
     
     # SAC slip blind env

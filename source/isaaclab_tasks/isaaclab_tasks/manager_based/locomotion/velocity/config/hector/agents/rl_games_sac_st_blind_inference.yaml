@@ -45,13 +45,13 @@ params:
       
     log_std_bounds: [-5, 2]
 
-  # load_checkpoint: False # flag which sets whether to load the checkpoint
-  # load_path: '' # path to the checkpoint to load
+  load_checkpoint: False # flag which sets whether to load the checkpoint
+  load_path: '' # path to the checkpoint to load
 
   config:
-    name: manager_sac_rl_games_random_block_mlp
-    # full_experiment_name: 2025-07-01_02-19-28
-    # full_experiment_name: 2025-06-28_15-00-00 # 2025-06-28_15-00-00
+    name: manager_sac_rl_games_stepping_stone_mlp_blind
+    # full_experiment_name: 2025-07-23_16-46-25 # stair
+    full_experiment_name: 2025-07-26_14-00-00 # box
     env_name: rlgpu
     device: 'cuda:0'
     device_name: 'cuda:0'
@@ -67,7 +67,8 @@ params:
     gamma: 0.99
     entropy_coef: 0.001
     score_to_win: 20000
-    max_epochs: 100000
+    # max_epochs: 100000
+    max_epochs: 10000
     save_best_after: 500
     save_frequency: 500
 
@@ -91,22 +92,19 @@ params:
     num_steps_per_episode: 36
     horizon_length: ${.num_steps_per_episode}
     init_alpha: 1.0 # dual parameter initial value
-    # alpha_lr: 2e-4 # dual parameter learning rate
-    # actor_lr: 3e-4 # actor network learning rate
-    # critic_lr: 3e-4 # critic network learning rate
     alpha_lr: 1e-4 # dual parameter learning rate
     actor_lr: 1e-4 # actor network learning rate
     critic_lr: 1e-4 # critic network learning rate
     critic_tau: 5e-3 # soft update parameter
     learnable_temperature: True
     num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
-    batch_size: 216
+    batch_size: 216 # 24 * 36 / 4 = 216
+    # batch_size: 576 # 64 * 36 / 4 = 576
     # batch_size: 512
-    # replay_buffer_size: 50000
     replay_buffer_size: 1000000
   
   log:
     logger: wandb
-    wandb_project_name: rl_mpc_manager_random_block
+    wandb_project_name: rl_mpc_manager_stepping_stone_blind
     wandb_entity: jnskkmr
     name: sac_rl_games_mlp
