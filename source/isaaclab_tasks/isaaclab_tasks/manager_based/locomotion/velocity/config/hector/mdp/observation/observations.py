@@ -134,6 +134,8 @@ def terrain_roughness(
     right_foot_height_map = right_foot_raycaster.data.ray_hits_w[..., 2]
     roughness_left = left_foot_height_map.max(dim=1).values - left_foot_height_map.min(dim=1).values # (num_envs, )
     roughness_right = right_foot_height_map.max(dim=1).values - right_foot_height_map.min(dim=1).values # (num_envs, )
+    roughness_left[roughness_left > 0.2] = 0.0  #  outlier rejection
+    roughness_right[roughness_right > 0.2] = 0.0 # outlier rejection
     return torch.stack([roughness_left, roughness_right], dim=1)  # (num_envs, 2)
 
 """

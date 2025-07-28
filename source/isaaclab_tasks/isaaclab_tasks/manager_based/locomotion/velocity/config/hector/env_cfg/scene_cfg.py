@@ -66,7 +66,7 @@ class HECTORBlindLocomotionSceneCfg(InteractiveSceneCfg):
         pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=[0.14, 0.07]),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
-        update_period=1/100,
+        update_period=1/10,
     )
     
     height_scanner_R_foot = RayCasterCfg(
@@ -78,7 +78,7 @@ class HECTORBlindLocomotionSceneCfg(InteractiveSceneCfg):
         pattern_cfg=patterns.GridPatternCfg(resolution=0.02, size=[0.14, 0.07]),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
-        update_period=1/100,
+        update_period=1/10,
     )
 
     contact_forces = ContactSensorCfg(
