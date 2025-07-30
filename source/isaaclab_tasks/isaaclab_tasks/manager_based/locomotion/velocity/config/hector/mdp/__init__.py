@@ -10,10 +10,9 @@ from .actions.mpc_actions_cfg import (
     # TorchMPCActionCfg, 
 )
 from .terrain.terrain_cfg import (
-    SteppingStoneTerrain, 
-    InferenceSteppingStoneTerrain, CurriculumSteppingStoneTerrain, 
+    SteppingStoneTerrain, InferenceSteppingStoneTerrain, CurriculumSteppingStoneTerrain, 
     RandomOrientationCubeTerrain, PyramidHfTerrain, FractalTerrain, BaseTerrain, 
-    CurriculumFrictionPatchTerrain, FrictionPatchTerrain, 
+    CurriculumFrictionPatchTerrain, FrictionPatchTerrain, AlternatingFrictionPatchTerrain, 
     InferenceRandomBlockTerrain, CurriculumRandomBlockTerrain, 
     TripOverChallengeTerrain, BoxRoughTerrain
 )

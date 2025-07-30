@@ -59,6 +59,7 @@ import gymnasium as gym
 import math
 import os
 import time
+import numpy as np
 import torch
 
 from rl_games.common import env_configurations, vecenv
@@ -140,7 +141,6 @@ def main():
         video_kwargs = {
             "video_folder": os.path.join(log_root_path, log_dir, "videos", name), # type: ignore
             "step_trigger": lambda step: step == 0,
-            # "step_trigger": lambda step: step % 2000 == 0,
             "video_length": args_cli.video_length,
             "disable_logger": True,
         }
@@ -150,21 +150,16 @@ def main():
     
     if args_cli.log:
         max_episode_length = int(env_cfg.episode_length_s/(env_cfg.decimation*env_cfg.sim.dt))
+        log_item = ['state', 'obs', 'raw_action', 'action', 'reward', 'grf', 'heightmap']
+        if args_cli.perceptive:
+            log_item.append('ref_height')
         logger = DictBenchmarkLogger(
             log_dir, name, 
             num_envs=args_cli.num_envs, 
             max_trials=args_cli.max_trials, 
             max_episode_length=max_episode_length, 
-            log_item=[
-                "state", 
-                "obs", 
-                "raw_action", 
-                "action", 
-                "reward", 
-                "grf",
-                "heightmap",
-                "ref_height",
-                ])
+            log_item=log_item,
+            )
         
     # wrap around environment for rl-games
     env = RlGamesVecEnvWrapper(env, rl_device, clip_obs, clip_actions)
@@ -239,8 +234,8 @@ def main():
             reward = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
 
             # extras
-            grf = env.unwrapped.observation_manager._obs_buffer["force"]
-            exteroception = env.unwrapped.observation_manager._obs_buffer["exteroception"]
+            grf = env.unwrapped.observation_manager._obs_buffer.get("force", None)  # type: ignore
+            exteroception = env.unwrapped.observation_manager._obs_buffer.get("exteroception", None)  # type: ignore
             ref_height = env.unwrapped.action_manager.get_term("mpc_action").reference_height # type: ignore
             
             # perform operations for terminated episodes
@@ -257,10 +252,21 @@ def main():
                 "raw_action": action.cpu().numpy(),  # type: ignore
                 "action": processed_actions.cpu().numpy(),
                 "reward": reward.cpu().numpy(),  # type: ignore
-                "grf": grf.cpu().numpy(),  # type: ignore
-                "heightmap": exteroception.cpu().numpy(),  # type: ignore
-                "ref_height": ref_height,  # type: ignore
+                # "ref_height": ref_height,  # type: ignore
             }
+            if grf is not None:
+                item_dict["grf"] = grf.cpu().numpy()
+            else:
+                item_dict["grf"] = np.zeros((args_cli.num_envs, 6))
+
+            if exteroception is not None:
+                item_dict["heightmap"] = exteroception.cpu().numpy()
+            else:
+                item_dict["heightmap"] = np.zeros((args_cli.num_envs, 2)) 
+
+            if args_cli.perceptive:
+                item_dict["ref_height"] = ref_height
+            
             logger.log(item_dict)
             
         # update buffer

@@ -19,11 +19,11 @@ class HECTORTerminationsCfg:
 
     time_out = DoneTerm(func=mdp.time_out, time_out=True) # type: ignore
 
-    # bad_orientation = DoneTerm(
-    #     func=mdp.bad_orientation,  # type: ignore
-    #     params={"asset_cfg": SceneEntityCfg("robot"), "limit_angle": math.pi/6},
-    #     time_out=True,
-    # )
+    bad_orientation = DoneTerm(
+        func=mdp.bad_orientation,  # type: ignore
+        params={"asset_cfg": SceneEntityCfg("robot"), "limit_angle": math.pi/6},
+        time_out=True,
+    ) # only used during inference
 
     base_too_low = DoneTerm(
         func=hector_mdp.root_height_below_minimum_adaptive,  # type: ignore

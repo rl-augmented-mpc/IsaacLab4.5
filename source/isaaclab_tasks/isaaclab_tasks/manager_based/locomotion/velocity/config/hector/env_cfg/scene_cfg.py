@@ -128,14 +128,14 @@ class HECTORBlindLocomotionSceneCfg(InteractiveSceneCfg):
     
     # --lights
 
-    # distant_light
-    distant_light = AssetBaseCfg(
-        prim_path="/World/DistantLight",
-        spawn=sim_utils.DistantLightCfg(
-            intensity=3000.0,
-            angle=34.3
-        ),
-    )
+    # # distant_light
+    # distant_light = AssetBaseCfg(
+    #     prim_path="/World/DistantLight",
+    #     spawn=sim_utils.DistantLightCfg(
+    #         intensity=3000.0,
+    #         angle=34.3
+    #     ),
+    # )
 
     # ## gray studio ##
     # distant_light = AssetBaseCfg(
@@ -154,13 +154,14 @@ class HECTORBlindLocomotionSceneCfg(InteractiveSceneCfg):
     #     ),
     # )
 
-    # sky_light = AssetBaseCfg(
-    #     prim_path="/World/skyLight",
-    #     spawn=sim_utils.DomeLightCfg(
-    #         intensity=2000.0,
-    #         texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
-    #     ),
-    # )
+    sky_light = AssetBaseCfg(
+        prim_path="/World/skyLight",
+        spawn=sim_utils.DomeLightCfg(
+            intensity=1000.0,
+            exposure=0.4, 
+            texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+        ),
+    )
 
 @configclass
 class HECTORPerceptiveLocomotionSceneCfg(InteractiveSceneCfg):
@@ -225,14 +226,14 @@ class HECTORPerceptiveLocomotionSceneCfg(InteractiveSceneCfg):
         # pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14, 0.07]),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
-        update_period=1/100,
+        update_period=1/10,
     )
     height_scanner_L_foot.visualizer_cfg = VisualizationMarkersCfg(
         prim_path="/Visuals/RayCasterLFoot",
         markers={
             "hit": sim_utils.SphereCfg(
                 radius=0.01,
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
             ),
         },
     )
@@ -246,14 +247,14 @@ class HECTORPerceptiveLocomotionSceneCfg(InteractiveSceneCfg):
         # pattern_cfg=patterns.GridPatternCfg(resolution=0.01, size=[0.14, 0.07]),
         debug_vis=False,
         mesh_prim_paths=["/World/ground"],
-        update_period=1/100,
+        update_period=1/10,
     )
     height_scanner_R_foot.visualizer_cfg = VisualizationMarkersCfg(
         prim_path="/Visuals/RayCasterRFoot",
         markers={
             "hit": sim_utils.SphereCfg(
                 radius=0.01,
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
             ),
         },
     )
@@ -328,30 +329,31 @@ class HECTORPerceptiveLocomotionSceneCfg(InteractiveSceneCfg):
     )
     
     # --lights
-    # gray studio ##
-    distant_light = AssetBaseCfg(
-        prim_path="/World/DistantLight",
-        spawn=sim_utils.DistantLightCfg(
-            intensity=3000.0,
-            angle=34.3
-        ),
-    )
-    dome_light = AssetBaseCfg(
-        prim_path="/World/DomeLight",
-        spawn=sim_utils.DomeLightCfg(
-            intensity=1003.29999,
-            exposure=0.4, 
-            
-        ),
-    )
-
-    # sky_light = AssetBaseCfg(
-    #     prim_path="/World/skyLight",
-    #     spawn=sim_utils.DomeLightCfg(
-    #         intensity=2000.0,
-    #         texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+    # # gray studio ##
+    # distant_light = AssetBaseCfg(
+    #     prim_path="/World/DistantLight",
+    #     spawn=sim_utils.DistantLightCfg(
+    #         intensity=3000.0,
+    #         angle=34.3
     #     ),
     # )
+    # dome_light = AssetBaseCfg(
+    #     prim_path="/World/DomeLight",
+    #     spawn=sim_utils.DomeLightCfg(
+    #         intensity=1003.29999,
+    #         exposure=0.4, 
+            
+    #     ),
+    # )
+
+    sky_light = AssetBaseCfg(
+        prim_path="/World/skyLight",
+        spawn=sim_utils.DomeLightCfg(
+            intensity=1000.0,
+            exposure=0.4, 
+            texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+        ),
+    )
     
 @configclass
 class HECTORSlipSceneCfg(InteractiveSceneCfg):
@@ -411,10 +413,20 @@ class HECTORSlipSceneCfg(InteractiveSceneCfg):
     )
     
     # --lights
-    sky_light = AssetBaseCfg(
-        prim_path="/World/skyLight",
-        spawn=sim_utils.DomeLightCfg(
-            intensity=2000.0,
-            texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+
+    # distant_light
+    distant_light = AssetBaseCfg(
+        prim_path="/World/DistantLight",
+        spawn=sim_utils.DistantLightCfg(
+            intensity=3000.0,
+            angle=34.3
         ),
     )
+
+    # sky_light = AssetBaseCfg(
+    #     prim_path="/World/skyLight",
+    #     spawn=sim_utils.DomeLightCfg(
+    #         intensity=2000.0,
+    #         texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+    #     ),
+    # )
