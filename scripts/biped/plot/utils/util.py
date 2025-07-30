@@ -416,6 +416,7 @@ def load_processed_data_perceptive(data_root, dt_policy=0.01):
     state_data, obs_data, action_data, reward_data, mpc_action_data, height_data, episode_length_data = process_data_with_height(data_root)
 
     num_envs = obs_data.shape[0]
+    num_episodes = obs_data.shape[1]
 
     # data indices
     orientation_indices = slice(0, 3)
@@ -505,6 +506,11 @@ def load_processed_data_perceptive(data_root, dt_policy=0.01):
     ref_height = np.array(ref_height)
     ref_height = ref_height.reshape(ref_height.shape[0]*ref_height.shape[1], -1)
 
+    with open(os.path.join(data_root, "heightmap/heightmap.pkl"), "rb") as f:
+        height_map = pickle.load(f)
+    height_map = np.array(height_map)
+    height_map = height_map.reshape(height_map.shape[0]*height_map.shape[1], num_episodes, -1)
+
     return {
         "position": position,
         "orientation": orientation,
@@ -532,4 +538,5 @@ def load_processed_data_perceptive(data_root, dt_policy=0.01):
         "reward": reward_data,
         "height_data": height_data,
         "ref_height": ref_height,
+        "foot_roughness": height_map,
     }

@@ -74,7 +74,7 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         # command 
         self.commands.base_velocity.heading_command = False
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
-        self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
+        self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
 
 @configclass
 class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCfg):
@@ -102,6 +102,7 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
 
         self.curriculum.terrain_levels = None
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
+        # self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)
 
 @configclass
 class HECTORRoughEnvPerceptiveLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
@@ -162,24 +163,21 @@ class HECTORRoughEnvPerceptiveLocomotionSACCfgPLAY(HECTORRoughEnvPerceptiveLocom
         self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
 
         # event 
-        self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
+        # self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0.7, 0.7), 
-            "y": (-0.7, 0.7), 
+            "x": (-0.3, 0.3), 
+            "y": (-0.3, 0.3), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
             # "yaw": (-math.pi, math.pi),
             "yaw": (0.0, 0.0),
         }
+
+        # debug vis
+        self.scene.height_scanner_L_foot.debug_vis = True
+        self.scene.height_scanner_R_foot.debug_vis = True
         
-        # self.scene.height_scanner.debug_vis = True
         self.curriculum.terrain_levels = None
-        
-        # lower resolution of heightmap since we do not use these during inference
-        # self.scene.height_scanner_L_foot = None
-        # self.scene.height_scanner_R_foot = None
-        # self.rewards.foot_landing_penalty_left = None
-        # self.rewards.foot_landing_penalty_right = None
         
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
