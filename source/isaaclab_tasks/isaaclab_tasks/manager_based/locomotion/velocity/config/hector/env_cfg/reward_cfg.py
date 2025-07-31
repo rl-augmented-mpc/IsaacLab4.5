@@ -64,22 +64,22 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
         )
     
     # Penalize deviation from default of the joints that are not essential for locomotion
-    joint_deviation = RewTerm(
-        func=mdp.joint_deviation_l1, # type: ignore
-        weight=-0.01,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_toe_joint"])},
-    )
-    # joint_deviation = None
-
-    # # -- standard energy penalty
-    # energy_penalty_l2 = RewTerm(
-    #     func=hector_mdp.energy_penalty_l2, # type: ignore
-    #     weight=-0.015,
-    #     params={
-    #         "assymetric_indices": [7], 
-    #         "action_name": "mpc_action",
-    #     }
+    # joint_deviation = RewTerm(
+    #     func=mdp.joint_deviation_l1, # type: ignore
+    #     weight=-0.01,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_toe_joint"])},
     # )
+    joint_deviation = None
+
+    # -- standard energy penalty
+    energy_penalty_l2 = RewTerm(
+        func=hector_mdp.energy_penalty_l2, # type: ignore
+        weight=-0.015,
+        params={
+            "assymetric_indices": [7], 
+            "action_name": "mpc_action",
+        }
+    )
     
     # # -- use robot centric elevation map
     # energy_penalty_l2 = RewTerm(
@@ -95,19 +95,20 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
     #     }
     # )
 
-    # -- use foot centric elevation map
-    energy_penalty_l2 = RewTerm(
-        func=hector_mdp.foot_elevation_dependent_energy_penalty_l2, # type: ignore
-        # weight=-0.005,
-        weight=-0.015,
-        params={
-            "assymetric_indices": [7], 
-            "action_name": "mpc_action",
-            "left_raycaster_cfg": SceneEntityCfg("height_scanner_L_foot"),
-            "right_raycaster_cfg": SceneEntityCfg("height_scanner_R_foot"),
-            "roughness_threshold": 0.04,
-        }
-    )
+    # # -- use foot centric elevation map
+    # energy_penalty_l2 = RewTerm(
+    #     func=hector_mdp.foot_elevation_dependent_energy_penalty_l2, # type: ignore
+    #     # weight=-0.005,
+    #     weight=-0.015,
+    #     # weight=-0.05,
+    #     params={
+    #         "assymetric_indices": [7], 
+    #         "action_name": "mpc_action",
+    #         "left_raycaster_cfg": SceneEntityCfg("height_scanner_L_foot"),
+    #         "right_raycaster_cfg": SceneEntityCfg("height_scanner_R_foot"),
+    #         "roughness_threshold": 0.04,
+    #     }
+    # )
 
     # -- foot penalties
     feet_slide = RewTerm(
@@ -125,9 +126,8 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
         weight=-1.0,
         params={"action_name": "mpc_action"}
     )
-    leg_body_distance_l2 = RewTerm(
+    feet_distance_l2 = RewTerm(
         func=hector_mdp.leg_distance_l2,
-        # weight=-0.2,
         weight=-0.5,
         params={"action_name": "mpc_action"}
     )
@@ -139,14 +139,14 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},
     )
     
-    # -- MPC cost
-    mpc_cost_l2 = RewTerm(
-        func=hector_mdp.mpc_cost_l1, # type: ignore
-        weight=-1e-4,
-        params={
-            "action_name": "mpc_action",
-        },
-        )
+    # # -- MPC cost
+    # mpc_cost_l2 = RewTerm(
+    #     func=hector_mdp.mpc_cost_l1, # type: ignore
+    #     weight=-1e-4,
+    #     params={
+    #         "action_name": "mpc_action",
+    #     },
+    #     )
     
     dof_pos_limits = None
     feet_air_time = None
@@ -308,20 +308,20 @@ class HECTORSlipRewardsCfg(RewardsCfg):
         weight=-1.0,
         params={"action_name": "mpc_action"}
     )
-    leg_body_distance_l2 = RewTerm(
+    feet_distance_l2 = RewTerm(
         func=hector_mdp.leg_distance_l2,
         weight=-1.0,
         params={"action_name": "mpc_action"}
     )
     
-    # -- MPC cost
-    mpc_cost_l2 = RewTerm(
-        func=hector_mdp.mpc_cost_l1, # type: ignore
-        weight=-1e-4,
-        params={
-            "action_name": "mpc_action",
-        },
-        )
+    # # -- MPC cost
+    # mpc_cost_l2 = RewTerm(
+    #     func=hector_mdp.mpc_cost_l1, # type: ignore
+    #     weight=-1e-4,
+    #     params={
+    #         "action_name": "mpc_action",
+    #     },
+    #     )
     
     # disable rewards from parent config
     dof_pos_limits = None

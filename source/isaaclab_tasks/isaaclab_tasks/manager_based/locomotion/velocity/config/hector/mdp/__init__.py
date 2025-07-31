@@ -7,7 +7,7 @@ from .actions.mpc_actions_cfg import (
     PerceptiveLocomotionMPCActionCfg2, 
     PerceptiveLocomotionMPCActionCfg3, 
     PerceptiveLocomotionMPCActionCfg4, 
-    # TorchMPCActionCfg, 
+    TorchMPCActionCfg, 
 )
 from .terrain.terrain_cfg import (
     SteppingStoneTerrain, InferenceSteppingStoneTerrain, CurriculumSteppingStoneTerrain, 

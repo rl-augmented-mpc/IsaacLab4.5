@@ -10,12 +10,12 @@ from isaaclab.utils.assets import ISAACLAB_NUCLEUS_DIR
 base terrain.
 """
 
-quat = Rotation.from_euler('xyz', [0, -5, 0], degrees=True).as_quat().astype(np.float32).tolist()
+# quat = Rotation.from_euler('xyz', [0, -5, 0], degrees=True).as_quat().astype(np.float32).tolist()
 BaseTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="generator",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(10.0, 10.0), # size of sub-terrain
+        size=(30.0, 30.0), # size of sub-terrain
         border_width=0.0,
         num_rows=1,
         num_cols=1,
@@ -356,8 +356,8 @@ InferenceSteppingStoneTerrain = TerrainImporterCfg(
             profile_mode="up",
             proportion=0.5, 
             num_box=120,
-            # box_height_range=(0.1, 0.1), 
-            box_height_range=(0.0, 0.0), 
+            box_height_range=(0.1, 0.1), 
+            # box_height_range=(0.0, 0.0), 
             platform_width=20.0, 
             # platform_length_range_start=(0.2, 0.3), platform_length_range_end=(0.2, 0.3),
             platform_length_range_start=(0.5, 0.5), platform_length_range_end=(0.5, 0.5),
