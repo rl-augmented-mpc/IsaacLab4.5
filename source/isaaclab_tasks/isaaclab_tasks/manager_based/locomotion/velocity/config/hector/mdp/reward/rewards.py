@@ -561,6 +561,7 @@ def terrain_dependent_energy_penalty_l2(
 def foot_elevation_dependent_energy_penalty_l2(
     env: ManagerBasedRLEnv, 
     assymetric_indices: int|list[int],
+    contact_sensor_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
     left_raycaster_cfg: SceneEntityCfg = SceneEntityCfg("height_scanner_L_foot"),
     right_raycaster_cfg: SceneEntityCfg = SceneEntityCfg("height_scanner_R_foot"),
     action_name: str = "mpc_action", 
@@ -568,8 +569,10 @@ def foot_elevation_dependent_energy_penalty_l2(
     
     """
     Penalize the actions using L2 squared kernel.
-    This is different from standard L2 energy penalty as the penalty is non-zero only when terrain is flat. 
-    This means you penalize energy only when the robot is stepping on flat terrain, but actively apply action otherwise.
+    This reward function is different from standard L2 energy penalty as the penalty is non-zero only when terrain is flat. 
+    This means you penalize energy only when the robot is stepping on flat terrain.
+    Roughness of terrain is computed as local elevation computed as max-min height from foot-centric raycaster. 
+    Then, this roughness value is multiplied by foot contact state as roughness is also non-zero when foot is swinging over rough terrain. 
     """
     
     left_foot_raycaster: RayCaster = env.scene.sensors[left_raycaster_cfg.name]
@@ -577,10 +580,13 @@ def foot_elevation_dependent_energy_penalty_l2(
     left_foot_height_map = left_foot_raycaster.data.ray_hits_w[..., 2]
     right_foot_height_map = right_foot_raycaster.data.ray_hits_w[..., 2]
 
+    contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
+    contact = contact_sensor.data.net_forces_w[:, contact_sensor_cfg.body_ids, :].norm(dim=2) > 1.0 # (num_envs, 2)
+
     action_term = env.action_manager.get_term(action_name)
     
-    roughness_left = left_foot_height_map.max(dim=1).values - left_foot_height_map.min(dim=1).values # (num_envs, )
-    roughness_right = right_foot_height_map.max(dim=1).values - right_foot_height_map.min(dim=1).values # (num_envs, )
+    roughness_left = (left_foot_height_map.max(dim=1).values - left_foot_height_map.min(dim=1).values) * contact[:, 0] # (num_envs, )
+    roughness_right = (right_foot_height_map.max(dim=1).values - right_foot_height_map.min(dim=1).values) * contact[:, 1] # (num_envs, )
     terrain_mask = torch.logical_or(roughness_left < roughness_threshold, roughness_right < roughness_threshold).float() # mask for flat terrain
     
     # process energy penalty

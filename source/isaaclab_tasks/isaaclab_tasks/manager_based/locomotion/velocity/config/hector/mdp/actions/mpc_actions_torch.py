@@ -25,7 +25,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp.marker i
 
 class TorchMPCAction(ActionTerm):
 
-    cfg: mpc_actions_cfg.MPCActionCfg
+    cfg: mpc_actions_cfg.TorchMPCActionCfg
     """The configuration of the action term."""
     _asset: Articulation
     """The articulation asset on which the action term is applied."""
@@ -34,7 +34,7 @@ class TorchMPCAction(ActionTerm):
     _clip: torch.Tensor
     """The clip applied to the input action."""
     
-    def __init__(self, cfg: mpc_actions_cfg.MPCActionCfg, env: ManagerBasedEnv):
+    def __init__(self, cfg: mpc_actions_cfg.TorchMPCActionCfg, env: ManagerBasedEnv):
         # initialize the action term
         super().__init__(cfg, env)
         # create robot helper object
@@ -85,7 +85,7 @@ class TorchMPCAction(ActionTerm):
         self.gait_contact[:, 0] = 1.0 # left foot contact at the beginning
         self.swing_phase = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
         self.foot_placement_w = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32)
-        self.foot_placement_b = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32) # in body frame
+        self.foot_placement = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32) # in body frame
         self.foot_pos_w = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # foot position in world frame
         self.foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # foot position in body frame
         self.ref_foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # reference foot position in body frame
@@ -242,7 +242,7 @@ class TorchMPCAction(ActionTerm):
         width = int(scan_width/scan_resolution + 1)
         height = int(scan_height/scan_resolution + 1)
         scan_offset = (int(sensor.cfg.offset.pos[0]/scan_resolution), int(sensor.cfg.offset.pos[1]/scan_resolution))
-        target_pos = (self.foot_placement_b.reshape(self.num_envs, 2, 2) * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
+        target_pos = (self.foot_placement_b.reshape(self.num_envs, 2, 3)[:, :, :2] * (self.gait_contact==0).unsqueeze(2)).sum(dim=1)
         
         # bilinear interpolation
         x_img = target_pos[:, 0] / scan_resolution + (width // 2 - scan_offset[0])
@@ -359,11 +359,11 @@ class TorchMPCAction(ActionTerm):
         self.mpc_cost = self.mpc_controller.mpc_cost.squeeze(-1)
 
         # transform foot placement to body frame
-        self.foot_placement_b = torch.zeros((self.num_envs, 4), device=self.device)
-        self.foot_placement_b[:, 0] = self.foot_placement_w[:, 0]*torch.cos(self.root_yaw) + self.foot_placement_w[:, 1]*torch.sin(self.root_yaw) - self.root_pos[:, 0]
-        self.foot_placement_b[:, 1] = -self.foot_placement_w[:, 0]*torch.sin(self.root_yaw) + self.foot_placement_w[:, 1]*torch.cos(self.root_yaw) - self.root_pos[:, 1]
-        self.foot_placement_b[:, 2] = self.foot_placement_w[:, 2]*torch.cos(self.root_yaw) + self.foot_placement_w[:, 3]*torch.sin(self.root_yaw) - self.root_pos[:, 0]
-        self.foot_placement_b[:, 3] = -self.foot_placement_w[:, 2]*torch.sin(self.root_yaw) + self.foot_placement_w[:, 3]*torch.cos(self.root_yaw) - self.root_pos[:, 1]
+        self.foot_placement = torch.zeros((self.num_envs, 6), device=self.device)
+        self.foot_placement[:, 0] = self.foot_placement_w[:, 0]*torch.cos(self.root_yaw) + self.foot_placement_w[:, 1]*torch.sin(self.root_yaw) - self.root_pos[:, 0]
+        self.foot_placement[:, 1] = -self.foot_placement_w[:, 0]*torch.sin(self.root_yaw) + self.foot_placement_w[:, 1]*torch.cos(self.root_yaw) - self.root_pos[:, 1]
+        self.foot_placement[:, 3] = self.foot_placement_w[:, 2]*torch.cos(self.root_yaw) + self.foot_placement_w[:, 3]*torch.sin(self.root_yaw) - self.root_pos[:, 0]
+        self.foot_placement[:, 4] = -self.foot_placement_w[:, 2]*torch.sin(self.root_yaw) + self.foot_placement_w[:, 3]*torch.cos(self.root_yaw) - self.root_pos[:, 1]
         
         # body-leg angle
         stance_leg_r_left = torch.abs(self.foot_pos_b[:, :3]).clamp(min=1e-6)  # avoid division by zero
