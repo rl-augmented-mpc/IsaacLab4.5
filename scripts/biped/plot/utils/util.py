@@ -117,7 +117,7 @@ def cluster_time_points(t_array, threshold=0.01):
 def process_data(data_dir:str):
     state_dir = os.path.join(data_dir, "state")
     obs_dir = os.path.join(data_dir, "obs")
-    action_dir = os.path.join(data_dir, "action")
+    action_dir = os.path.join(data_dir, "raw_action")
     episode_length_dir = os.path.join(data_dir, "episode")
     reward_dir = os.path.join(data_dir, "reward")
 
