@@ -516,7 +516,8 @@ def energy_penalty_l2(env: ManagerBasedRLEnv, assymetric_indices: int|list[int],
     action_term = env.action_manager.get_term(action_name)
     actions = action_term.raw_actions.clone()
     actions[:, assymetric_indices] = 1 + actions[:, assymetric_indices]  # handle assymetry (enforcing 0 action means -1 raw action)
-    return torch.sum(torch.square(actions), dim=1).view(-1)
+    # return torch.sum(torch.square(actions), dim=1).view(-1)
+    return torch.sum(torch.square(actions[:, assymetric_indices]), dim=1)
 
 def terrain_dependent_energy_penalty_l2(
     env: ManagerBasedRLEnv, 

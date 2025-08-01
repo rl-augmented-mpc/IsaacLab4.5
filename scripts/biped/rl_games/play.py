@@ -113,6 +113,7 @@ def main():
             # this loads the best checkpoint
             checkpoint_file = f"{agent_cfg['params']['config']['name']}.pth"
         # checkpoint_file="*.pth"
+        # checkpoint_file = "last_manager_sac_rl_games_stepping_stone_mlp_blind_ep_500_rew_16.409323.pth"
         # get path to previous checkpoint
         resume_path = get_checkpoint_path(log_root_path, run_dir, checkpoint_file, other_dirs=["nn"])
     else:
@@ -212,7 +213,12 @@ def main():
     while simulation_app.is_running():
         with torch.inference_mode():
             if args_cli.use_rl:
+                print("obs: \n", obs)
                 action = agent.get_action(obs, is_deterministic=agent.is_deterministic)
+                transformed_mean, mean, sigma = agent.get_action_distribution_params(obs) # type: ignore
+                print("tanh(mean):\n", transformed_mean)
+                print("mean:\n", mean)
+                print("sigma:\n", sigma)
             else:
                 action = torch.zeros(env.unwrapped.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
                 if args_cli.perceptive:
