@@ -72,14 +72,14 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
     joint_deviation = None
 
     # -- standard energy penalty
-    # energy_penalty_l2 = RewTerm(
-    #     func=hector_mdp.energy_penalty_l2, # type: ignore
-    #     weight=-0.015,
-    #     params={
-    #         "assymetric_indices": [7], 
-    #         "action_name": "mpc_action",
-    #     }
-    # )
+    energy_penalty_l2 = RewTerm(
+        func=hector_mdp.energy_penalty_l2, # type: ignore
+        weight=-0.015,
+        params={
+            # "assymetric_indices": [7], 
+            "action_name": "mpc_action",
+        }
+    )
     
     # # -- use robot centric elevation map
     # energy_penalty_l2 = RewTerm(
