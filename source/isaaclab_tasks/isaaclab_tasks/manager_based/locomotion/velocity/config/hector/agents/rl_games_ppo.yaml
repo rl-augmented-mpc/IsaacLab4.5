@@ -3,9 +3,8 @@ params:
 
   # environment wrapper clipping
   env:
-    # added to the wrapper
+    # read from the env wrapper
     clip_observations: 50.0
-    # can make custom wrapper?
     clip_actions: 1.0
 
   algo:
@@ -38,8 +37,6 @@ params:
       d2rl: False
 
       initializer:
-        # name: default
-        # name: kaiming_normal
         name: orthogonal
       regularizer:
         name: None
@@ -48,8 +45,7 @@ params:
   load_path: '' # path to the checkpoint to load
 
   config:
-    # name: ppo_rl_games_friction_mlp
-    name: manager_ppo_rl_games_stepping_stone_mlp
+    name: manager_ppo_rl_games_stepping_stone_mlp_blind
     env_name: rlgpu
     device: 'cuda:0'
     device_name: 'cuda:0'
@@ -68,25 +64,26 @@ params:
     lr_schedule: adaptive
     kl_threshold: 0.01
     score_to_win: 20000
-    max_epochs: 40000
+    # max_epochs: 10000
+    max_epochs: 5000
     save_best_after: 500
     save_frequency: 500
     grad_norm: 1.0
-    entropy_coef: 0.0
+    entropy_coef: 0.001
     truncate_grads: True
     e_clip: 0.2
-    horizon_length: 24
-    minibatch_size: 144 # num_envs*horizon/num_mini_batch=24*24/4
+    horizon_length: 32
+    minibatch_size: 216 # num_envs*horizon/num_mini_batch=24*32/4
     mini_epochs: 5
     critic_coef: 0.5
     clip_value: false
     seq_length: 4
-    bound_loss_type: regularisation
-    # bound_loss_type: bound
+    # bound_loss_type: regularisation
+    bound_loss_type: bound
     bounds_loss_coef: 0.005
   
   log:
     logger: wandb
-    wandb_project_name: rl_mpc_manager
+    wandb_project_name: rl_mpc_manager_stepping_stone_blind
     wandb_entity: jnskkmr
-    name: manager_ppo_rl_games_stepping_stone_mlp
+    name: ppo_rl_games_mlp
