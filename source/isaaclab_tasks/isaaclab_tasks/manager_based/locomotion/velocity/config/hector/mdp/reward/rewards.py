@@ -511,13 +511,13 @@ def negative_lin_vel_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = Scen
     reward = torch.square(vel_x) * (vel_x < 0).float()  # penalize only if moving backwards
     return reward
 
-def energy_penalty_l2(env: ManagerBasedRLEnv, assymetric_indices: int|list[int], action_name: str = "mpc_action") -> torch.Tensor:
+def energy_penalty_l2(env: ManagerBasedRLEnv, assymetric_indices: int|list[int]|None=None, action_name: str = "mpc_action") -> torch.Tensor:
     """Penalize the actions using L2 squared kernel."""
     action_term = env.action_manager.get_term(action_name)
     actions = action_term.raw_actions.clone()
-    actions[:, assymetric_indices] = 1 + actions[:, assymetric_indices]  # handle assymetry (enforcing 0 action means -1 raw action)
-    # return torch.sum(torch.square(actions), dim=1).view(-1)
-    return torch.sum(torch.square(actions[:, assymetric_indices]), dim=1)
+    if assymetric_indices is not None:
+        actions[:, assymetric_indices] = 1 + actions[:, assymetric_indices]  # handle assymetry (enforcing 0 action means -1 raw action)
+    return torch.sum(torch.square(actions), dim=1).view(-1)
 
 def terrain_dependent_energy_penalty_l2(
     env: ManagerBasedRLEnv, 
