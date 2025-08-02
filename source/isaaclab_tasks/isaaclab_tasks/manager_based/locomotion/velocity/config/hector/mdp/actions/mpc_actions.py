@@ -189,9 +189,13 @@ class BlindLocomotionMPCAction(ActionTerm):
         self._get_reference_velocity()
         
     def _get_reference_velocity(self):
-        ramp_up_duration = 1.2 # seconds
-        ramp_up_coef = torch.clip(self.mpc_counter/int(ramp_up_duration/self._env.physics_dt), 0.0, 1.0).unsqueeze(1)
-        command = ramp_up_coef * self.original_command
+        # # ramp up
+        # ramp_up_duration = 1.2 # seconds
+        # ramp_up_coef = torch.clip(self.mpc_counter/int(ramp_up_duration/self._env.physics_dt), 0.0, 1.0).unsqueeze(1)
+        # command = ramp_up_coef * self.original_command
+
+        # no ramp up
+        command = self.original_command
         
         # update command
         self.twist[:, :] = command.cpu().numpy()
