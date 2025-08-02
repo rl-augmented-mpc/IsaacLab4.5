@@ -153,11 +153,11 @@ class HECTORBlindLocomotionObservationsCfg:
             params={"joint_names": ['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint']}, 
             # noise=Unoise(n_min=-1.5, n_max=1.5),
             )
-        joint_torque = ObsTerm(
-            func=hector_mdp.joint_torque, 
-            params={"joint_names": ['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint']}, 
-            # noise=Unoise(n_min=-1.5, n_max=1.5),
-            )
+        # joint_torque = ObsTerm(
+        #     func=hector_mdp.joint_torque, 
+        #     params={"joint_names": ['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint']}, 
+        #     # noise=Unoise(n_min=-1.5, n_max=1.5),
+        #     )
         
         swing_phase = ObsTerm(
             func=hector_mdp.swing_phase, 

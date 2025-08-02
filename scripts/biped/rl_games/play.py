@@ -213,12 +213,12 @@ def main():
     while simulation_app.is_running():
         with torch.inference_mode():
             if args_cli.use_rl:
-                print("obs: \n", obs)
+                # print("obs: \n", obs)
                 action = agent.get_action(obs, is_deterministic=agent.is_deterministic)
                 transformed_mean, mean, sigma = agent.get_action_distribution_params(obs) # type: ignore
-                print("tanh(mean):\n", transformed_mean)
+                # print("tanh(mean):\n", transformed_mean)
                 print("mean:\n", mean)
-                print("sigma:\n", sigma)
+                # print("sigma:\n", sigma)
             else:
                 action = torch.zeros(env.unwrapped.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
                 if args_cli.perceptive:

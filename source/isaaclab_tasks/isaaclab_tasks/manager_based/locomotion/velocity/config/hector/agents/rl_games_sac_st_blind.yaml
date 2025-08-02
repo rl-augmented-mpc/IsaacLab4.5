@@ -71,6 +71,7 @@ params:
 
     # SAC specific parameters
     num_steps_per_episode: 36
+    # num_steps_per_episode: 24
     horizon_length: ${.num_steps_per_episode}
     init_alpha: 1.0 # dual parameter initial value
     alpha_lr: 1e-4 # dual parameter learning rate
@@ -79,16 +80,17 @@ params:
     critic_tau: 5e-3 # soft update parameter
     learnable_temperature: True
     num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
+    # batch_size: 144 # 24 * 24 / 4 = 144
     batch_size: 216 # 24 * 36 / 4 = 216
     # batch_size: 576 # 64 * 36 / 4 = 576
     # batch_size: 512
     replay_buffer_size: 1000000
-    # bound_loss_type: regularization
-    bound_loss_type: bound
-    bounds_loss_coef: 0.005
+    bound_loss_type: regularization
+    # bound_loss_type: bound
+    bounds_loss_coef: 0.015
   
   log:
-    logger: wandb
+    logger: tensorboard
     wandb_project_name: rl_mpc_manager_stepping_stone_blind
     wandb_entity: jnskkmr
     name: sac_rl_games_mlp

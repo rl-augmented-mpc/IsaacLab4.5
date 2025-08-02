@@ -48,8 +48,8 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         self.sim.render_interval = 2*self.decimation
 
         # terain
-        # self.scene.terrain = hector_mdp.SteppingStoneTerrain 
-        self.scene.terrain = hector_mdp.BaseTerrain # policy sanity check
+        self.scene.terrain = hector_mdp.SteppingStoneTerrain 
+        # self.scene.terrain = hector_mdp.BaseTerrain # policy sanity check
 
         # sensor
         self.scene.height_scanner = None
@@ -87,8 +87,8 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         self.seed = 42
 
         # terrain
-        # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
-        self.scene.terrain = hector_mdp.BaseTerrain # policy sanity check
+        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        # self.scene.terrain = hector_mdp.BaseTerrain # policy sanity check
         
         # event 
         # self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
