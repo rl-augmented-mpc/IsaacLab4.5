@@ -383,6 +383,55 @@ class HECTORPerceptiveLocomotionObservationsCfg:
     policy: PolicyCfg = PolicyCfg()
     force: ForceObsCfg = ForceObsCfg() # <- only for data analysis
     exteroception: ExteroceptiveObsCfg = ExteroceptiveObsCfg() # <- only for data analysis
+
+
+"""
+GPU-MPC observations
+"""
+@configclass
+class HECTORTorchBlindLocomotionObservationsCfg:
+    """Observation specifications for the MDP."""
+
+    @configclass
+    class PolicyCfg(ObsGroup):
+        """Observations for policy group."""
+
+        # observation terms (order preserved !!!!)
+        projected_gravity = ObsTerm(
+            func=mdp.projected_gravity, # type: ignore
+            # noise=Unoise(n_min=-0.05, n_max=0.05),
+        )
+
+        base_lin_vel = ObsTerm(
+            func=mdp.base_lin_vel, # type: ignore
+            # noise=Unoise(n_min=-0.1, n_max=0.1)
+            )
+        base_ang_vel = ObsTerm(
+            func=mdp.base_ang_vel, # type: ignore
+            # noise=Unoise(n_min=-0.2, n_max=0.2)
+            )
+        
+        velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"}) # type: ignore
+        
+        joint_pos = ObsTerm(
+            func=hector_mdp.joint_pos, 
+            params={"joint_names": ['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint']}, 
+            # noise=Unoise(n_min=-0.01, n_max=0.01),
+            )
+        joint_vel = ObsTerm(
+            func=hector_mdp.joint_vel, 
+            params={"joint_names": ['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint']}, 
+            # noise=Unoise(n_min=-1.5, n_max=1.5),
+            )
+        
+        actions = ObsTerm(func=mdp.last_action) # type: ignore
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
+    # observation groups
+    policy: PolicyCfg = PolicyCfg()
     
 
 """

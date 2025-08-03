@@ -61,36 +61,39 @@ params:
     num_actors: -1  # configured from the script (based on num_envs)
     reward_shaper:
       scale_value: 1.0
-    gamma: 0.99
-    entropy_coef: 0.001
+    gamma: 0.98
+    entropy_coef: 0.001 # not used
     score_to_win: 20000
-    # max_epochs: 10000
-    max_epochs: 6000
+    max_epochs: 10000
+    # max_epochs: 6000
     save_best_after: 500
     save_frequency: 500
 
     # SAC specific parameters
-    num_steps_per_episode: 36
-    # num_steps_per_episode: 24
+    # num_steps_per_episode: 36
+    num_steps_per_episode: 24
     horizon_length: ${.num_steps_per_episode}
-    init_alpha: 1.0 # dual parameter initial value
-    alpha_lr: 1e-4 # dual parameter learning rate
+    # init_alpha: 1.0 # entropy temperature initial value
+    init_alpha: 0.01 # entropy temperature initial value
+    target_entropy_coef: 1.0
+    alpha_lr: 1e-4 # entropy temperature learning rate
     actor_lr: 1e-4 # actor network learning rate
     critic_lr: 1e-4 # critic network learning rate
     critic_tau: 5e-3 # soft update parameter
     learnable_temperature: True
     num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
     # batch_size: 144 # 24 * 24 / 4 = 144
-    batch_size: 216 # 24 * 36 / 4 = 216
+    # batch_size: 216 # 24 * 36 / 4 = 216
     # batch_size: 576 # 64 * 36 / 4 = 576
-    # batch_size: 512
+    batch_size: 512
     replay_buffer_size: 1000000
     bound_loss_type: regularization
     # bound_loss_type: bound
-    bounds_loss_coef: 0.015
+    # bounds_loss_coef: 0.015
+    bounds_loss_coef: 0.005
   
   log:
-    logger: tensorboard
+    logger: wandb
     wandb_project_name: rl_mpc_manager_stepping_stone_blind
     wandb_entity: jnskkmr
     name: sac_rl_games_mlp

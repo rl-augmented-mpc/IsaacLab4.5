@@ -2,6 +2,7 @@ from .action_cfg import (
     HECTORBlindLocomotionActionsCfg, 
     HECTORPerceptiveLocomotionActionsCfg, 
     HECTORSlipActionsCfg, 
+    HECTORTorchBlindLocomotionActionsCfg, 
     HECTORL2TActionsCfg,
 )
 from .command_cfg import HECTORCommandsCfg
@@ -11,6 +12,7 @@ from .observation_cfg import (
     PPOHECTORObservationsCfg, 
     HECTORBlindLocomotionObservationsCfg, 
     HECTORPerceptiveLocomotionObservationsCfg,
+    HECTORTorchBlindLocomotionObservationsCfg, 
 )
 from .observation_cfg import (
     TeacherObsCfg, 
@@ -19,7 +21,8 @@ from .observation_cfg import (
 from .reward_cfg import (
     HECTORBlindLocomotionRewardsCfg, 
     HECTORPerceptiveLocomotionRewardsCfg, 
-    HECTORSlipRewardsCfg
+    HECTORSlipRewardsCfg, 
+    HECTORTorchBlindLocomotionRewardsCfg
 )
 from .termination_cfg import HECTORTerminationsCfg
 from .scene_cfg import (

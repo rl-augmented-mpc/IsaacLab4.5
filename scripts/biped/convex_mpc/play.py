@@ -106,7 +106,7 @@ def main():
             action = torch.zeros(env.action_space.shape,dtype=torch.float32, device=args_cli.device) # type: ignore
             
             ### Action1 ###
-            action[:, 1] = -1.0
+            # action[:, 1] = -1.0
             
             ### Action2 ###
             # action[:, 1] = -1.0
