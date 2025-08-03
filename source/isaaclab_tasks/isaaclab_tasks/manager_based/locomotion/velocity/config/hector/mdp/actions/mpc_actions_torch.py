@@ -38,7 +38,9 @@ class TorchMPCAction(ActionTerm):
         # initialize the action term
         super().__init__(cfg, env)
         # create robot helper object
-        self.robot_api = RobotCore(self._asset, self.num_envs, torch.tensor([19, 20], device=self.device, dtype=torch.long))
+        body_names = self._asset.data.body_names
+        foot_idx = [i for i in range(len(body_names)) if body_names[i] in ["L_sole", "R_sole"]]
+        self.robot_api = RobotCore(self._asset, self.num_envs, torch.tensor(foot_idx, device=self.device, dtype=torch.long))
 
         # resolve the joints over which the action term is applied
         self._joint_ids, self._joint_names = self._asset.find_joints(self.cfg.joint_names, preserve_order=True)
@@ -64,11 +66,28 @@ class TorchMPCAction(ActionTerm):
             dt=env.physics_dt, 
             iteration_between_mpc=self.cfg.control_iteration_between_mpc,
             decimation=int(env.step_dt//env.physics_dt),
+            # solver="osqp",
+            solver="qpth",
+            # solver="qpswift",
             # print_solve_time=True,
+            print_solve_time=False,
+            Q = torch.tensor(
+                # [200, 500, 500, 500, 500, 500, 1, 1, 5, 1, 1, 5, 1], 
+                [150, 150, 250, 100, 100, 100, 1, 1, 5, 10, 10, 1, 1], 
+                # [100, 500, 250, 100, 100, 100, 1, 20, 5, 10, 10, 1, 1], 
+                device=self.device, dtype=torch.float32), 
+            R = torch.tensor(
+                # [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2],
+                [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4],
+                device=self.device, dtype=torch.float32
+            ),
+            
         )
-        self.mpc_controller = MPCController(robot_conf, mpc_conf, self.num_envs, self.device, 2)
+        gait_id = 2
+        self.mpc_controller = MPCController(robot_conf, mpc_conf, self.num_envs, self.device, gait_id)
         
         # create tensors to store mpc state
+        # floating base state
         self.state = torch.zeros(self.num_envs, 33, device=self.device)
         self.root_pos = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
         self.root_quat = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32)
@@ -76,6 +95,8 @@ class TorchMPCAction(ActionTerm):
         self.root_rot_mat = torch.zeros(self.num_envs, 3, 3, device=self.device, dtype=torch.float32)
         self.root_lin_vel_b = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
         self.root_ang_vel_b = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
+
+        # joint state
         self.joint_pos = torch.zeros(self.num_envs, self._num_joints, device=self.device, dtype=torch.float32)
         self.joint_vel = torch.zeros(self.num_envs, self._num_joints, device=self.device, dtype=torch.float32)
         
@@ -99,7 +120,7 @@ class TorchMPCAction(ActionTerm):
         self.foot_placement_height = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         
         # markers
-        self.foot_placement_visualizer = FootPlacementVisualizer("/Visuals/foot_placement")
+        # self.foot_placement_visualizer = FootPlacementVisualizer("/Visuals/foot_placement")
     
     """
     Properties.
@@ -147,8 +168,8 @@ class TorchMPCAction(ActionTerm):
         # update reference
         self._get_mpc_state()
         self._get_reference_velocity()
-        self._get_reference_height()
-        self._get_footplacement_height()
+        # self._get_reference_height()
+        # self._get_footplacement_height()
         
         self.mpc_controller.set_command(
             self.command, 
@@ -159,79 +180,83 @@ class TorchMPCAction(ActionTerm):
         self.mpc_controller.update_state(self.state)
         self.mpc_controller.run_mpc()
         
-        self.visualize_marker()
+        # self.visualize_marker()
         
     def _get_reference_velocity(self):
-        ramp_up_duration = 1.2 # seconds
-        ramp_up_coef = torch.clip(self.mpc_counter/int(ramp_up_duration/self._env.physics_dt), 0.0, 1.0).unsqueeze(1)
+        # # ramp up
+        # ramp_up_duration = 1.2 # seconds
+        # ramp_up_coef = torch.clip(self.mpc_counter/int(ramp_up_duration/self._env.physics_dt), 0.0, 1.0).unsqueeze(1)
+
+        # no ramp up
+        ramp_up_coef = 1.0
         self.command[:, :] = (ramp_up_coef * self._env.command_manager.get_command(self.cfg.command_name))
     
     def _get_reference_height(self):
-        sensor= self._env.scene.sensors["height_scanner"]
-        height_map = sensor.data.ray_hits_w[..., 2]
+        # sensor= self._env.scene.sensors["height_scanner"]
+        # height_map = sensor.data.ray_hits_w[..., 2]
         
-        scan_width, scan_height = sensor.cfg.pattern_cfg.size
-        scan_resolution = sensor.cfg.pattern_cfg.resolution
-        width = int(scan_width/scan_resolution + 1)
-        height = int(scan_height/scan_resolution + 1)
-        scan_offset = (int(sensor.cfg.offset.pos[0]/scan_resolution), int(sensor.cfg.offset.pos[1]/scan_resolution))
-        target_pos = (self.foot_pos_b.reshape(self.num_envs, 2, 3) * (self.gait_contact==1).unsqueeze(2)).sum(dim=1)
+        # scan_width, scan_height = sensor.cfg.pattern_cfg.size
+        # scan_resolution = sensor.cfg.pattern_cfg.resolution
+        # width = int(scan_width/scan_resolution + 1)
+        # height = int(scan_height/scan_resolution + 1)
+        # scan_offset = (int(sensor.cfg.offset.pos[0]/scan_resolution), int(sensor.cfg.offset.pos[1]/scan_resolution))
+        # target_pos = (self.foot_pos_b.reshape(self.num_envs, 2, 3) * (self.gait_contact==1).unsqueeze(2)).sum(dim=1)
         
-        # # rough discretization
-        # body_center_in_image = (width//2 - scan_offset[0], height//2 - scan_offset[1])
-        # col_index = ((target_pos[:, 0]/scan_resolution).long() + body_center_in_image[0]).clamp(0, width-1)
-        # row_index = ((target_pos[:, 1]/scan_resolution).long() + body_center_in_image[1]).clamp(0, height-1)
-        # indices = (width*row_index + col_index).long() # flatten index
-        # ground_height = height_map[torch.arange(self.num_envs), indices]
+        # # # rough discretization
+        # # body_center_in_image = (width//2 - scan_offset[0], height//2 - scan_offset[1])
+        # # col_index = ((target_pos[:, 0]/scan_resolution).long() + body_center_in_image[0]).clamp(0, width-1)
+        # # row_index = ((target_pos[:, 1]/scan_resolution).long() + body_center_in_image[1]).clamp(0, height-1)
+        # # indices = (width*row_index + col_index).long() # flatten index
+        # # ground_height = height_map[torch.arange(self.num_envs), indices]
         
-        # bilinear interpolation
-        x_img = target_pos[:, 0] / scan_resolution + (width // 2 - scan_offset[0])
-        y_img = target_pos[:, 1] / scan_resolution + (height // 2 - scan_offset[1])
+        # # bilinear interpolation
+        # x_img = target_pos[:, 0] / scan_resolution + (width // 2 - scan_offset[0])
+        # y_img = target_pos[:, 1] / scan_resolution + (height // 2 - scan_offset[1])
 
-        # Clamp to valid range before ceil/floor to avoid out-of-bounds
-        x0 = x_img.floor().clamp(0, width - 2)     # [N]
-        x1 = (x0 + 1).clamp(0, width - 1)          # [N]
-        y0 = y_img.floor().clamp(0, height - 2)    # [N]
-        y1 = (y0 + 1).clamp(0, height - 1)         # [N]
+        # # Clamp to valid range before ceil/floor to avoid out-of-bounds
+        # x0 = x_img.floor().clamp(0, width - 2)     # [N]
+        # x1 = (x0 + 1).clamp(0, width - 1)          # [N]
+        # y0 = y_img.floor().clamp(0, height - 2)    # [N]
+        # y1 = (y0 + 1).clamp(0, height - 1)         # [N]
 
-        # Calculate weights for interpolation
-        wx = (x_img - x0).unsqueeze(1)             # [N, 1]
-        wy = (y_img - y0).unsqueeze(1)             # [N, 1]
+        # # Calculate weights for interpolation
+        # wx = (x_img - x0).unsqueeze(1)             # [N, 1]
+        # wy = (y_img - y0).unsqueeze(1)             # [N, 1]
 
-        # Convert to long for indexing
-        x0 = x0.long()
-        x1 = x1.long()
-        y0 = y0.long()
-        y1 = y1.long()
+        # # Convert to long for indexing
+        # x0 = x0.long()
+        # x1 = x1.long()
+        # y0 = y0.long()
+        # y1 = y1.long()
 
-        # Flattened index computation
-        idx00 = y0 * width + x0
-        idx10 = y0 * width + x1
-        idx01 = y1 * width + x0
-        idx11 = y1 * width + x1
+        # # Flattened index computation
+        # idx00 = y0 * width + x0
+        # idx10 = y0 * width + x1
+        # idx01 = y1 * width + x0
+        # idx11 = y1 * width + x1
 
-        # Gather the four corner heights
-        z00 = height_map[torch.arange(self.num_envs), idx00]
-        z10 = height_map[torch.arange(self.num_envs), idx10]
-        z01 = height_map[torch.arange(self.num_envs), idx01]
-        z11 = height_map[torch.arange(self.num_envs), idx11]
+        # # Gather the four corner heights
+        # z00 = height_map[torch.arange(self.num_envs), idx00]
+        # z10 = height_map[torch.arange(self.num_envs), idx10]
+        # z01 = height_map[torch.arange(self.num_envs), idx01]
+        # z11 = height_map[torch.arange(self.num_envs), idx11]
 
-        # Bilinear interpolation
-        z0 = (1 - wx) * z00.unsqueeze(1) + wx * z10.unsqueeze(1)  # along x
-        z1 = (1 - wx) * z01.unsqueeze(1) + wx * z11.unsqueeze(1)  # along x
-        ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1)      # along y
+        # # Bilinear interpolation
+        # z0 = (1 - wx) * z00.unsqueeze(1) + wx * z10.unsqueeze(1)  # along x
+        # z1 = (1 - wx) * z01.unsqueeze(1) + wx * z11.unsqueeze(1)  # along x
+        # ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1)      # along y
         
-        ground_level_odometry_frame = self.robot_api._init_pos[:, 2] - self.robot_api.default_root_state[:, 2]
-        self.reference_height = self.cfg.nominal_height + (ground_height - ground_level_odometry_frame)
+        # ground_level_odometry_frame = self.robot_api._init_pos[:, 2] - self.robot_api.default_root_state[:, 2]
+        # self.reference_height = self.cfg.nominal_height + (ground_height - ground_level_odometry_frame)
         
         # squat motion
-        # randomize_duration = int(2.0/self._env.physics_dt) # 2sec
-        # time_step = self.mpc_counter % randomize_duration
-        # coef = torch.zeros(self.num_envs, device=self.device)
-        # coef[time_step<=randomize_duration//2] = time_step/(randomize_duration//2) # [0, 1]
-        # coef[time_step>randomize_duration//2] = (randomize_duration-time_step)/(randomize_duration//2) # [1, 0]
-        # offset = -0.2*coef
-        # self.reference_height = self.cfg.nominal_height + (ground_height - ground_level_odometry_frame) + offset
+        randomize_duration = int(2.0/self._env.physics_dt) # 2sec
+        time_step = self.mpc_counter % randomize_duration
+        coef = torch.zeros(self.num_envs, device=self.device)
+        coef[time_step<=randomize_duration//2] = time_step/(randomize_duration//2) # [0, 1]
+        coef[time_step>randomize_duration//2] = (randomize_duration-time_step)/(randomize_duration//2) # [1, 0]
+        offset = -0.15*coef
+        self.reference_height = self.cfg.nominal_height + offset
         
     def _get_footplacement_height(self):
         sensor= self._env.scene.sensors["height_scanner"]
@@ -313,6 +338,7 @@ class TorchMPCAction(ActionTerm):
         self._get_state()
         self.mpc_controller.update_state(self.state)
         self.mpc_controller.run_lowlevel()
+        
         joint_actions = self.mpc_controller.get_action()
         self.robot_api.set_joint_effort_target(joint_actions, self._joint_ids)
         self.mpc_counter += 1

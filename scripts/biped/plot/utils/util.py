@@ -117,7 +117,7 @@ def cluster_time_points(t_array, threshold=0.01):
 def process_data(data_dir:str):
     state_dir = os.path.join(data_dir, "state")
     obs_dir = os.path.join(data_dir, "obs")
-    action_dir = os.path.join(data_dir, "raw_action")
+    action_dir = os.path.join(data_dir, "action")
     episode_length_dir = os.path.join(data_dir, "episode")
     reward_dir = os.path.join(data_dir, "reward")
 
@@ -272,20 +272,18 @@ def load_processed_data(data_root, dt_policy=0.01):
     num_envs = obs_data.shape[0]
     num_episodes = obs_data.shape[1]
 
-    # data indices
-    # height_indies = 0
-    # linear_velocity_indices = slice(1, 4)
-    # angular_velocity_indices = 6
-    # orientation_indices = slice(7, 10)
-    # desired_linear_velocity_indices = slice(10, 12)
-    # desired_angular_velocity_indices = 12
-    # joint_pos_indices = slice(13, 23)
-    # joint_vel_indices = slice(23, 33)
-    # joint_effort_indices = slice(33, 43)  # corrected from jont_effort_indices
-    # swing_phase_indices = slice(43, 45)
-    # foot_placement_b_indices = slice(45, 49)
-    # foot_position_b_indices = slice(49, 55)
-    # reference_foot_position_b_indices = slice(55, 61)
+    # orientation_indices = slice(0, 3)
+    # linear_velocity_indices = slice(3, 6)
+    # angular_velocity_indices = 8
+    # desired_linear_velocity_indices = slice(9, 11)
+    # desired_angular_velocity_indices = 11
+    # joint_pos_indices = slice(12, 22)
+    # joint_vel_indices = slice(22, 32)
+    # joint_effort_indices = slice(32, 42)
+    # swing_phase_indices = slice(42, 44)
+    # foot_placement_b_indices = slice(44, 48)
+    # foot_position_b_indices = slice(48, 54)
+    # reference_foot_position_b_indices = slice(54, 60)
 
     orientation_indices = slice(0, 3)
     linear_velocity_indices = slice(3, 6)
@@ -294,11 +292,10 @@ def load_processed_data(data_root, dt_policy=0.01):
     desired_angular_velocity_indices = 11
     joint_pos_indices = slice(12, 22)
     joint_vel_indices = slice(22, 32)
-    joint_effort_indices = slice(32, 42)
-    swing_phase_indices = slice(42, 44)
-    foot_placement_b_indices = slice(44, 48)
-    foot_position_b_indices = slice(48, 54)
-    reference_foot_position_b_indices = slice(54, 60)
+    swing_phase_indices = slice(32, 34)
+    foot_placement_b_indices = slice(34, 38)
+    foot_position_b_indices = slice(38, 44)
+    reference_foot_position_b_indices = slice(44, 50)
 
     # state indices
     state_position_indices = slice(0, 3)
@@ -323,7 +320,7 @@ def load_processed_data(data_root, dt_policy=0.01):
 
     joint_pos = obs_data[:, :, joint_pos_indices]
     joint_vel = obs_data[:, :, joint_vel_indices]
-    joint_effort = obs_data[:, :, joint_effort_indices]
+    # joint_effort = obs_data[:, :, joint_effort_indices]
 
     swing_phase = obs_data[:, :, swing_phase_indices]
     foot_placement_b = obs_data[:, :, foot_placement_b_indices]
@@ -398,7 +395,7 @@ def load_processed_data(data_root, dt_policy=0.01):
         "foot_lateral_distance": foot_lateral_distance,
         "joint_pos": joint_pos,
         "joint_vel": joint_vel,
-        "joint_effort": joint_effort,
+        # "joint_effort": joint_effort,
         "swing_phase": swing_phase,
         "foot_placement_b": foot_placement_b,
         "grf": grf,

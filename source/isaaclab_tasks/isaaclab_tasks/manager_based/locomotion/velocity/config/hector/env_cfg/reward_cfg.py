@@ -329,3 +329,117 @@ class HECTORSlipRewardsCfg(RewardsCfg):
     feet_air_time = None
     flat_orientation_l2 = None
     undesired_contacts = None
+
+
+@configclass
+class HECTORTorchBlindLocomotionRewardsCfg(RewardsCfg):
+    """Reward terms for the MDP."""
+    # -- rewards
+    track_lin_vel_xy_exp = RewTerm(
+        func=mdp.track_lin_vel_xy_yaw_frame_exp,
+        # weight=0.1,
+        weight=1.0,
+        params={"command_name": "base_velocity", "std": 0.5},
+    )
+    track_ang_vel_z_exp = RewTerm(
+        func=mdp.track_ang_vel_z_world_exp, 
+        # weight=0.1, 
+        weight=0.5,
+        params={"command_name": "base_velocity", "std": 0.5}, 
+    )
+    track_height_exp = RewTerm(
+        func=hector_mdp.track_torso_height_exp, 
+        weight=0.1,
+        params={
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*_sole"),
+                "std": 0.1,
+                "reference_height": 0.55,
+                },
+    )
+
+    # -- penalties
+    # termination = RewTerm(func=mdp.is_terminated, weight=-200.0) # type: ignore
+    termination = None
+    # lin_vel_y_l2 = RewTerm(func=hector_mdp.lin_vel_y_l2, weight=-0.5) # type: ignore
+    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-0.1) # type: ignore
+    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.01) # type: ignore
+    # lin_accel_l2 = RewTerm(func=mdp.body_lin_acc_l2, weight=-5e-4, params={"asset_cfg": SceneEntityCfg("robot", body_names="base")}) # type: ignore
+    action_rate_l2 = RewTerm(
+        func=mdp.action_rate_l2, # type: ignore
+        weight=-0.015, 
+        )
+    
+    # -- joint penalties
+    dof_vel_l2 = RewTerm(
+        func=mdp.joint_vel_l2,  # type: ignore
+        weight=-2.5e-4,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])}
+    )
+    dof_acc_l2 = None
+    dof_torques_l2 = RewTerm(
+        func=mdp.joint_torques_l2,  # type: ignore
+        weight=-1.0e-5, 
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])}
+        )
+    
+    # Penalize deviation from default of the joints that are not essential for locomotion
+    # joint_deviation = RewTerm(
+    #     func=mdp.joint_deviation_l1, # type: ignore
+    #     weight=-0.01,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_toe_joint"])},
+    # )
+    joint_deviation = None
+
+    # -- standard energy penalty
+    # energy_penalty_l2 = RewTerm(
+    #     func=hector_mdp.energy_penalty_l2, # type: ignore
+    #     weight=-0.015,
+    #     params={
+    #         # "assymetric_indices": [7], 
+    #         "action_name": "mpc_action",
+    #     }
+    # )
+
+    # -- foot penalties
+    feet_slide = RewTerm(
+        func=mdp.feet_slide,
+        weight=-0.5,
+        params={
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
+        },
+    )
+    
+    # body-leg angle penalties
+    # leg_body_angle_l2 = RewTerm(
+    #     func=hector_mdp.leg_body_angle_l2,
+    #     weight=-1.0,
+    #     params={"action_name": "mpc_action"}
+    # )
+    # feet_distance_l2 = RewTerm(
+    #     func=hector_mdp.leg_distance_l2,
+    #     weight=-0.5,
+    #     params={"action_name": "mpc_action"}
+    # )
+
+    # contact penalties
+    # undesired_contacts_knee = RewTerm(
+    #     func=mdp.undesired_contacts, # type: ignore
+    #     weight=-5.0,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},
+    # )
+    
+    # # -- MPC cost
+    # mpc_cost_l2 = RewTerm(
+    #     func=hector_mdp.mpc_cost_l1, # type: ignore
+    #     weight=-1e-4,
+    #     params={
+    #         "action_name": "mpc_action",
+    #     },
+    #     )
+    
+    dof_pos_limits = None
+    feet_air_time = None
+    flat_orientation_l2 = None
+    undesired_contacts = None

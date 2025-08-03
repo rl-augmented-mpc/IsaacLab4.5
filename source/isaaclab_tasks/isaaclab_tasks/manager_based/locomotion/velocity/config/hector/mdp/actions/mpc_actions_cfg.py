@@ -127,7 +127,7 @@ class TorchMPCActionCfg(ActionTermCfg):
     """Control iteration between MPC iterations."""
     nominal_mpc_dt: float = 0.04
     """Nominal MPC dt of the robot."""
-    double_support_duration: float = 0.0
+    double_support_duration: float = 0.05
     """Double support duration of the robot."""
     single_support_duration: float = 0.2
     """Single support duration of the robot."""
