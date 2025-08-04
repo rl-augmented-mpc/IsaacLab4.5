@@ -74,12 +74,11 @@ params:
     num_steps_per_episode: 24
     horizon_length: ${.num_steps_per_episode}
     init_alpha: 1.0 # entropy temperature initial value
-    # init_alpha: 0.01 # entropy temperature initial value
     target_entropy_coef: 1.0
     alpha_lr: 1e-4 # entropy temperature learning rate
     actor_lr: 1e-4 # actor network learning rate
     critic_lr: 1e-4 # critic network learning rate
-    critic_tau: 5e-3 # soft update parameter
+    critic_tau: 5e-3 # soft update parameter (polyak averaging)
     learnable_temperature: True
     num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
     # batch_size: 144 # 24 * 24 / 4 = 144
@@ -87,10 +86,13 @@ params:
     # batch_size: 576 # 64 * 36 / 4 = 576
     batch_size: 512
     replay_buffer_size: 1000000
-    bound_loss_type: regularization
+    # bound_loss_type: regularization
     # bound_loss_type: bound
     # bounds_loss_coef: 0.015
-    bounds_loss_coef: 0.005
+    bounds_loss_coef: 0.01
+    reg_loss_coef: 0.005
+    bounds_loss_soft_bound: [-0.2, 1.0]
+    bounds_loss_action_dim: [7] # pz_max
   
   log:
     logger: wandb
