@@ -91,7 +91,7 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         # self.scene.terrain = hector_mdp.BaseTerrain # policy sanity check
         
         # event 
-        self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
+        # self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
         self.events.reset_base.params["pose_range"] = {
             "x": (-0.3, 0.3), 
             "y": (-0.3, 0.3), 
