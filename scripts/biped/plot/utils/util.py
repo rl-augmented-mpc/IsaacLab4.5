@@ -378,6 +378,11 @@ def load_processed_data(data_root, dt_policy=0.01):
     height_map = np.array(height_map)
     height_map = height_map.reshape(height_map.shape[0]*height_map.shape[1], num_episodes, -1)
 
+    with open(os.path.join(data_root, "global_pos/global_pos.pkl"), "rb") as f:
+        global_pos = pickle.load(f)
+    global_pos = np.array(global_pos)
+    global_pos = global_pos.reshape(global_pos.shape[0]*global_pos.shape[1], -1, 3)
+
     return {
         "position": position,
         "orientation": orientation,
@@ -398,10 +403,13 @@ def load_processed_data(data_root, dt_policy=0.01):
         # "joint_effort": joint_effort,
         "swing_phase": swing_phase,
         "foot_placement_b": foot_placement_b,
-        "grf": grf,
         "action": action_data,
         "mpc_action": mpc_action_data,
         "episode_length": episode_length_data,
+
+        # extras
+        "grf": grf,
+        "global_pos": global_pos,
         "height_data": height_map,
     }
 

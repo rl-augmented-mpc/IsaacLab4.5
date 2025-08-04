@@ -33,6 +33,12 @@ class HECTORTerminationsCfg:
         },
     )
 
+    terrain_out_of_bounds = DoneTerm(
+        func=mdp.terrain_out_of_bounds,
+        params={"asset_cfg": SceneEntityCfg("robot"), "distance_buffer": 0.5},
+        time_out=True,
+    )
+
     # base_too_high = DoneTerm(
     #     func=hector_mdp.root_height_above_maximum_adaptive,  # type: ignore
     #     params={
@@ -40,12 +46,6 @@ class HECTORTerminationsCfg:
     #         "asset_cfg": SceneEntityCfg("robot", body_names=".*_sole"),
     #     },
     # )
-    
-    terrain_out_of_bounds = DoneTerm(
-        func=mdp.terrain_out_of_bounds,
-        params={"asset_cfg": SceneEntityCfg("robot"), "distance_buffer": 1.0},
-        time_out=True,
-    )
     
     # bad_contact_left = DoneTerm(
     #     func=hector_mdp.bad_foot_contact,  # type: ignore

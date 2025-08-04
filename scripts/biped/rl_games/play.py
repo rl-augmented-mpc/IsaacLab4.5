@@ -151,7 +151,7 @@ def main():
     
     if args_cli.log:
         max_episode_length = int(env_cfg.episode_length_s/(env_cfg.decimation*env_cfg.sim.dt))
-        log_item = ['state', 'obs', 'raw_action', 'action', 'reward', 'grf', 'heightmap']
+        log_item = ['state', 'obs', 'raw_action', 'action', 'reward', 'grf', 'heightmap', 'global_pos']
         if args_cli.perceptive:
             log_item.append('ref_height')
         logger = DictBenchmarkLogger(
@@ -243,6 +243,7 @@ def main():
             grf = env.unwrapped.observation_manager._obs_buffer.get("force", None)  # type: ignore
             exteroception = env.unwrapped.observation_manager._obs_buffer.get("exteroception", None)  # type: ignore
             ref_height = env.unwrapped.action_manager.get_term("mpc_action").reference_height # type: ignore
+            global_pos = env.unwrapped.observation_manager._obs_buffer.get("global_pos", None)  # type: ignore
             
             # perform operations for terminated episodes
             if len(dones) > 0:
@@ -272,6 +273,11 @@ def main():
 
             if args_cli.perceptive:
                 item_dict["ref_height"] = ref_height
+            
+            if global_pos is not None:
+                item_dict["global_pos"] = global_pos.cpu().numpy()
+            else:
+                item_dict["global_pos"] = np.zeros((args_cli.num_envs, 3))
             
             logger.log(item_dict)
             
