@@ -227,10 +227,28 @@ class HECTORBlindLocomotionObservationsCfg:
             self.enable_corruption = True
             self.concatenate_terms = True
 
+    @configclass
+    class GlobalPosCfg(ObsGroup):
+        """Observations for extra like debug."""
+
+        # observation terms (order preserved !!!!)
+        
+        pos_w = ObsTerm(
+            func=mdp.root_pos_w,  # type: ignore
+            params={
+                "asset_cfg": SceneEntityCfg("robot"),
+                },
+            ) # type: ignore
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
     # observation groups
     policy: PolicyCfg = PolicyCfg()
     force: ForceObsCfg = ForceObsCfg() # <- only for data analysis
     exteroception: ExteroceptiveObsCfg = ExteroceptiveObsCfg() # <- only for data analysis
+    global_pos: GlobalPosCfg = GlobalPosCfg() # <- only for data analysis
 
 @configclass
 class HECTORPerceptiveLocomotionObservationsCfg:

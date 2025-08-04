@@ -73,8 +73,8 @@ params:
     # num_steps_per_episode: 36
     num_steps_per_episode: 24
     horizon_length: ${.num_steps_per_episode}
-    # init_alpha: 1.0 # entropy temperature initial value
-    init_alpha: 0.01 # entropy temperature initial value
+    init_alpha: 1.0 # entropy temperature initial value
+    # init_alpha: 0.01 # entropy temperature initial value
     target_entropy_coef: 1.0
     alpha_lr: 1e-4 # entropy temperature learning rate
     actor_lr: 1e-4 # actor network learning rate
