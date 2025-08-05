@@ -15,6 +15,7 @@ import torch
 from typing import TYPE_CHECKING
 
 import isaaclab.utils.math as math_utils
+from isaaclab.terrains import TerrainImporter
 from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers.manager_base import ManagerTermBase
@@ -28,6 +29,13 @@ if TYPE_CHECKING:
 """
 Proprioceptive observations
 """
+
+def root_pos_w(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Asset root position in the environment frame."""
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    print("pos_w: ", asset.data.root_pos_w - env.scene.env_origins)
+    return asset.data.root_pos_w - env.scene.env_origins
 
 def base_pos_z(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), sensor_cfg: SceneEntityCfg = SceneEntityCfg("sensor")) -> torch.Tensor:
     asset: Articulation = env.scene[asset_cfg.name]

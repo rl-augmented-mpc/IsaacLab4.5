@@ -86,12 +86,11 @@ params:
     # batch_size: 576 # 64 * 36 / 4 = 576
     batch_size: 512
     replay_buffer_size: 1000000
-    # bound_loss_type: regularization
-    # bound_loss_type: bound
-    # bounds_loss_coef: 0.015
-    bounds_loss_coef: 0.01
+    # bounds_loss_coef: 0.01
+    bounds_loss_coef: 0.015
     reg_loss_coef: 0.005
-    bounds_loss_soft_bound: [-0.2, 1.0]
+    # reg_loss_coef: 0.001
+    bounds_loss_soft_bound: [-0.0, 1.0] # penalize negative swing foot height
     bounds_loss_action_dim: [7] # pz_max
   
   log:

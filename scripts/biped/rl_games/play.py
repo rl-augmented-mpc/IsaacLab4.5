@@ -215,7 +215,6 @@ def main():
             if args_cli.use_rl:
                 # print("obs: \n", obs)
                 action = agent.get_action(obs, is_deterministic=agent.is_deterministic)
-                # action[action[:, 7] < -0.2, 7] = 0.0
                 transformed_mean, mean, sigma = agent.get_action_distribution_params(obs) # type: ignore
                 # print("tanh(mean):\n", transformed_mean)
                 # print("mean:\n", mean)

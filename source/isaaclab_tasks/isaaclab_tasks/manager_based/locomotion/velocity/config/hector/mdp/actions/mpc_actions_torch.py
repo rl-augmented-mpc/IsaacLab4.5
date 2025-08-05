@@ -67,18 +67,19 @@ class TorchMPCAction(ActionTerm):
             iteration_between_mpc=self.cfg.control_iteration_between_mpc,
             decimation=int(env.step_dt//env.physics_dt),
             # solver="osqp",
-            solver="qpth",
+            # solver="qpth",
+            solver='casadi-ipm',
             # solver="qpswift",
             # print_solve_time=True,
             print_solve_time=False,
             Q = torch.tensor(
-                # [200, 500, 500, 500, 500, 500, 1, 1, 5, 1, 1, 5, 1], 
-                [150, 150, 250, 100, 100, 100, 1, 1, 5, 10, 10, 1, 1], 
+                [200, 500, 500, 500, 500, 500, 1, 1, 5, 1, 1, 5, 1], 
+                # [150, 150, 250, 100, 100, 100, 1, 1, 5, 10, 10, 1, 1], 
                 # [100, 500, 250, 100, 100, 100, 1, 20, 5, 10, 10, 1, 1], 
                 device=self.device, dtype=torch.float32), 
             R = torch.tensor(
-                # [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2],
-                [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4],
+                [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2],
+                # [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4],
                 device=self.device, dtype=torch.float32
             ),
             

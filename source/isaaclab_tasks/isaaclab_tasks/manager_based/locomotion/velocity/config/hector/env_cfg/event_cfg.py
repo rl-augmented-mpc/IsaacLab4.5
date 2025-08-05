@@ -34,10 +34,10 @@ class HECTOREventCfg(EventCfg):
     base_external_force_torque = None
     
     # reset terrain type
-    reset_terrain_type = EventTerm(
-        func=hector_mdp.reset_terrain_type, # type: ignore
-        mode="reset",
-    )
+    # reset_terrain_type = EventTerm(
+    #     func=hector_mdp.reset_terrain_type, # type: ignore
+    #     mode="reset",
+    # ) # BUG
     
     # random initial noise added to default state defined in articulation cfg
     reset_base = EventTerm(

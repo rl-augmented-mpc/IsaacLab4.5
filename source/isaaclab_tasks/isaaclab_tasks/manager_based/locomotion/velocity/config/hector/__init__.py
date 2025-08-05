@@ -78,7 +78,7 @@ ARGS = [
     },
     {
         "env_cfg_entry_point": f"{__name__}.slip_env_sac_cfg:HECTORSlipEnvSACCfgPLAY",
-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_slip.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_slip_inference.yaml",
     },
     
     # L2T rough env
