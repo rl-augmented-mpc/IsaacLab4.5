@@ -44,6 +44,7 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.decimation = 4
         self.sim.render_interval = 2*self.decimation
 
+        self.scene.terrain = hector_mdp.AlternatingFrictionPatchTerrain
         self.scene.height_scanner = None
         
         self.viewer = ViewerCfg(
@@ -60,8 +61,10 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
 
-        # observation 
+        # scene
         self.observations.exteroception = None
+        self.scene.height_scanner_L_foot = None
+        self.scene.height_scanner_R_foot = None
         
         # event 
         self.events.reset_base.params["pose_range"] = {
@@ -70,7 +73,7 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            "yaw": (-math.pi, math.pi),
+            "yaw": (-math.pi/6, math.pi/6),
         }
 
         # friction pyramid

@@ -69,6 +69,7 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
+            # "yaw": (-math.pi, math.pi),
             "yaw": (-math.pi, math.pi),
         }
         
@@ -84,25 +85,26 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
-        self.seed = 42
+        # self.seed = 42
+        self.seed = 100
 
         # terrain
         self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         # self.scene.terrain = hector_mdp.BaseTerrain # policy sanity check
         
         # event 
-        # self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
+        self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
         self.events.reset_base.params["pose_range"] = {
             "x": (-0.3, 0.3), 
             "y": (-0.3, 0.3), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            "yaw": (-math.pi, math.pi),
-            # "yaw": (0.0, 0.0),
+            # "yaw": (-math.pi, math.pi),
+            "yaw": (0.0, 0.0),
         }
 
-        self.curriculum.terrain_levels = None
+        # self.curriculum.terrain_levels = None
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         # self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)
 
