@@ -30,7 +30,7 @@ if IMPORT_DYNAMIC_TERRAIN:
 from .observation.observations import (
     root_pos_w, base_pos_z,
     joint_pos, joint_vel, joint_torque, 
-    contact_forces, first_contact, 
+    contact_forces, contact, first_contact, 
     height_scan, depth_image, foot_centric_height_scan,
     swing_phase, foot_placement_b, 
     foot_position_b, reference_foot_position_b, 

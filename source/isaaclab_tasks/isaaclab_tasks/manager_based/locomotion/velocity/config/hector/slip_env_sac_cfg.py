@@ -44,11 +44,11 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.decimation = 4
         self.sim.render_interval = 2*self.decimation
 
-        # self.scene.terrain = hector_mdp.AlternatingFrictionPatchTerrain
+        self.scene.terrain = hector_mdp.CurriculumFrictionPatchTerrain
         self.scene.height_scanner = None
         
         self.viewer = ViewerCfg(
-            eye=(0.0, -2.5, 0.0), 
+            eye=(0.0, -2.0, 0.0), 
             lookat=(0.0, -1.0, 0.0),
             resolution=(1920, 1080), 
             origin_type="asset_root", 
@@ -73,8 +73,8 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            # "yaw": (-math.pi/6, math.pi/6),
             "yaw": (-math.pi, math.pi),
+            # "yaw": (-0, 0),
         }
 
         # friction pyramid
@@ -100,11 +100,24 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
             # "x": (-1.0, 1.0), 
             # "y": (-1.0, 1.0), 
             "x": (-0.0, 0.0), 
-            "y": (-1.0, 1.0), 
+            "y": (-2.0, 2.0), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            # "yaw": (-math.pi, math.pi),
+            # "yaw": (-math.pi/6, math.pi/6),
             "yaw": (-0, 0),
         }
         self.events.reset_terrain_type = None
+
+
+        # better visualization 
+        self.sim.render_interval = self.decimation
+        self.scene.sky_light.init_state.rot = (0.9063078, 0.0, 0.0, 0.4226183)
+        self.viewer = ViewerCfg(
+            eye=(-0.5, -2.0, 0.3), 
+            lookat=(0.0, -0.5, 0.0),
+            # resolution=(1920, 1080), # full HD
+            resolution=(3840, 2160), # 4K
+            origin_type="asset_root", 
+            asset_name="robot"
+        )
