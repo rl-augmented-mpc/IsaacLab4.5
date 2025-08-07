@@ -27,7 +27,7 @@ class BlindLocomotionMPCActionCfg(ActionTermCfg):
     """Name of the command to be used for the action term."""
     nominal_height: float = 0.55
     """Reference height of the robot."""
-    nominal_swing_height : float = 0.12
+    nominal_swing_height : float = 0.1
     """Nominal swing height of the robot."""
     nominal_stepping_frequency: float = 1.0
     """Nominal stepping frequency of the robot."""

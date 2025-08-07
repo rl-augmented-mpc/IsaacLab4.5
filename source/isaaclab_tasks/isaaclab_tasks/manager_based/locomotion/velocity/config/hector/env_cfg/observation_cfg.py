@@ -191,7 +191,7 @@ class HECTORBlindLocomotionObservationsCfg:
         contact_force = ObsTerm(
             func=hector_mdp.contact_forces, 
             params={
-                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe_tip"),
                 },
             ) # type: ignore
 
@@ -207,6 +207,7 @@ class HECTORBlindLocomotionObservationsCfg:
         
         contact_force = ObsTerm(
             func=hector_mdp.first_contact, 
+            # func=hector_mdp.contact, 
             params={
                 "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
                 },

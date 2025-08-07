@@ -101,6 +101,15 @@ def contact_forces(
     contact_forces = contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :]
     return contact_forces.reshape(-1, contact_forces.shape[1] * contact_forces.shape[2])
 
+def contact(
+    env: ManagerBasedRLEnv, 
+    contact_sensor_cfg: SceneEntityCfg = SceneEntityCfg("sensor")
+    ) -> torch.Tensor:
+
+    contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
+    contact = (contact_sensor.data.net_forces_w[:, contact_sensor_cfg.body_ids, :].norm(dim=2) > 0.5).float() # (num_envs, num_body_ids)
+    return contact
+
 def first_contact(
     env: ManagerBasedRLEnv, 
     contact_sensor_cfg: SceneEntityCfg = SceneEntityCfg("sensor")

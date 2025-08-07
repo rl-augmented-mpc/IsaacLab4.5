@@ -53,6 +53,9 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
 
         # sensor
         self.scene.height_scanner = None
+        # self.scene.height_scanner_L_foot = None
+        # self.scene.height_scanner_R_foot = None
+        # self.observations.exteroception = None
         
         self.viewer = ViewerCfg(
             eye=(0.0, -2.0, 0.4), 
@@ -90,26 +93,49 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
 
         # terrain
         self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
-        # self.scene.terrain = hector_mdp.BaseTerrain # policy sanity check
         
         # event 
-        # self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
+        self.events.reset_terrain_type = None
+        # self.curriculum.terrain_levels = None
+
+        self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
         # self.events.reset_base.params["multiplier"] = 2
         self.events.reset_base.params["pose_range"] = {
             "x": (-0.3, 0.3), 
             "y": (-0.3, 0.3), 
-            # "x": (0.635, 0.635), # intentional trip over
-            # "y": (-0.0, 0.0), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
             "yaw": (-math.pi, math.pi),
             # "yaw": (0.0, 0.0),
         }
-        self.events.reset_terrain_type = None
 
-        # self.curriculum.terrain_levels = None
+        # # intentional trip over
+        # self.events.reset_base.params["pose_range"] = {
+        #     # "x": (0.635, 0.635), # intentional trip over
+        #     "x": (0.635, 0.635), # intentional trip over
+        #     "y": (-0.4, 0.4),  
+        #     "z": (0.0, 0.0),
+        #     "roll": (0.0, 0.0),
+        #     "pitch": (0.0, 0.0),
+        #     "yaw": (0.0, 0.0),
+        # }
+
+        # command
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
+
+        # better visualization 
+        self.scene.toe_contact.debug_vis = False
+        # self.sim.render_interval = self.decimation
+        self.scene.sky_light.init_state.rot = (0.9238795, 0.0, 0.0, -0.3826834)
+        self.viewer = ViewerCfg(
+            eye=(-0.0, -2.0, 0.5), 
+            lookat=(0.0, -0.5, 0.0),
+            # resolution=(1920, 1080), # full HD
+            resolution=(3840, 2160), # 4K
+            origin_type="asset_root", 
+            asset_name="robot"
+        )
 
 @configclass
 class HECTORRoughEnvPerceptiveLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):

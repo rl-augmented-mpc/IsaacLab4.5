@@ -94,37 +94,38 @@ class HECTORBlindLocomotionSceneCfg(InteractiveSceneCfg):
         markers={
             "contact": sim_utils.SphereCfg(
                 radius=0.03,
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.8)),
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
             ),
             "no_contact": sim_utils.SphereCfg(
                 radius=0.03,
-                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.8)),
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
                 visible=False,
             ),
         },
     )
     
-    # toe_contact = ContactSensorCfg(
-    #     prim_path="{ENV_REGEX_NS}/Robot/.*_toe_tip",
-    #     history_length=3,
-    #     # track_air_time=True,
-    #     track_air_time=False,
-    #     update_period=1/100,
-    #     )
-    # toe_contact.visualizer_cfg = VisualizationMarkersCfg(
-    #     prim_path="/Visuals/ContactSensorToe",
-    #     markers={
-    #         "contact": sim_utils.SphereCfg(
-    #             radius=0.03,
-    #             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.8)),
-    #         ),
-    #         "no_contact": sim_utils.SphereCfg(
-    #             radius=0.03,
-    #             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.8)),
-    #             visible=False,
-    #         ),
-    #     },
-    # )
+    toe_contact = ContactSensorCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/.*_toe_tip",
+        history_length=3,
+        # track_air_time=True,
+        track_air_time=False,
+        update_period=1/100,
+        debug_vis=False,
+        )
+    toe_contact.visualizer_cfg = VisualizationMarkersCfg(
+        prim_path="/Visuals/ContactSensorToe",
+        markers={
+            "contact": sim_utils.SphereCfg(
+                radius=0.03,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
+            ),
+            "no_contact": sim_utils.SphereCfg(
+                radius=0.03,
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
+                visible=False,
+            ),
+        },
+    )
     
     # --lights
 
@@ -157,7 +158,9 @@ class HECTORBlindLocomotionSceneCfg(InteractiveSceneCfg):
     sky_light = AssetBaseCfg(
         prim_path="/World/skyLight",
         spawn=sim_utils.DomeLightCfg(
-            intensity=1000.0,
+            # intensity=1000.0,
+            # exposure=0.4, 
+            intensity=800.0,
             exposure=0.4, 
             texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
         ),

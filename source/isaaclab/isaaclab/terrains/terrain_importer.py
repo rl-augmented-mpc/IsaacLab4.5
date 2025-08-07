@@ -112,6 +112,7 @@ class TerrainImporter:
             with tqdm(total=self.cfg.terrain_generator.num_cols * self.cfg.terrain_generator.num_rows * (self.cfg.terrain_generator.num_sub_patches ** 2)) as pbar:
                 for sub_col in range(self.cfg.terrain_generator.num_cols):
                     for sub_row in range(self.cfg.terrain_generator.num_rows):
+                        # loop over sub-terrain
                         for patch_row_id in range(self.cfg.terrain_generator.num_sub_patches):
                             for patch_col_id in range(self.cfg.terrain_generator.num_sub_patches):
                                 row = sub_col * self.cfg.terrain_generator.num_sub_patches + patch_row_id
@@ -132,13 +133,16 @@ class TerrainImporter:
                                     local_group_friction_range[0] = static_friction_ub - (sub_row+1) * (static_friction_dif/num_curriculum_x)
                                     local_group_friction_range[1] = static_friction_ub - sub_row * (static_friction_dif/num_curriculum_x)
                                 elif self.cfg.friction_distribution == "grid":
-                                    if sub_row % 2 == 0:
+                                    # if sub_row % 2 == 0:
+                                    if patch_row_id % 2 == 0:
                                         local_group_friction_range[0] = static_friction_ub
-                                        local_group_friction_range[1] = static_friction_ub - (static_friction_dif/num_curriculum_x)
+                                        local_group_friction_range[1] = static_friction_ub
+                                        # local_group_friction_range[1] = static_friction_ub - (static_friction_dif/num_curriculum_x)
                                     else:
-                                        local_group_friction_range[0] = static_friction_lb
-                                        local_group_friction_range[1] = static_friction_lb
-                                        # local_group_friction_range[1] = static_friction_lb + (static_friction_dif/num_curriculum_x)
+                                        # local_group_friction_range[0] = static_friction_lb
+                                        # local_group_friction_range[1] = static_friction_lb
+                                        local_group_friction_range[0] = static_friction_ub - (sub_row+1) * (static_friction_dif/num_curriculum_x)
+                                        local_group_friction_range[1] = static_friction_ub - sub_row * (static_friction_dif/num_curriculum_x)
                                 elif self.cfg.friction_distribution == "random":
                                     local_group_friction_range[0] = static_friction_lb + friction_randomization_parameter[sub_row] *(static_friction_dif/num_curriculum_x)
                                     local_group_friction_range[1] = static_friction_lb + (friction_randomization_parameter[sub_row] + (1/num_curriculum_x)) *(static_friction_dif/num_curriculum_x)
@@ -151,7 +155,7 @@ class TerrainImporter:
                                 if self.cfg.physics_material is not None:
                                     self.cfg.physics_material.static_friction = static_friction
                                     self.cfg.physics_material.dynamic_friction = dynamic_friction
-                                colormap = 1.0 * ((static_friction - static_friction_lb) / (static_friction_ub - static_friction_lb + 1e-6)) # 0 ~ 0.7
+                                colormap = 1.0 * ((static_friction - static_friction_lb) / (static_friction_ub - static_friction_lb + 1e-6)) # 0 ~ 1
                                 self.cfg.visual_material = sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0-colormap, 1.0-colormap, 1.00)) # higher the friction, more blue the color
                                 self.import_mesh("terrain_{}_{}".format(row, col), mesh)
                                 
