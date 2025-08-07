@@ -368,20 +368,43 @@ def load_processed_data(data_root, dt_policy=0.01):
 
 
     # extras
-    with open(os.path.join(data_root, "grf/grf.pkl"), "rb") as f:
-        grf = pickle.load(f)
-    grf = np.array(grf)
-    grf = grf.reshape(grf.shape[0]*grf.shape[1], -1, 6)
+    if os.path.exists(os.path.join(data_root, "grf/grf.pkl")):
+        with open(os.path.join(data_root, "grf/grf.pkl"), "rb") as f:
+            grf = pickle.load(f)
+        grf = np.array(grf)
+        grf = grf.reshape(grf.shape[0]*grf.shape[1], -1, 6)
+    else:
+        grf = np.zeros((num_envs, num_episodes, 6))
+        warnings.warn("GRF data not found, setting to zeros.")
 
-    with open(os.path.join(data_root, "heightmap/heightmap.pkl"), "rb") as f:
-        height_map = pickle.load(f)
-    height_map = np.array(height_map)
-    height_map = height_map.reshape(height_map.shape[0]*height_map.shape[1], num_episodes, -1)
+    # extras
+    if os.path.exists(os.path.join(data_root, "first_contact/first_contact.pkl")):
+        with open(os.path.join(data_root, "first_contact/first_contact.pkl"), "rb") as f:
+            first_contact = pickle.load(f)
+        first_contact = np.array(first_contact)
+        first_contact = first_contact.reshape(first_contact.shape[0]*first_contact.shape[1], -1, 2)
+    else:
+        first_contact = np.zeros((num_envs, num_episodes, 2))
+        warnings.warn("First contact data not found, setting to zeros.")
 
-    with open(os.path.join(data_root, "global_pos/global_pos.pkl"), "rb") as f:
-        global_pos = pickle.load(f)
-    global_pos = np.array(global_pos)
-    global_pos = global_pos.reshape(global_pos.shape[0]*global_pos.shape[1], -1, 3)
+
+    if os.path.exists(os.path.join(data_root, "heightmap/heightmap.pkl")):
+        with open(os.path.join(data_root, "heightmap/heightmap.pkl"), "rb") as f:
+            height_map = pickle.load(f)
+        height_map = np.array(height_map)
+        height_map = height_map.reshape(height_map.shape[0]*height_map.shape[1], num_episodes, -1)
+    else:
+        height_map = np.zeros((num_envs, num_episodes, 2))
+        warnings.warn("Heightmap data not found, setting to zeros.")
+
+    if os.path.exists(os.path.join(data_root, "global_pos/global_pos.pkl")):
+        with open(os.path.join(data_root, "global_pos/global_pos.pkl"), "rb") as f:
+            global_pos = pickle.load(f)
+        global_pos = np.array(global_pos)
+        global_pos = global_pos.reshape(global_pos.shape[0]*global_pos.shape[1], -1, 3)
+    else:
+        global_pos = np.zeros((num_envs, num_episodes, 3))
+        warnings.warn("Global position data not found, setting to zeros.")
 
     return {
         "position": position,
@@ -409,6 +432,7 @@ def load_processed_data(data_root, dt_policy=0.01):
 
         # extras
         "grf": grf,
+        "first_contact": first_contact,
         "global_pos": global_pos,
         "height_data": height_map,
     }

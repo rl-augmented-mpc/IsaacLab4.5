@@ -12,22 +12,25 @@ from .actions.mpc_actions_cfg import (
 from .terrain.terrain_cfg import (
     SteppingStoneTerrain, InferenceSteppingStoneTerrain, CurriculumSteppingStoneTerrain, 
     RandomOrientationCubeTerrain, PyramidHfTerrain, FractalTerrain, BaseTerrain, 
-    CurriculumFrictionPatchTerrain, FrictionPatchTerrain, AlternatingFrictionPatchTerrain, 
+    CurriculumFrictionPatchTerrain, FrictionPatchTerrain, 
+    AlternatingFrictionPatchTerrain, InferenceAlternatingFrictionPatchTerrain,
     InferenceRandomBlockTerrain, CurriculumRandomBlockTerrain, 
     TripOverChallengeTerrain, BoxRoughTerrain
 )
 
-# # only enable when using dynamic terrain 
-# # otherwise, importing this takes long time
-# from .terrain.dynamic_terrain_cfg import (
-#     GravelTerrain, 
-#     # ParticleTerrain
-# )
+IMPORT_DYNAMIC_TERRAIN = False
+if IMPORT_DYNAMIC_TERRAIN:
+    # only enable when using dynamic terrain 
+    # otherwise, importing this takes long time
+    from .terrain.dynamic_terrain_cfg import (
+        GravelTerrain, 
+        # ParticleTerrain
+    )
 
 from .observation.observations import (
     root_pos_w, base_pos_z,
     joint_pos, joint_vel, joint_torque, 
-    contact_forces,  
+    contact_forces, first_contact, 
     height_scan, depth_image, foot_centric_height_scan,
     swing_phase, foot_placement_b, 
     foot_position_b, reference_foot_position_b, 

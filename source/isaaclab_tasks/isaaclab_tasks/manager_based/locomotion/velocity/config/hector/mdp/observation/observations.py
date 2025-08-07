@@ -101,6 +101,15 @@ def contact_forces(
     contact_forces = contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :]
     return contact_forces.reshape(-1, contact_forces.shape[1] * contact_forces.shape[2])
 
+def first_contact(
+    env: ManagerBasedRLEnv, 
+    contact_sensor_cfg: SceneEntityCfg = SceneEntityCfg("sensor")
+    ) -> torch.Tensor:
+
+    contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
+    first_contact = (contact_sensor.data.net_forces_w_history[:, :, contact_sensor_cfg.body_ids, :].norm(dim=3) > 1.0).sum(dim=1).float() == 1.0 # (num_envs, num_body_ids)
+    return first_contact
+
 """
 Exteroceptive observations
 """
@@ -144,6 +153,29 @@ def terrain_roughness(
     roughness_right = right_foot_height_map.max(dim=1).values - right_foot_height_map.min(dim=1).values # (num_envs, )
     roughness_left[roughness_left > 0.2] = 0.0  #  outlier rejection
     roughness_right[roughness_right > 0.2] = 0.0 # outlier rejection
+    return torch.stack([roughness_left, roughness_right], dim=1)  # (num_envs, 2)
+
+def terrain_roughness_in_contact(
+        env: ManagerBasedEnv, 
+        left_raycaster_cfg: SceneEntityCfg = SceneEntityCfg("height_scanner_L_foot"),
+        right_raycaster_cfg: SceneEntityCfg = SceneEntityCfg("height_scanner_R_foot"), 
+        contact_sensor_cfg: SceneEntityCfg = SceneEntityCfg("foot_contact_sensor"),
+        ) -> torch.Tensor:
+    left_foot_raycaster: RayCaster = env.scene.sensors[left_raycaster_cfg.name]
+    right_foot_raycaster: RayCaster = env.scene.sensors[right_raycaster_cfg.name]
+    contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
+
+    left_foot_height_map = left_foot_raycaster.data.ray_hits_w[..., 2]
+    right_foot_height_map = right_foot_raycaster.data.ray_hits_w[..., 2]
+    roughness_left = left_foot_height_map.max(dim=1).values - left_foot_height_map.min(dim=1).values # (num_envs, )
+    roughness_right = right_foot_height_map.max(dim=1).values - right_foot_height_map.min(dim=1).values # (num_envs, )
+    roughness_left[roughness_left > 0.2] = 0.0  #  outlier rejection
+    roughness_right[roughness_right > 0.2] = 0.0 # outlier rejection
+
+    contacts = (contact_sensor.data.net_forces_w[:, contact_sensor_cfg.body_ids, :].norm(dim=2) > 1.0).float()
+    roughness_left = roughness_left * contacts[:, 0]
+    roughness_right = roughness_right * contacts[:, 1]
+
     return torch.stack([roughness_left, roughness_right], dim=1)  # (num_envs, 2)
 
 """
