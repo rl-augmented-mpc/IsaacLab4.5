@@ -44,7 +44,7 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.decimation = 4
         self.sim.render_interval = 2*self.decimation
 
-        self.scene.terrain = hector_mdp.AlternatingFrictionPatchTerrain
+        # self.scene.terrain = hector_mdp.AlternatingFrictionPatchTerrain
         self.scene.height_scanner = None
         
         self.viewer = ViewerCfg(
@@ -73,11 +73,13 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            "yaw": (-math.pi/6, math.pi/6),
+            # "yaw": (-math.pi/6, math.pi/6),
+            "yaw": (-math.pi, math.pi),
         }
 
         # friction pyramid
         # self.actions.mpc_action.friction_cone_coef = 0.5
+        self.events.reset_terrain_type = None
 
 @configclass
 class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
@@ -86,8 +88,9 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
-        self.seed = 42
-        self.scene.terrain = hector_mdp.AlternatingFrictionPatchTerrain
+        # self.seed = 42
+        self.seed = 100
+        self.scene.terrain = hector_mdp.InferenceAlternatingFrictionPatchTerrain
         self.curriculum.terrain_levels = None
 
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
@@ -104,3 +107,4 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
             # "yaw": (-math.pi, math.pi),
             "yaw": (-0, 0),
         }
+        self.events.reset_terrain_type = None

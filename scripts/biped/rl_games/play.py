@@ -151,7 +151,7 @@ def main():
     
     if args_cli.log:
         max_episode_length = int(env_cfg.episode_length_s/(env_cfg.decimation*env_cfg.sim.dt))
-        log_item = ['state', 'obs', 'raw_action', 'action', 'reward', 'grf', 'heightmap', 'global_pos']
+        log_item = ['state', 'obs', 'raw_action', 'action', 'reward', 'grf', 'heightmap', 'global_pos', 'first_contact']
         if args_cli.perceptive:
             log_item.append('ref_height')
         logger = DictBenchmarkLogger(
@@ -215,7 +215,7 @@ def main():
             if args_cli.use_rl:
                 # print("obs: \n", obs)
                 action = agent.get_action(obs, is_deterministic=agent.is_deterministic)
-                transformed_mean, mean, sigma = agent.get_action_distribution_params(obs) # type: ignore
+                # transformed_mean, mean, sigma = agent.get_action_distribution_params(obs) # type: ignore
                 # print("tanh(mean):\n", transformed_mean)
                 # print("mean:\n", mean)
                 # print("sigma:\n", sigma)
@@ -244,6 +244,7 @@ def main():
             exteroception = env.unwrapped.observation_manager._obs_buffer.get("exteroception", None)  # type: ignore
             ref_height = env.unwrapped.action_manager.get_term("mpc_action").reference_height # type: ignore
             global_pos = env.unwrapped.observation_manager._obs_buffer.get("global_pos", None)  # type: ignore
+            first_contact = env.unwrapped.observation_manager._obs_buffer.get("first_contact", None)  # type: ignore
             
             # perform operations for terminated episodes
             if len(dones) > 0:
@@ -278,6 +279,11 @@ def main():
                 item_dict["global_pos"] = global_pos.cpu().numpy()
             else:
                 item_dict["global_pos"] = np.zeros((args_cli.num_envs, 3))
+            
+            if first_contact is not None:
+                item_dict["first_contact"] = first_contact.cpu().numpy()
+            else:
+                item_dict["first_contact"] = np.zeros((args_cli.num_envs, 2))
             
             logger.log(item_dict)
             

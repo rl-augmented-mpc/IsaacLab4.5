@@ -91,6 +91,7 @@ def reset_root_state_orthogonal(
     pose_range: dict[str, tuple[float, float]],
     velocity_range: dict[str, tuple[float, float]],
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    multiplier: int = 1,
 ):
     """Reset the asset root state to a random position and velocity uniformly within the given ranges.
 
@@ -123,7 +124,7 @@ def reset_root_state_orthogonal(
     ranges = torch.tensor(range_list, device=asset.device)
     rand_samples = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), 3), device=asset.device)
     # pick n/2 * pi for yaw
-    rand_samples[:, 2] = torch.randint(0, 4, (len(env_ids),), device=asset.device) * (math.pi)
+    rand_samples[:, 2] = torch.randint(0, 4, (len(env_ids),), device=asset.device) * (multiplier * math.pi/2)
     orientations_delta = math_utils.quat_from_euler_xyz(rand_samples[:, 0], rand_samples[:, 1], rand_samples[:, 2])
     orientations = math_utils.quat_mul(root_states[:, 3:7], orientations_delta)
     
