@@ -53,9 +53,9 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
 
         # sensor
         self.scene.height_scanner = None
-        # self.scene.height_scanner_L_foot = None
-        # self.scene.height_scanner_R_foot = None
-        # self.observations.exteroception = None
+        self.scene.height_scanner_L_foot = None
+        self.scene.height_scanner_R_foot = None
+        self.observations.exteroception = None
         
         self.viewer = ViewerCfg(
             eye=(0.0, -2.0, 0.4), 
@@ -72,7 +72,6 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            # "yaw": (-math.pi, math.pi),
             "yaw": (-math.pi, math.pi),
         }
         
@@ -98,7 +97,7 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         self.events.reset_terrain_type = None
         # self.curriculum.terrain_levels = None
 
-        self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
+        # self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
         # self.events.reset_base.params["multiplier"] = 2
         self.events.reset_base.params["pose_range"] = {
             "x": (-0.3, 0.3), 
@@ -107,6 +106,7 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
             "yaw": (-math.pi, math.pi),
+            # "yaw": (-math.pi/4, math.pi/4),
             # "yaw": (0.0, 0.0),
         }
 
