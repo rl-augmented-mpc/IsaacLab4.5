@@ -99,7 +99,7 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
         self.events.reset_base.params["pose_range"] = {
             # "x": (-1.0, 1.0), 
             # "y": (-1.0, 1.0), 
-            "x": (-0.0, 0.0), 
+            "x": (-0.5, -0.5), 
             "y": (-2.0, 2.0), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
@@ -111,7 +111,7 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
 
 
         # better visualization 
-        self.sim.render_interval = self.decimation
+        # self.sim.render_interval = self.decimation
         self.scene.sky_light.init_state.rot = (0.9063078, 0.0, 0.0, 0.4226183)
         self.viewer = ViewerCfg(
             eye=(-0.5, -2.0, 0.3), 

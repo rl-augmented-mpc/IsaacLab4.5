@@ -28,6 +28,7 @@ params:
           # name: orthogonal
           name: const_initializer
           val: 0
+          bias: [0, 0, 0, 0, 0, 0, 0, -1, 0]
         sigma_init:
           name: const_initializer
           val: 0
@@ -81,17 +82,21 @@ params:
     critic_tau: 5e-3 # soft update parameter
     learnable_temperature: True
     num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
-    # batch_size: 216
     batch_size: 512
     replay_buffer_size: 1000000
     
     # regularization loss
-    # reg_loss_coef: 0.005
-    reg_loss_coef: 0.002
+    reg_loss_coef: 0.005
+    # reg_loss_coef: 0.002 # good, but more strict regularization for better results?
     left_nominal_action_dim: [7] # nominal action at index=7 is -1
+
     bounds_loss_coef: 0.015
     bounds_loss_soft_bound: [-1,0, 0.0] # no slowing down gait preferably
     bounds_loss_action_dim: [6] # alpha_mpc
+
+    # bounds_loss_coef: 0.02
+    # bounds_loss_soft_bound: [-0.0, 1.0] # penalize negative swing foot height
+    # bounds_loss_action_dim: [7] # pz_max
   
   log:
     logger: wandb

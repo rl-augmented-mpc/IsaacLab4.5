@@ -13,7 +13,7 @@ from .terrain.terrain_cfg import (
     SteppingStoneTerrain, InferenceSteppingStoneTerrain, CurriculumSteppingStoneTerrain, 
     RandomOrientationCubeTerrain, PyramidHfTerrain, FractalTerrain, BaseTerrain, 
     CurriculumFrictionPatchTerrain, FrictionPatchTerrain, 
-    AlternatingFrictionPatchTerrain, InferenceAlternatingFrictionPatchTerrain,
+    InferenceAlternatingFrictionPatchTerrain,
     InferenceRandomBlockTerrain, CurriculumRandomBlockTerrain, 
     TripOverChallengeTerrain, BoxRoughTerrain
 )

@@ -172,50 +172,14 @@ FrictionPatchTerrain = TerrainImporterCfg(
     static_friction_range=(0.1, 0.1),
     friction_distribution="grid",
 )
-AlternatingFrictionPatchTerrain = TerrainImporterCfg(
-    prim_path="/World/ground",
-    terrain_type="custom_curriculum",
-    terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(0.2, 3.0), # size of sub-terrain
-        border_width=0.0,
-        num_rows=10,
-        num_cols=1,
-        horizontal_scale=0.1,
-        vertical_scale=0.005,
-        slope_threshold=0.75,
-        use_cache=True,
-        sub_terrains={
-            "flat": terrain_gen.MeshPlaneTerrainCfg(proportion=0.2, height=0.0),
-        },
-        num_sub_patches=10,
-        custom_curriculum=True,
-    ),
-    collision_group=-1,
-    max_init_terrain_level=0,
-    physics_material=sim_utils.RigidBodyMaterialCfg(
-        friction_combine_mode="multiply",
-        restitution_combine_mode="multiply",
-        static_friction=0.5,
-        dynamic_friction=0.5,
-    ),
-    visual_material=sim_utils.MdlFileCfg(
-        mdl_path=f"{ISAACLAB_NUCLEUS_DIR}/Materials/TilesMarbleSpiderWhiteBrickBondHoned/TilesMarbleSpiderWhiteBrickBondHoned.mdl",
-        project_uvw=True,
-        texture_scale=(0.25, 0.25),
-    ),
-    debug_vis=False,
-    disable_colllider=False,
-    static_friction_range=(0.1, 0.5),
-    friction_distribution="grid",
-)
 
 InferenceAlternatingFrictionPatchTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="custom_curriculum",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(1.0, 1.0), # size of sub-terrain
+        size=(1.0, 2.0), # size of sub-terrain
         border_width=0.0,
-        num_rows=10,
+        num_rows=4,
         num_cols=1,
         horizontal_scale=0.1,
         vertical_scale=0.005,
@@ -224,7 +188,7 @@ InferenceAlternatingFrictionPatchTerrain = TerrainImporterCfg(
         sub_terrains={
             "flat": terrain_gen.MeshPlaneTerrainCfg(proportion=0.2, height=0.0),
         },
-        num_sub_patches=5,
+        num_sub_patches=6,
         custom_curriculum=True,
     ),
     collision_group=-1,
@@ -242,8 +206,8 @@ InferenceAlternatingFrictionPatchTerrain = TerrainImporterCfg(
     ),
     debug_vis=False,
     disable_colllider=False,
-    static_friction_range=(0.1, 0.5),
-    friction_distribution="grid",
+    static_friction_range=(0.07, 0.5),
+    friction_distribution="grid_deterministic",
 )
 
 
@@ -257,7 +221,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
         size=(20.0, 20.0), # size of sub-terrain
         border_width=0.0,
-        num_rows=3,
+        num_rows=1,
         num_cols=10,
         horizontal_scale=0.1,
         vertical_scale=0.005,
@@ -304,7 +268,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
             ),
 
             "random_grid": terrain_gen.MeshRandomBlockTerrainCfg(
-            proportion=0.25, grid_width=0.3, 
+            proportion=0.2, grid_width=0.3, 
             grid_height_range=(0.06, 0.06), 
             platform_width=2.1
             ),
@@ -318,7 +282,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
             "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
             proportion=0.05,
             # step_height_range=(0.1, 0.1),
-            step_height_range=(0.1, 0.12),
+            step_height_range=(0.1, 0.1),
             step_width=0.2,
             platform_width=2.5,
             border_width=1.0,
@@ -326,9 +290,9 @@ SteppingStoneTerrain = TerrainImporterCfg(
             ),
 
             "pyramid_stairs_inv": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
-            proportion=0.3,
+            proportion=0.35,
             # step_height_range=(0.1, 0.1),
-            step_height_range=(0.1, 0.12),
+            step_height_range=(0.1, 0.1),
             step_width=0.3,
             platform_width=2.5,
             border_width=1.0,
@@ -437,11 +401,11 @@ InferenceSteppingStoneTerrain = TerrainImporterCfg(
 
             "pyramid_stairs_inv": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
             proportion=0.4,
-            step_height_range=(0.06, 0.06),
+            # step_height_range=(0.06, 0.06),
             # step_height_range=(0.07, 0.07),
             # step_height_range=(0.08, 0.08),
             # step_height_range=(0.09, 0.09),
-            # step_height_range=(0.1, 0.1),
+            step_height_range=(0.1, 0.1),
             # step_height_range=(0.11, 0.11),
             # step_height_range=(0.12, 0.12),
             step_width=0.3,

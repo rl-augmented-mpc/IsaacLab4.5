@@ -24,8 +24,8 @@ class HECTORBlindLocomotionActionsCfg:
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            # (-2.0, -2.0, -4.0, -0.1, -1.0, -1.0, -0.25, -0.15, -0.66), # symmetric action space
-            # (2.0, 2.0, 4.0, 0.1, 1.0, 1.0, 0.25, 0.15, 0.66)
+            # (-2.0, -2.0, -4.0, -0.1, -1.0, -1.0, -0.25, -0.15, -1.00), # symmetric action space
+            # (2.0, 2.0, 4.0, 0.1, 1.0, 1.0, 0.25, 0.15, 1.00)
             (-2.0, -2.0, -4.0, -0.1, -1.0, -1.0, -0.25, 0.00, -0.66), # assymetric action space
             (2.0, 2.0, 4.0, 0.1, 1.0, 1.0, 0.25, 0.15, 0.66)
         )
