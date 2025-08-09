@@ -46,6 +46,7 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         self.sim.dt = 1/200
         self.decimation = 2
         self.sim.render_interval = 2*self.decimation
+        self.episode_length_s = 10.0
 
         # terain
         self.scene.terrain = hector_mdp.SteppingStoneTerrain 
@@ -166,6 +167,7 @@ class HECTORRoughEnvPerceptiveLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         self.sim.dt = 1/200
         self.decimation = 2
         self.sim.render_interval = 2*self.decimation
+        self.episode_length_s = 10.0
 
         self.scene.terrain = hector_mdp.SteppingStoneTerrain
         
