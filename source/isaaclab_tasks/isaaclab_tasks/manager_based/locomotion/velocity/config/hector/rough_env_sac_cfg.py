@@ -43,8 +43,8 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
         
         # sim time
-        self.sim.dt = 1/400
-        self.decimation = 4
+        self.sim.dt = 1/200
+        self.decimation = 2
         self.sim.render_interval = 2*self.decimation
 
         # terain
@@ -79,6 +79,8 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         self.commands.base_velocity.heading_command = False
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
+        self.commands.base_velocity.goal_vel_visualizer_cfg.markers["arrow"].scale = (0.4, 0.4, 0.4)
+        self.commands.base_velocity.current_vel_visualizer_cfg.markers["arrow"].scale = (0.4, 0.4, 0.4)
 
 @configclass
 class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCfg):
@@ -94,11 +96,11 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         
         # event 
-        self.events.reset_terrain_type = None
+        # self.events.reset_terrain_type = None
         # self.curriculum.terrain_levels = None
 
-        # self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
-        # self.events.reset_base.params["multiplier"] = 2
+        self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
+        self.events.reset_base.params["multiplier"] = 2
         self.events.reset_base.params["pose_range"] = {
             "x": (-0.3, 0.3), 
             "y": (-0.3, 0.3), 
@@ -129,13 +131,20 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         # self.sim.render_interval = self.decimation
         self.scene.sky_light.init_state.rot = (0.9238795, 0.0, 0.0, -0.3826834)
         self.viewer = ViewerCfg(
-            eye=(-0.0, -2.0, 0.5), 
-            lookat=(0.0, -0.5, 0.0),
+            # eye=(-0.0, -2.0, 0.5), 
+            # lookat=(0.0, -0.5, 0.0),
+            eye=(-0.0, -1.5, 0.2), 
+            lookat=(0.0, -0.8, 0.0),
             # resolution=(1920, 1080), # full HD
             resolution=(3840, 2160), # 4K
             origin_type="asset_root", 
             asset_name="robot"
         )
+
+        # rendering optimization 
+        self.sim.render.dlss_mode = 1
+        self.sim.render.antialiasing_mode = None
+        # self.sim.render.enable_global_illumination = True
 
 @configclass
 class HECTORRoughEnvPerceptiveLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
@@ -154,8 +163,8 @@ class HECTORRoughEnvPerceptiveLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
         
         # sim time
-        self.sim.dt = 1/400
-        self.decimation = 4
+        self.sim.dt = 1/200
+        self.decimation = 2
         self.sim.render_interval = 2*self.decimation
 
         self.scene.terrain = hector_mdp.SteppingStoneTerrain

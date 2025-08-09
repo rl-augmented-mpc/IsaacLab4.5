@@ -155,16 +155,26 @@ class HECTORBlindLocomotionSceneCfg(InteractiveSceneCfg):
     #     ),
     # )
 
+    # default light
     sky_light = AssetBaseCfg(
         prim_path="/World/skyLight",
         spawn=sim_utils.DomeLightCfg(
-            # intensity=1000.0,
-            # exposure=0.4, 
             intensity=800.0,
             exposure=0.4, 
-            texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
         ),
     )
+
+    # # sky light
+    # sky_light = AssetBaseCfg(
+    #     prim_path="/World/skyLight",
+    #     spawn=sim_utils.DomeLightCfg(
+    #         # intensity=1000.0,
+    #         # exposure=0.4, 
+    #         intensity=800.0,
+    #         exposure=0.4, 
+    #         texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+    #     ),
+    # )
 
 @configclass
 class HECTORPerceptiveLocomotionSceneCfg(InteractiveSceneCfg):

@@ -209,7 +209,8 @@ class HECTORBlindLocomotionObservationsCfg:
             func=hector_mdp.first_contact, 
             # func=hector_mdp.contact, 
             params={
-                "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+                # "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+                "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe_tip"),
                 },
             ) # type: ignore
 

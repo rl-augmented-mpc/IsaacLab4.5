@@ -27,7 +27,7 @@ params:
           # name: orthogonal
           name: const_initializer
           val: 0
-          bias: [0, 0, 0, 0, 0, 0, 0, -1, 0]
+          # bias: [0, 0, 0, 0, 0, 0, 0, -1, 0]
         sigma_init:
           name: const_initializer
           val: 0
@@ -88,13 +88,12 @@ params:
 
     # regularization loss
     reg_loss_coef: 0.005
-    # reg_loss_coef: 0.001
-    left_nominal_action_dim: [7] # nominal action at index=7 is -1
+    # left_nominal_action_dim: [7] # nominal action at index=7 is -1
 
-    # # symmetric action bound
-    # bounds_loss_coef: 0.02
-    # bounds_loss_soft_bound: [0.0, 1.0] # penalize negative swing foot height
-    # bounds_loss_action_dim: [7] # pz_max
+    # symmetric action bound
+    bounds_loss_coef: 0.025
+    bounds_loss_soft_bound: [0.0, 1.0] # penalize negative swing foot height
+    bounds_loss_action_dim: [7] # pz_max
   
   log:
     logger: wandb
