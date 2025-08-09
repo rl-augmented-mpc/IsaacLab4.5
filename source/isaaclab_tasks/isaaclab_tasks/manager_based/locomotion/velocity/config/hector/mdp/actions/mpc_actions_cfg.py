@@ -27,7 +27,7 @@ class BlindLocomotionMPCActionCfg(ActionTermCfg):
     """Name of the command to be used for the action term."""
     nominal_height: float = 0.55
     """Reference height of the robot."""
-    nominal_swing_height : float = 0.105
+    nominal_swing_height : float = 0.10
     """Nominal swing height of the robot."""
     nominal_stepping_frequency: float = 1.0
     """Nominal stepping frequency of the robot."""
@@ -41,21 +41,21 @@ class BlindLocomotionMPCActionCfg(ActionTermCfg):
     control_iteration_between_mpc: int = 10
     """Control iteration between MPC iterations."""
 
-    # -- horizon is single walking step
-    nominal_mpc_dt: float = 0.05
-    """Nominal MPC dt of the robot."""
-    double_support_duration: int = 1 # 0.05s double support
-    """Double support duration of the robot."""
-    single_support_duration: int = 4 # 0.2s single support
-    """Single support duration of the robot."""
-
-    # # -- horizon is half of walking step (one foot swing)
-    # nominal_mpc_dt: float = 0.025
+    # # -- horizon is single walking step
+    # nominal_mpc_dt: float = 0.05
     # """Nominal MPC dt of the robot."""
-    # double_support_duration: int = 2 # 0.05s double support
+    # double_support_duration: int = 1 # 0.05s double support
     # """Double support duration of the robot."""
-    # single_support_duration: int = 8 # 0.2s single support
+    # single_support_duration: int = 4 # 0.2s single support
     # """Single support duration of the robot."""
+
+    # -- horizon is half of walking step (one foot swing)
+    nominal_mpc_dt: float = 0.025
+    """Nominal MPC dt of the robot."""
+    double_support_duration: int = 2 # 0.05s double support
+    """Double support duration of the robot."""
+    single_support_duration: int = 8 # 0.2s single support
+    """Single support duration of the robot."""
 
 
     nominal_cp1_coef: float = 1/3

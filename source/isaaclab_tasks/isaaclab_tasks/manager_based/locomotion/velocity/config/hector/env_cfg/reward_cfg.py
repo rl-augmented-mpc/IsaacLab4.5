@@ -68,7 +68,8 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
 
     action_rate_l2 = RewTerm(
         func=mdp.action_rate_l2, # type: ignore
-        weight=-0.015, 
+        # weight=-0.015, 
+        weight=-0.005, 
         )
 
     # -- standard energy penalty
@@ -138,15 +139,6 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
         weight=-5.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},
     )
-    
-    # # -- MPC cost
-    # mpc_cost_l2 = RewTerm(
-    #     func=hector_mdp.mpc_cost_l1, # type: ignore
-    #     weight=-1e-4,
-    #     params={
-    #         "action_name": "mpc_action",
-    #     },
-    #     )
     
     dof_pos_limits = None
     feet_air_time = None
