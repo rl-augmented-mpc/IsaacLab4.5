@@ -90,8 +90,8 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
-        self.seed = 42
-        # self.seed = 100
+        # self.seed = 42
+        self.seed = 100
 
         # terrain
         self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain

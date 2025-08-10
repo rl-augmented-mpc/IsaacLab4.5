@@ -903,6 +903,7 @@ class BlindLocomotionMPCAction2(BlindLocomotionMPCAction):
         
         sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, -3].cpu().numpy())
         swing_foot_height = self._processed_actions[:, -2].cpu().numpy()
+        # print("swing_foot_height", actions[:, -2])
         # swing_foot_height[swing_foot_height < -0] = 0.0 # clip to negative values
         trajectory_control_points = self._processed_actions[:, -1].cpu().numpy()
         

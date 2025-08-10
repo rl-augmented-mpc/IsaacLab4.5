@@ -221,10 +221,10 @@ def main():
                 # print("sigma:\n", sigma)
             else:
                 action = torch.zeros(env.unwrapped.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
-                # if args_cli.perceptive:
-                #     action[:, 1] = -1.0 # perceptive policy
-                # else:
-                #     action[:, 7] = -1.0 # blind policy
+                if args_cli.perceptive:
+                    action[:, 1] = -1.0 # perceptive policy
+                else:
+                    action[:, 7] = -1.0 # blind policy
             obs, _, dones, _ = env.step(action)
             obs = agent.obs_to_torch(obs)
             
