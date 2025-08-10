@@ -23,14 +23,15 @@ params:
         mu_activation: None
         sigma_activation: None
 
+        # different from PPO, mu and sigma are output from same action MLP head
         mu_init:
           # name: default
+          # name: orthogonal
           name: const_initializer
           val: 0
-        sigma_init:
-          name: const_initializer
-          val: 0
-        fixed_sigma: True
+        mu_bias: [0, 0, 0, 0, 0, 0, 0, -1, 0]
+        # fixed_sigma: True
+        
     mlp:
       units: [512, 256, 128]
       activation: elu

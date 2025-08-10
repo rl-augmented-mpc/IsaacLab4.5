@@ -17,21 +17,20 @@ params:
   network:
     name: soft_actor_critic
     separate: True
+    squash_output: True
     space:
       continuous:
         mu_activation: None
         sigma_activation: None
 
+        # different from PPO, mu and sigma are output from same action MLP head
         mu_init:
           # name: default
           # name: orthogonal
           name: const_initializer
           val: 0
-          # bias: [0, 0, 0, 0, 0, 0, 0, -1, 0]
-        sigma_init:
-          name: const_initializer
-          val: 0
-        fixed_sigma: True
+        mu_bias: [0, 0, 0, 0, 0, 0, 0, -2, 0]
+        # fixed_sigma: True
     mlp:
       units: [512, 256, 128]
       activation: elu
@@ -67,7 +66,6 @@ params:
     entropy_coef: 0.001 # not used
     score_to_win: 20000
     max_epochs: 10000
-    # max_epochs: 6000
     save_best_after: 500
     save_frequency: 500
 
@@ -88,12 +86,13 @@ params:
 
     # regularization loss
     reg_loss_coef: 0.005
-    # left_nominal_action_dim: [7] # nominal action at index=7 is -1
+    # reg_loss_coef: 0.015
+    left_nominal_action_dim: [7] # nominal action at index=7 is -1
 
-    # symmetric action bound
-    bounds_loss_coef: 0.025
-    bounds_loss_soft_bound: [0.0, 1.0] # penalize negative swing foot height
-    bounds_loss_action_dim: [7] # pz_max
+    # # symmetric action bound
+    # bounds_loss_coef: 0.025
+    # bounds_loss_soft_bound: [0.0, 1.0] # penalize negative swing foot height
+    # bounds_loss_action_dim: [7] # pz_max
   
   log:
     logger: wandb
