@@ -4,14 +4,15 @@ from isaaclab.utils.math import matrix_from_quat, quat_from_matrix
 
 
 class RobotCore:
-    def __init__(self, articulation:Articulation, num_envs:int, foot_body_id:torch.Tensor)->None:
+    def __init__(self, articulation:Articulation, foot_body_id:torch.Tensor, num_envs:int, device: torch.device)->None:
         self.articulation = articulation
         self.num_envs = num_envs
         self.foot_body_id = foot_body_id
         self.total_contact_point = len(foot_body_id)
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # type: ignore
-        self._init_pos = torch.zeros((num_envs, 3), device=device)
-        self._init_rot = torch.eye(3, device=device).unsqueeze(0).repeat(num_envs, 1, 1)
+        # device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # type: ignore
+        self.device = device
+        self._init_pos = torch.zeros((num_envs, 3), device=self.device)
+        self._init_rot = torch.eye(3, device=self.device).unsqueeze(0).repeat(num_envs, 1, 1)
         
     # state reset
     def reset_default_pose(self, default_pose: torch.Tensor, env_id: torch.Tensor)->None:

@@ -19,9 +19,9 @@ from .env_cfg import (
     HECTOREventCfg,
     TeacherObsCfg,
     StudentObsCfg,
-    HECTORRewardsCfg,
+    HECTORPerceptiveLocomotionRewardsCfg,
     HECTORTerminationsCfg,
-    HECTORSceneCfg,
+    HECTORPerceptiveLocomotionSceneCfg,
 )
 
 @configclass
@@ -32,8 +32,8 @@ class L2TObservationCfg:
 
 @configclass
 class HECTORRoughEnvL2TCfg(LocomotionVelocityRoughEnvCfg):
-    scene: HECTORSceneCfg = HECTORSceneCfg(num_envs=4096, env_spacing=2.5)
-    rewards: HECTORRewardsCfg = HECTORRewardsCfg()
+    scene: HECTORPerceptiveLocomotionSceneCfg = HECTORPerceptiveLocomotionSceneCfg(num_envs=4096, env_spacing=2.5)
+    rewards: HECTORPerceptiveLocomotionRewardsCfg = HECTORPerceptiveLocomotionRewardsCfg()
     actions: HECTORL2TActionsCfg = HECTORL2TActionsCfg()
     commands: HECTORCommandsCfg = HECTORCommandsCfg()
     observations: L2TObservationCfg = L2TObservationCfg()
@@ -61,7 +61,7 @@ class HECTORRoughEnvL2TCfg(LocomotionVelocityRoughEnvCfg):
             asset_name="robot"
         )
         
-        self.scene.terrain = hector_mdp.CurriculumRandomBlockTerrain
+        self.scene.terrain = hector_mdp.SteppingStoneTerrain
         
         # command
         self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.7)
@@ -85,7 +85,7 @@ class HECTORRoughEnvL2TCfgPLAY(HECTORRoughEnvL2TCfg):
         # post init of parent
         super().__post_init__()
         self.seed = 42
-        self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
+        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         
         self.scene.height_scanner.debug_vis = True
         # self.curriculum.terrain_levels = None # disable terrain curriculum

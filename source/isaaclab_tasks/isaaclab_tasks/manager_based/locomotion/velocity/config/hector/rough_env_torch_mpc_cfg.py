@@ -71,5 +71,5 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         
         # command 
         self.commands.base_velocity.heading_command = False
-        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.2, 0.2)
         self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)

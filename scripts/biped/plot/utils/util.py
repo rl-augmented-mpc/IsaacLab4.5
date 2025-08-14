@@ -406,6 +406,41 @@ def load_processed_data(data_root, dt_policy=0.01):
         global_pos = np.zeros((num_envs, num_episodes, 3))
         warnings.warn("Global position data not found, setting to zeros.")
 
+    if os.path.exists(os.path.join(data_root, "terrain_out_of_bounds/terrain_out_of_bounds.pkl")):
+        with open(os.path.join(data_root, "terrain_out_of_bounds/terrain_out_of_bounds.pkl"), "rb") as f:
+            terrain_out_of_bounds = pickle.load(f)
+        terrain_out_of_bounds = np.array(terrain_out_of_bounds)
+        terrain_out_of_bounds = terrain_out_of_bounds.reshape(terrain_out_of_bounds.shape[0]*terrain_out_of_bounds.shape[1], -1, 1)
+    else:
+        terrain_out_of_bounds = np.zeros((num_envs, num_episodes, 1))
+        warnings.warn("Terrain out of bounds data not found, setting to zeros.")
+
+    if os.path.exists(os.path.join(data_root, "bad_orientation/bad_orientation.pkl")):
+        with open(os.path.join(data_root, "bad_orientation/bad_orientation.pkl"), "rb") as f:
+            bad_orientation = pickle.load(f)
+        bad_orientation = np.array(bad_orientation)
+        bad_orientation = bad_orientation.reshape(bad_orientation.shape[0]*bad_orientation.shape[1], -1, 1)
+    else:
+        bad_orientation = np.zeros((num_envs, num_episodes, 1))
+        warnings.warn("Bad orientation data not found, setting to zeros.")
+
+    if os.path.exists(os.path.join(data_root, "base_too_low/base_too_low.pkl")):
+        with open(os.path.join(data_root, "base_too_low/base_too_low.pkl"), "rb") as f:
+            base_too_low = pickle.load(f)
+        base_too_low = np.array(base_too_low)
+        base_too_low = base_too_low.reshape(base_too_low.shape[0]*base_too_low.shape[1], -1, 1)
+    else:
+        base_too_low = np.zeros((num_envs, num_episodes, 1))
+
+    if os.path.exists(os.path.join(data_root, "time_out/time_out.pkl")):
+        with open(os.path.join(data_root, "time_out/time_out.pkl"), "rb") as f:
+            timeout = pickle.load(f)
+        timeout = np.array(timeout)
+        timeout = timeout.reshape(timeout.shape[0]*timeout.shape[1], -1, 1)
+    else:
+        timeout = np.zeros((num_envs, num_episodes, 1))
+        warnings.warn("Timeout data not found, setting to zeros.")
+
     return {
         "position": position,
         "orientation": orientation,
@@ -435,6 +470,12 @@ def load_processed_data(data_root, dt_policy=0.01):
         "first_contact": first_contact,
         "global_pos": global_pos,
         "height_data": height_map,
+
+        # termination
+        "terrain_out_of_bounds": terrain_out_of_bounds,
+        "bad_orientation": bad_orientation,
+        "base_too_low": base_too_low,
+        "timeout": timeout,
     }
 
 def load_processed_data_perceptive(data_root, dt_policy=0.01):

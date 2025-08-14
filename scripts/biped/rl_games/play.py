@@ -113,7 +113,7 @@ def main():
             # this loads the best checkpoint
             checkpoint_file = f"{agent_cfg['params']['config']['name']}.pth"
         # checkpoint_file="*.pth"
-        # checkpoint_file = "last_manager_sac_rl_games_stepping_stone_mlp_blind_ep_500_rew_16.409323.pth"
+        # checkpoint_file = "last_manager_sac_rl_games_stepping_stone_mlp_blind_ep_10000_rew_4.855741.pth"
         # get path to previous checkpoint
         resume_path = get_checkpoint_path(log_root_path, run_dir, checkpoint_file, other_dirs=["nn"])
     else:
@@ -151,7 +151,11 @@ def main():
     
     if args_cli.log:
         max_episode_length = int(env_cfg.episode_length_s/(env_cfg.decimation*env_cfg.sim.dt))
-        log_item = ['state', 'obs', 'raw_action', 'action', 'reward', 'grf', 'heightmap', 'global_pos', 'first_contact']
+        log_item = [
+            'state', 'obs', 'raw_action', 'action', 'reward', 
+            'grf', 'heightmap', 'global_pos', 'first_contact', 
+            'terrain_out_of_bounds', 'bad_orientation','base_too_low', 'time_out'
+            ]
         if args_cli.perceptive:
             log_item.append('ref_height')
         logger = DictBenchmarkLogger(
@@ -216,15 +220,15 @@ def main():
                 # print("obs: \n", obs)
                 action = agent.get_action(obs, is_deterministic=agent.is_deterministic)
                 # transformed_mean, mean, sigma = agent.get_action_distribution_params(obs) # type: ignore
-                # print("tanh(mean):\n", transformed_mean)
-                # print("mean:\n", mean)
+                # print("tanh(mean):\n", transformed_mean[:, 7])
+                # print("mean:\n", mean[:, 7])
                 # print("sigma:\n", sigma)
             else:
                 action = torch.zeros(env.unwrapped.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
-                if args_cli.perceptive:
-                    action[:, 1] = -1.0 # perceptive policy
-                else:
-                    action[:, 7] = -1.0 # blind policy
+                # if args_cli.perceptive:
+                #     action[:, 1] = -1.0 # perceptive policy
+                # else:
+                #     action[:, 7] = -1.0 # blind policy
             obs, _, dones, _ = env.step(action)
             obs = agent.obs_to_torch(obs)
             
@@ -245,6 +249,14 @@ def main():
             ref_height = env.unwrapped.action_manager.get_term("mpc_action").reference_height # type: ignore
             global_pos = env.unwrapped.observation_manager._obs_buffer.get("global_pos", None)  # type: ignore
             first_contact = env.unwrapped.observation_manager._obs_buffer.get("first_contact", None)  # type: ignore
+
+            # get termination terms
+            term_dones = env.unwrapped.termination_manager._term_dones
+            terrain_out_of_bounds = term_dones.get("terrain_out_of_bounds", None)  # type: ignore
+            bad_orientation = term_dones.get("bad_orientation", None)
+            base_too_low = term_dones.get("base_too_low", None)  # type: ignore
+            time_out = term_dones.get("time_out", None)  # type: ignore
+
             
             # perform operations for terminated episodes
             if len(dones) > 0:
@@ -284,7 +296,27 @@ def main():
                 item_dict["first_contact"] = first_contact.cpu().numpy()
             else:
                 item_dict["first_contact"] = np.zeros((args_cli.num_envs, 2))
-            
+
+            if terrain_out_of_bounds is not None:
+                item_dict["terrain_out_of_bounds"] = terrain_out_of_bounds.unsqueeze(1).float().cpu().numpy()
+            else:
+                item_dict["terrain_out_of_bounds"] = np.zeros((args_cli.num_envs, 1))
+
+            if bad_orientation is not None:
+                item_dict["bad_orientation"] = bad_orientation.unsqueeze(1).float().cpu().numpy()
+            else:
+                item_dict["bad_orientation"] = np.zeros((args_cli.num_envs, 1))
+
+            if base_too_low is not None:
+                item_dict["base_too_low"] = base_too_low.unsqueeze(1).float().cpu().numpy()
+            else:
+                item_dict["base_too_low"] = np.zeros((args_cli.num_envs, 1))
+
+            if time_out is not None:
+                item_dict["time_out"] = time_out.unsqueeze(1).float().cpu().numpy()
+            else:
+                item_dict["time_out"] = np.zeros((args_cli.num_envs, 1))
+
             logger.log(item_dict)
             
         # update buffer
@@ -301,7 +333,16 @@ def main():
         for i, done_flag in enumerate(dones_np):
             if episode_counter[i] < max_trials: # only allow logging when episode counter is less than max trials to avoid memory overflow
                 if done_flag == 1:
-                    print(f"[INFO] Env {i}: Episode {episode_counter[i]} completed with episode length {episode_length_log[i]}.")
+                    # print(f"[INFO] Env {i}: Episode {episode_counter[i]} completed with episode length {episode_length_log[i]}.")
+                    if terrain_out_of_bounds[i]:
+                        print(f"[INFO] Env {i}: Terrain out of bounds")
+                    if bad_orientation[i]:
+                        print(f"[INFO] Env {i}: Bad orientation")
+                    if base_too_low[i]:
+                        print(f"[INFO] Env {i}: Base too low")
+                    if time_out[i]:
+                        print(f"[INFO] Env {i}: Time out")
+
                     if args_cli.log:
                         logger.save_to_buffer(trial_id=episode_counter[i], env_idx=i)
                         logger.save_episode_length_to_buffer(trial_id=episode_counter[i], env_idx=i, episode_length=episode_length_log[i])

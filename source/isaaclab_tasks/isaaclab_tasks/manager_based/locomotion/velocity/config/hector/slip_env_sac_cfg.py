@@ -93,9 +93,11 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
         self.scene.terrain = hector_mdp.InferenceAlternatingFrictionPatchTerrain
         self.curriculum.terrain_levels = None
 
+        # command
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
 
+        # events
         self.events.reset_base.params["pose_range"] = {
             # "x": (-1.0, 1.0), 
             # "y": (-1.0, 1.0), 
@@ -110,14 +112,28 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
         self.events.reset_terrain_type = None
 
 
-        # better visualization 
-        # self.sim.render_interval = self.decimation
-        self.scene.sky_light.init_state.rot = (0.9063078, 0.0, 0.0, 0.4226183)
-        self.viewer = ViewerCfg(
-            eye=(-0.5, -2.0, 0.3), 
-            lookat=(0.0, -0.5, 0.0),
-            # resolution=(1920, 1080), # full HD
-            resolution=(3840, 2160), # 4K
-            origin_type="asset_root", 
-            asset_name="robot"
-        )
+        # light setting
+        self.scene.sky_light.init_state.rot = (0.9238795, 0.0, 0.0, -0.3826834)
+
+        # rendering optimization 
+        RECORDING = True
+
+        if RECORDING:
+            # quality rendering
+            self.viewer = ViewerCfg(
+                # eye=(-0.0, -1.5, 0.2), 
+                # lookat=(0.0, -0.8, 0.0),
+                eye=(-0.0, -1.5, -0.15), 
+                lookat=(0.0, -0.8, -0.15),
+                resolution=(3840, 2160), # 4K
+                origin_type="asset_root", 
+                asset_name="robot"
+            )
+            self.sim.render_interval = self.decimation
+            self.sim.render.dlss_mode = 2 # 0 (Performance), 1 (Balanced), 2 (Quality), or 3 (Auto)
+            self.sim.render.antialiasing_mode = "DLSS" # "Off", "FXAA", "DLSS", "TAA", "DLAA"
+
+        else:
+            # performance rendering
+            self.sim.render.dlss_mode = 0 # 0 (Performance), 1 (Balanced), 2 (Quality), or 3 (Auto)
+            self.sim.render.antialiasing_mode = None # "Off", "FXAA", "DLSS", "TAA", "DLAA"
