@@ -10,21 +10,19 @@ from .actions.mpc_actions_cfg import (
     TorchMPCActionCfg, 
 )
 from .terrain.terrain_cfg import (
-    SteppingStoneTerrain, InferenceSteppingStoneTerrain, CurriculumSteppingStoneTerrain, 
-    RandomOrientationCubeTerrain, PyramidHfTerrain, FractalTerrain, BaseTerrain, 
-    CurriculumFrictionPatchTerrain, FrictionPatchTerrain, 
-    InferenceAlternatingFrictionPatchTerrain,
-    InferenceRandomBlockTerrain, CurriculumRandomBlockTerrain, 
-    TripOverChallengeTerrain, BoxRoughTerrain
+    BaseTerrain,
+    SteppingStoneTerrain, InferenceSteppingStoneTerrain, 
+    CurriculumFrictionPatchTerrain, FrictionPatchTerrain, InferenceAlternatingFrictionPatchTerrain,
+    PyramidHfTerrain, FractalTerrain,
 )
 
 IMPORT_DYNAMIC_TERRAIN = False
 if IMPORT_DYNAMIC_TERRAIN:
     # only enable when using dynamic terrain 
-    # otherwise, importing this takes long time
+    # otherwise, importing this takes long time as code generate multiple configs per particles
     from .terrain.dynamic_terrain_cfg import (
         GravelTerrain, 
-        # ParticleTerrain
+        ParticleTerrain,
     )
 
 from .observation.observations import (

@@ -28,7 +28,7 @@ class HECTORBlindLocomotionSceneCfg(InteractiveSceneCfg):
     """Configuration for the terrain scene with a legged robot."""
 
     # terrain
-    terrain = hector_mdp.CurriculumSteppingStoneTerrain
+    terrain = hector_mdp.SteppingStoneTerrain
     
     # # gravel 
     # terrain = hector_mdp.BaseTerrain
@@ -138,31 +138,33 @@ class HECTORBlindLocomotionSceneCfg(InteractiveSceneCfg):
     #     ),
     # )
 
-    # ## gray studio ##
-    # distant_light = AssetBaseCfg(
-    #     prim_path="/World/DistantLight",
-    #     spawn=sim_utils.DistantLightCfg(
-    #         intensity=3000.0,
-    #         angle=34.3
-    #     ),
-    # )
-    # dome_light = AssetBaseCfg(
-    #     prim_path="/World/DomeLight",
-    #     spawn=sim_utils.DomeLightCfg(
-    #         intensity=1003.29999,
-    #         exposure=0.4, 
-            
-    #     ),
-    # )
-
-    # default light
-    sky_light = AssetBaseCfg(
-        prim_path="/World/skyLight",
-        spawn=sim_utils.DomeLightCfg(
-            intensity=800.0,
-            exposure=0.4, 
+    ## gray studio ##
+    distant_light = AssetBaseCfg(
+        prim_path="/World/DistantLight",
+        spawn=sim_utils.DistantLightCfg(
+            # intensity=3000.0,
+            intensity=1000.0,
         ),
     )
+    sky_light = AssetBaseCfg(
+        prim_path="/World/DomeLight",
+        spawn=sim_utils.DomeLightCfg(
+            # intensity=1003.29999,
+            intensity=600,
+            exposure=0.4, 
+            visible_in_primary_ray=False,
+        ),
+    )
+
+    # # default light
+    # sky_light = AssetBaseCfg(
+    #     prim_path="/World/skyLight",
+    #     spawn=sim_utils.DomeLightCfg(
+    #         intensity=1000.0,
+    #         exposure=0.4, 
+    #         visible_in_primary_ray=False,
+    #     ),
+    # )
 
     # # sky light
     # sky_light = AssetBaseCfg(
@@ -181,7 +183,7 @@ class HECTORPerceptiveLocomotionSceneCfg(InteractiveSceneCfg):
     """Configuration for the terrain scene with a legged robot."""
 
     # terrain
-    terrain = hector_mdp.CurriculumSteppingStoneTerrain
+    terrain = hector_mdp.SteppingStoneTerrain
     
     # # gravel 
     # terrain = hector_mdp.BaseTerrain
@@ -427,19 +429,27 @@ class HECTORSlipSceneCfg(InteractiveSceneCfg):
     
     # --lights
 
-    # distant_light
-    # distant_light = AssetBaseCfg(
-    #     prim_path="/World/DistantLight",
-    #     spawn=sim_utils.DistantLightCfg(
-    #         intensity=3000.0,
-    #         angle=34.3
-    #     ),
-    # )
-
-    sky_light = AssetBaseCfg(
-        prim_path="/World/skyLight",
-        spawn=sim_utils.DomeLightCfg(
-            intensity=2000.0,
-            texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+    ## gray studio ##
+    distant_light = AssetBaseCfg(
+        prim_path="/World/DistantLight",
+        spawn=sim_utils.DistantLightCfg(
+            intensity=1000.0,
         ),
     )
+    sky_light = AssetBaseCfg(
+        prim_path="/World/DomeLight",
+        spawn=sim_utils.DomeLightCfg(
+            intensity=600,
+            exposure=0.4, 
+            visible_in_primary_ray=False,
+        ),
+    )
+    
+    # # blue sky light
+    # sky_light = AssetBaseCfg(
+    #     prim_path="/World/skyLight",
+    #     spawn=sim_utils.DomeLightCfg(
+    #         intensity=2000.0,
+    #         texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+    #     ),
+    # )

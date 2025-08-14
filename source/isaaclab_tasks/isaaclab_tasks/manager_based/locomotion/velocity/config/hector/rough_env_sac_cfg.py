@@ -49,8 +49,7 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         self.episode_length_s = 10.0
 
         # terain
-        self.scene.terrain = hector_mdp.SteppingStoneTerrain 
-        # self.scene.terrain = hector_mdp.BaseTerrain # policy sanity check
+        self.scene.terrain = hector_mdp.SteppingStoneTerrain
 
         # sensor
         self.scene.height_scanner = None
@@ -90,8 +89,11 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
-        # self.seed = 42
-        self.seed = 100
+        self.seed = 42
+
+        # self.sim.dt = 1/1000
+        # self.decimation = 10
+        # self.sim.render_interval = 2*self.decimation
 
         # terrain
         self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
@@ -101,23 +103,23 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         # self.curriculum.terrain_levels = None
 
         self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
-        self.events.reset_base.params["multiplier"] = 2
+        # self.events.reset_base.params["multiplier"] = 2
         self.events.reset_base.params["pose_range"] = {
+            # "x": (-0.3, 0.3), 
+            # "y": (-0.3, 0.3), 
             "x": (-0.3, 0.3), 
             "y": (-0.3, 0.3), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
             "yaw": (-math.pi, math.pi),
-            # "yaw": (-math.pi/4, math.pi/4),
-            # "yaw": (0.0, 0.0),
         }
 
         # # intentional trip over
         # self.events.reset_base.params["pose_range"] = {
         #     # "x": (0.635, 0.635), # intentional trip over
-        #     "x": (0.635, 0.635), # intentional trip over
-        #     "y": (-0.4, 0.4),  
+        #     "x": (0.675, 0.675), # intentional trip over
+        #     "y": (0.4, 0.4),  
         #     "z": (0.0, 0.0),
         #     "roll": (0.0, 0.0),
         #     "pitch": (0.0, 0.0),
@@ -125,27 +127,34 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         # }
 
         # command
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.4)
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
 
-        # better visualization 
-        self.scene.toe_contact.debug_vis = False
-        # self.sim.render_interval = self.decimation
+        # light setting
         self.scene.sky_light.init_state.rot = (0.9238795, 0.0, 0.0, -0.3826834)
-        self.viewer = ViewerCfg(
-            # eye=(-0.0, -2.0, 0.5), 
-            # lookat=(0.0, -0.5, 0.0),
-            eye=(-0.0, -1.5, 0.2), 
-            lookat=(0.0, -0.8, 0.0),
-            # resolution=(1920, 1080), # full HD
-            resolution=(3840, 2160), # 4K
-            origin_type="asset_root", 
-            asset_name="robot"
-        )
 
         # rendering optimization 
-        self.sim.render.dlss_mode = 1
-        self.sim.render.antialiasing_mode = None
-        # self.sim.render.enable_global_illumination = True
+        RECORDING = False
+
+        if RECORDING:
+            # quality rendering
+            self.viewer = ViewerCfg(
+                # eye=(-0.0, -1.5, 0.2), 
+                # lookat=(0.0, -0.8, 0.0),
+                eye=(-0.0, -1.5, -0.15), 
+                lookat=(0.0, -0.8, -0.15),
+                resolution=(3840, 2160), # 4K
+                origin_type="asset_root", 
+                asset_name="robot"
+            )
+            # self.sim.render_interval = self.decimation
+            self.sim.render.dlss_mode = 2 # 0 (Performance), 1 (Balanced), 2 (Quality), or 3 (Auto)
+            self.sim.render.antialiasing_mode = "DLSS" # "Off", "FXAA", "DLSS", "TAA", "DLAA"
+
+        else:
+            # performance rendering
+            self.sim.render.dlss_mode = 0 # 0 (Performance), 1 (Balanced), 2 (Quality), or 3 (Auto)
+            self.sim.render.antialiasing_mode = None # "Off", "FXAA", "DLSS", "TAA", "DLAA"
 
 @configclass
 class HECTORRoughEnvPerceptiveLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):

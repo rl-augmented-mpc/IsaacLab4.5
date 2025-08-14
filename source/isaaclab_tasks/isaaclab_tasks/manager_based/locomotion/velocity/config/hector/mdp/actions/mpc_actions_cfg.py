@@ -23,11 +23,13 @@ class BlindLocomotionMPCActionCfg(ActionTermCfg):
     """List of joint names or regex expressions that the action will be mapped to."""
     action_range: tuple[float, float] | tuple[tuple[float, ...], tuple[float, ...]] = (-1.0, 1.0)
     """action range to deal with assymetric action space. """
+    negative_action_clip_idx: list[int] = None  # type: ignore
+    """List of indices of the action that are assymetric. If empty, all actions are symmetric."""
     command_name: str = "base_velocity"
     """Name of the command to be used for the action term."""
     nominal_height: float = 0.55
     """Reference height of the robot."""
-    nominal_swing_height : float = 0.10
+    nominal_swing_height : float = 0.1
     """Nominal swing height of the robot."""
     nominal_stepping_frequency: float = 1.0
     """Nominal stepping frequency of the robot."""
@@ -56,7 +58,6 @@ class BlindLocomotionMPCActionCfg(ActionTermCfg):
     """Double support duration of the robot."""
     single_support_duration: int = 8 # 0.2s single support
     """Single support duration of the robot."""
-
 
     nominal_cp1_coef: float = 1/3
     """Nominal cp1 coefficient of the robot."""

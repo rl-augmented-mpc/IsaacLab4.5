@@ -71,3 +71,6 @@ wandb
 *.pdf
 *.mp4
 *.gif
+
+# extra logs
+scripts/biped/plot/data/*

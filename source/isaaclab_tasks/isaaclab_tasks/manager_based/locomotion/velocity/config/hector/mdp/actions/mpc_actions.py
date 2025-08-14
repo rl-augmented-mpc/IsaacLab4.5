@@ -49,7 +49,7 @@ class BlindLocomotionMPCAction(ActionTerm):
         # create robot helper object
         body_names = self._asset.data.body_names
         foot_idx = [i for i in range(len(body_names)) if body_names[i] in ["L_sole", "R_sole"]]
-        self.robot_api = RobotCore(self._asset, self.num_envs, torch.tensor(foot_idx, device=self.device, dtype=torch.long))
+        self.robot_api = RobotCore(self._asset, torch.tensor(foot_idx, device=self.device, dtype=torch.long), self.num_envs, self.device)
 
         # resolve the joints over which the action term is applied
         self._joint_ids, self._joint_names = self._asset.find_joints(self.cfg.joint_names, preserve_order=True)
@@ -151,7 +151,11 @@ class BlindLocomotionMPCAction(ActionTerm):
     # ** MDP loop **
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
-        self._raw_actions[:] = actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
@@ -218,19 +222,15 @@ class BlindLocomotionMPCAction(ActionTerm):
         - reference foot trajectory
         - current foot position
         """
-        # create storag tensors
-        fp = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
-        foot_pos = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
-        
         # prepare transformation matrices
-        world_to_odom_trans = self.robot_api._init_pos[:, :3].clone()
-        world_to_odom_rot = self.robot_api._init_rot.clone()
         world_to_base_trans = self.robot_api.root_pos_w[:, :3].clone()
         world_to_base_rot = self.robot_api.root_rot_mat_w.clone()
 
         # visualize foot placement
+        fp = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
         fp[:, 0, :3] = self.foot_placement[:, :3]
         fp[:, 1, :3] = self.foot_placement[:, 3:]
+        # from base frame to world frame
         fp[:, 0, :] = (world_to_base_rot @ fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
         fp[:, 1, :] = (world_to_base_rot @ fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
         fp[:, :, 2] += 0.01 # better visibility
@@ -238,18 +238,15 @@ class BlindLocomotionMPCAction(ActionTerm):
         orientation = self.robot_api.root_quat_w[:, None, :].repeat(1, 2, 1).view(-1, 4)
         self.foot_placement_visualizer.visualize(fp, orientation)
 
-
         # visualize foot sole positions
-        foot_pos[:, 0, :] = (world_to_odom_rot @ self.foot_pos_w[:, :3].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
-        foot_pos[:, 1, :] = (world_to_odom_rot @ self.foot_pos_w[:, 3:6].unsqueeze(-1)).squeeze(-1) + world_to_odom_trans
+        foot_pos = self.robot_api.foot_pos
         self.foot_position_visualizer.visualize(foot_pos)
-        
 
-        # visullize trajectory
+        # visullize reference trajectory
         position_traj = self.position_trajectory.clone()
         foot_traj = self.foot_position_trajectory.clone()
         for i in range(10):
-            # from base to world frame
+            # from base frame to world frame
             position_traj[:, i, :] = (world_to_base_rot @ position_traj[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
             foot_traj[:, i, :] = (world_to_base_rot @ foot_traj[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
 
@@ -446,7 +443,11 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
     # ** MDP loop **
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
-        self._raw_actions[:] = actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
@@ -886,7 +887,12 @@ class BlindLocomotionMPCAction2(BlindLocomotionMPCAction):
     
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
-        self._raw_actions[:] = actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
+        # transform to specific range
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
@@ -903,8 +909,6 @@ class BlindLocomotionMPCAction2(BlindLocomotionMPCAction):
         
         sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, -3].cpu().numpy())
         swing_foot_height = self._processed_actions[:, -2].cpu().numpy()
-        # print("swing_foot_height", actions[:, -2])
-        # swing_foot_height[swing_foot_height < -0] = 0.0 # clip to negative values
         trajectory_control_points = self._processed_actions[:, -1].cpu().numpy()
         
         # form actual control parameters (nominal value + residual)
@@ -957,7 +961,11 @@ class BlindLocomotionMPCAction3(BlindLocomotionMPCAction):
     
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
-        self._raw_actions[:] = actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
@@ -1032,7 +1040,11 @@ class BlindLocomotionMPCAction4(BlindLocomotionMPCAction):
     
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
-        self._raw_actions[:] = actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
@@ -1121,7 +1133,11 @@ class PerceptiveLocomotionMPCAction2(PerceptiveLocomotionMPCAction):
     
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
-        self._raw_actions[:] = actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
@@ -1190,7 +1206,11 @@ class PerceptiveLocomotionMPCAction3(PerceptiveLocomotionMPCAction):
     
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
-        self._raw_actions[:] = actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
@@ -1266,7 +1286,11 @@ class PerceptiveLocomotionMPCAction4(PerceptiveLocomotionMPCAction):
     
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
-        self._raw_actions[:] = actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
