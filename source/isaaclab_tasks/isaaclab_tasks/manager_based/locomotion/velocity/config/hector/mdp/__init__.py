@@ -57,6 +57,6 @@ from .curriculums.curriculums import terrain_levels_episode, custom_terrain_leve
 from .termination.termination import (
     root_height_below_minimum_adaptive, 
     root_height_above_maximum_adaptive, 
-    bad_foot_contact
+    bad_foot_contact, terrain_out_of_bounds
 )
 from .commands.commands import TerrainAwareUniformVelocityCommand

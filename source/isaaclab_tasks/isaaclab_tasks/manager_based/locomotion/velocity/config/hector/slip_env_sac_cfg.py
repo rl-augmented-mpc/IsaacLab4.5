@@ -99,15 +99,13 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
 
         # events
         self.events.reset_base.params["pose_range"] = {
-            # "x": (-1.0, 1.0), 
-            # "y": (-1.0, 1.0), 
-            "x": (-0.5, -0.5), 
-            "y": (-2.0, 2.0), 
+            "x": (-0.3, 0.3), 
+            "y": (-0.3, 0.3),
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            # "yaw": (-math.pi/6, math.pi/6),
-            "yaw": (-0, 0),
+            "yaw": (-math.pi, math.pi),
+            # "yaw": (-0, 0),
         }
         self.events.reset_terrain_type = None
 
@@ -129,7 +127,7 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
                 origin_type="asset_root", 
                 asset_name="robot"
             )
-            self.sim.render_interval = self.decimation
+            # self.sim.render_interval = self.decimation
             self.sim.render.dlss_mode = 2 # 0 (Performance), 1 (Balanced), 2 (Quality), or 3 (Auto)
             self.sim.render.antialiasing_mode = "DLSS" # "Off", "FXAA", "DLSS", "TAA", "DLAA"
 

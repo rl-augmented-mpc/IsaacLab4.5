@@ -126,7 +126,7 @@ class TerrainImporterCfg:
     """
     Static friction range to sample for each patch when terrain_type is patched.
     """
-    friction_distribution: Literal["linear", "grid", "grid_deterministic", "random"] = "linear"
+    friction_distribution: Literal["linear", "line", "line_deterministic", "grid", "grid_deterministic", "random"] = "linear"
     """
     Distribution of friction value in single sub-terrain.
     """

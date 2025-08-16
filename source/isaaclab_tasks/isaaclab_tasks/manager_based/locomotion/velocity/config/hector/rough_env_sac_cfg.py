@@ -97,6 +97,7 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
 
         # terrain
         self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        # self.scene.terrain = hector_mdp.BaseTerrain
         
         # event 
         # self.events.reset_terrain_type = None
@@ -105,8 +106,6 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
         # self.events.reset_base.params["multiplier"] = 2
         self.events.reset_base.params["pose_range"] = {
-            # "x": (-0.3, 0.3), 
-            # "y": (-0.3, 0.3), 
             "x": (-0.3, 0.3), 
             "y": (-0.3, 0.3), 
             "z": (0.0, 0.0),
@@ -215,23 +214,51 @@ class HECTORRoughEnvPerceptiveLocomotionSACCfgPLAY(HECTORRoughEnvPerceptiveLocom
         # self.scene.terrain = hector_mdp.BoxRoughTerrain
         self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
 
-        # event 
-        # self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
+        self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
+        self.events.reset_base.params["multiplier"] = 2
         self.events.reset_base.params["pose_range"] = {
+            # "x": (-0.3, 0.3), 
+            # "y": (-0.3, 0.3), 
             "x": (-0.3, 0.3), 
             "y": (-0.3, 0.3), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            # "yaw": (-math.pi, math.pi),
-            "yaw": (0.0, 0.0),
+            "yaw": (-math.pi, math.pi),
         }
         self.events.reset_terrain_type = None
 
         # debug vis
-        self.scene.height_scanner_L_foot.debug_vis = True
-        self.scene.height_scanner_R_foot.debug_vis = True
+        # self.scene.height_scanner_L_foot.debug_vis = True
+        # self.scene.height_scanner_R_foot.debug_vis = True
         
         self.curriculum.terrain_levels = None
         
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
+
+
+        # light setting
+        self.scene.sky_light.init_state.rot = (0.9238795, 0.0, 0.0, -0.3826834)
+
+        # rendering optimization 
+        RECORDING = False
+
+        if RECORDING:
+            # quality rendering
+            self.viewer = ViewerCfg(
+                # eye=(-0.0, -1.5, 0.2), 
+                # lookat=(0.0, -0.8, 0.0),
+                eye=(-0.0, -1.5, -0.15), 
+                lookat=(0.0, -0.8, -0.15),
+                resolution=(3840, 2160), # 4K
+                origin_type="asset_root", 
+                asset_name="robot"
+            )
+            # self.sim.render_interval = self.decimation
+            self.sim.render.dlss_mode = 2 # 0 (Performance), 1 (Balanced), 2 (Quality), or 3 (Auto)
+            self.sim.render.antialiasing_mode = "DLSS" # "Off", "FXAA", "DLSS", "TAA", "DLAA"
+
+        else:
+            # performance rendering
+            self.sim.render.dlss_mode = 0 # 0 (Performance), 1 (Balanced), 2 (Quality), or 3 (Auto)
+            self.sim.render.antialiasing_mode = None # "Off", "FXAA", "DLSS", "TAA", "DLAA"
