@@ -58,11 +58,12 @@ class HECTORSlipActionsCfg:
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            (-2.0, -2.0, -4.0, -0.1, -1.0, -1.0, -0.3, -0.05, -0.33), # symmetric action space
-            (2.0, 2.0, 4.0, 0.1, 1.0, 1.0, 0.3, 0.05, 0.33)
+            (-2.0, -2.0, -4.0, -1.0, -1.0, -1.0, -0.3, -0.05, -0.33), # symmetric action space
+            (2.0, 2.0, 4.0, 1.0, 1.0, 1.0, 0.3, 0.05, 0.33)
             # (-2.0, -2.0, -4.0, -0.1, -1.0, -1.0, -0.3, 0.0, -0.33), # assymetric action space
             # (2.0, 2.0, 4.0, 0.1, 1.0, 1.0, 0.3, 0.05, 0.33)
-        )
+        ), 
+        negative_action_clip_idx=[7],
     )
 
 @configclass
@@ -73,18 +74,21 @@ class HECTORPerceptiveLocomotionActionsCfg:
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            (-0.25, -0.1, -0.33), 
+            # (-0.25, -0.1, -0.33), 
+            # (0.25, 0.1, 0.33)
+            (-0.25, 0.0, -0.33), 
             (0.25, 0.1, 0.33)
         )
     )
 
-    # mpc_action = hector_mdp.BlindLocomotionMPCActionCfg2(
+    # mpc_action = hector_mdp.PerceptiveLocomotionMPCActionCfg2(
     #     asset_name="robot", 
     #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
     #     action_range = (
-    #         (-2.0, -2.0, -4.0, -0.1, -1.0, -1.0, -0.3, 0.0, -0.33), 
-    #         (2.0, 2.0, 4.0, 0.1, 1.0, 1.0, 0.3, 0.1, 0.33)
-    #     )
+    #         (-2.0, -2.0, -4.0, -1.0, -1.0, -1.0, -0.25, -0.15, -0.66), # symmetric action space
+    #         (2.0, 2.0, 4.0, 1.0, 1.0, 1.0, 0.25, 0.15, 0.66)
+    #     ), 
+    #     negative_action_clip_idx=[7],
     # )
     
     # mpc_action = hector_mdp.PerceptiveLocomotionMPCActionCfg3(

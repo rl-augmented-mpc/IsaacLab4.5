@@ -91,11 +91,14 @@ params:
 
     # bound loss
     # bounds_loss_coef: 0.015
-    # bounds_loss_coef: 0.025
-    bounds_loss_coef: 0.03
-    bounds_loss_action_dim: [6, 7] # pz_max
-    bounds_loss_soft_lower_bound: [-1.0, 0.0] # alpha_mpc <=0, pz_max >= 0 preferably
-    bounds_loss_soft_upper_bound: [0.0, 1.0]
+    bounds_loss_coef: 0.025
+    # bounds_loss_coef: 0.03
+    # bounds_loss_action_dim: [6, 7] # pz_max
+    # bounds_loss_soft_lower_bound: [-1.0, 0.0] # alpha_mpc <=0, pz_max >= 0 preferably
+    # bounds_loss_soft_upper_bound: [0.0, 1.0]
+    bounds_loss_action_dim: [6] # pz_max
+    bounds_loss_soft_lower_bound: [-1.0] # alpha_mpc <=0, pz_max >= 0 preferably
+    bounds_loss_soft_upper_bound: [0.0]
   
   log:
     logger: wandb

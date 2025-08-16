@@ -132,7 +132,7 @@ class TerrainImporter:
                                 if self.cfg.friction_distribution == "linear":
                                     local_group_friction_range[0] = static_friction_ub - (sub_row+1) * (static_friction_dif/num_curriculum_x)
                                     local_group_friction_range[1] = static_friction_ub - sub_row * (static_friction_dif/num_curriculum_x)
-                                elif self.cfg.friction_distribution == "grid":
+                                elif self.cfg.friction_distribution == "line":
                                     # if sub_row % 2 == 0:
                                     if patch_row_id % 2 == 0:
                                         local_group_friction_range[0] = static_friction_ub
@@ -141,7 +141,7 @@ class TerrainImporter:
                                     else:
                                         local_group_friction_range[0] = static_friction_ub - (sub_row+1) * (static_friction_dif/num_curriculum_x)
                                         local_group_friction_range[1] = static_friction_ub - sub_row * (static_friction_dif/num_curriculum_x)
-                                elif self.cfg.friction_distribution == "grid_deterministic":
+                                elif self.cfg.friction_distribution == "line_deterministic":
                                     # if sub_row % 2 == 0:
                                     if patch_row_id % 2 == 0:
                                         local_group_friction_range[0] = static_friction_ub
@@ -149,6 +149,31 @@ class TerrainImporter:
                                     else:
                                         local_group_friction_range[0] = static_friction_lb
                                         local_group_friction_range[1] = static_friction_lb
+                                elif self.cfg.friction_distribution == "grid":
+                                    ind = np.random.randint(0, 2)
+                                    if ind % 2 == 0:
+                                        local_group_friction_range[0] = static_friction_ub
+                                        local_group_friction_range[1] = static_friction_ub
+                                    else:
+                                        local_group_friction_range[0] = static_friction_ub - (sub_row+1) * (static_friction_dif/num_curriculum_x)
+                                        local_group_friction_range[1] = static_friction_ub - sub_row * (static_friction_dif/num_curriculum_x)
+                                elif self.cfg.friction_distribution == "grid_deterministic":
+                                    ind = np.random.randint(0, 2)
+                                    if ind % 2 == 0:
+                                        local_group_friction_range[0] = static_friction_ub
+                                        local_group_friction_range[1] = static_friction_ub
+                                    else:
+                                        local_group_friction_range[0] = static_friction_lb
+                                        local_group_friction_range[1] = static_friction_lb
+
+                                    platform_width = 1.0
+                                    platform_grid_num = int(platform_width * 0.5 / self.cfg.terrain_generator.size[0]) # number of patches that make up the platform
+                                    is_center = (patch_row_id >= self.cfg.terrain_generator.num_sub_patches//2-platform_grid_num) and (patch_row_id <= self.cfg.terrain_generator.num_sub_patches//2+platform_grid_num) and \
+                                        (patch_col_id >= self.cfg.terrain_generator.num_sub_patches//2-platform_grid_num) and (patch_col_id <= self.cfg.terrain_generator.num_sub_patches//2+platform_grid_num)
+                                    if is_center:
+                                        local_group_friction_range[0] = static_friction_ub
+                                        local_group_friction_range[1] = static_friction_ub
+
                                 elif self.cfg.friction_distribution == "random":
                                     local_group_friction_range[0] = static_friction_lb + friction_randomization_parameter[sub_row] *(static_friction_dif/num_curriculum_x)
                                     local_group_friction_range[1] = static_friction_lb + (friction_randomization_parameter[sub_row] + (1/num_curriculum_x)) *(static_friction_dif/num_curriculum_x)

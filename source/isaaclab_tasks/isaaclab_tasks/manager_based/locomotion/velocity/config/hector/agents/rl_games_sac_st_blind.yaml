@@ -85,13 +85,13 @@ params:
     replay_buffer_size: 1000000
 
     # regularization loss
-    # reg_loss_coef: 0.005
-    reg_loss_coef: 0.015
+    reg_loss_coef: 0.005
+    # reg_loss_coef: 0.015
     # left_nominal_action_dim: [7] # nominal action at index=7 is -1
 
     # bound loss
-    # bounds_loss_coef: 0.025
-    bounds_loss_coef: 0.03
+    bounds_loss_coef: 0.025
+    # bounds_loss_coef: 0.03
     bounds_loss_action_dim: [7] # pz_max
     bounds_loss_soft_lower_bound: [0.0]
     bounds_loss_soft_upper_bound: [1.0]

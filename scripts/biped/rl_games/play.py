@@ -335,13 +335,13 @@ def main():
                 if done_flag == 1:
                     # print(f"[INFO] Env {i}: Episode {episode_counter[i]} completed with episode length {episode_length_log[i]}.")
                     if terrain_out_of_bounds[i]:
-                        print(f"[INFO] Env {i}: Terrain out of bounds")
+                        print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Terrain out of bounds")
                     if bad_orientation[i]:
-                        print(f"[INFO] Env {i}: Bad orientation")
+                        print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Bad orientation")
                     if base_too_low[i]:
-                        print(f"[INFO] Env {i}: Base too low")
+                        print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Base too low")
                     if time_out[i]:
-                        print(f"[INFO] Env {i}: Time out")
+                        print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Time out")
 
                     if args_cli.log:
                         logger.save_to_buffer(trial_id=episode_counter[i], env_idx=i)

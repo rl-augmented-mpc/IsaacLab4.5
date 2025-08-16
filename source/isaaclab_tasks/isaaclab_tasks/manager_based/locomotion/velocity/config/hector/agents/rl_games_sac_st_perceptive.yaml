@@ -3,9 +3,8 @@ params:
 
   # environment wrapper clipping
   env:
-    # added to the wrapper
+    # read from the env wrapper
     clip_observations: 50.0
-    # can make custom wrapper?
     clip_actions: 1.0
 
   algo:
@@ -18,19 +17,20 @@ params:
   network:
     name: soft_actor_critic
     separate: True
+    squash_output: True
     space:
       continuous:
         mu_activation: None
         sigma_activation: None
 
+        # different from PPO, mu and sigma are output from same action MLP head
         mu_init:
           # name: default
+          # name: orthogonal
           name: const_initializer
           val: 0
-        sigma_init:
-          name: const_initializer
-          val: 0
-        fixed_sigma: True
+        # mu_bias: [0, 0, 0, 0, 0, 0, 0, -1, 0]
+        # fixed_sigma: True
     mlp:
       units: [512, 256, 128]
       activation: elu
@@ -62,44 +62,38 @@ params:
     num_actors: -1  # configured from the script (based on num_envs)
     reward_shaper:
       scale_value: 1.0
-    gamma: 0.99
-    entropy_coef: 0.001
+    gamma: 0.98
+    entropy_coef: 0.001 # not used
     score_to_win: 20000
-    # max_epochs: 100000
     max_epochs: 10000
     save_best_after: 500
     save_frequency: 500
 
-    # PPO
-    # normalize_advantage: True
-    # tau : 0.95
-    # learning_rate: 1e-4
-    # lr_schedule: adaptive
-    # kl_threshold: 0.008
-    # grad_norm: 1.0
-    # truncate_grads: True
-    # e_clip: 0.2
-    # horizon_length: 32
-    # minibatch_size: 384 # num_envs*horizon/num_mini_batch=64*24/4
-    # mini_epochs: 5
-    # critic_coef: 0.5
-    # clip_value: false
-    # seq_length: 4
-
     # SAC specific parameters
-    num_steps_per_episode: 36
+    num_steps_per_episode: 24
     horizon_length: ${.num_steps_per_episode}
-    init_alpha: 1.0 # dual parameter initial value
-    alpha_lr: 1e-4 # dual parameter learning rate
+    init_alpha: 1.0 # entropy temperature initial value
+    target_entropy_coef: 1.0
+    alpha_lr: 1e-4 # entropy temperature learning rate
     actor_lr: 1e-4 # actor network learning rate
     critic_lr: 1e-4 # critic network learning rate
-    critic_tau: 5e-3 # soft update parameter
+    critic_tau: 5e-3 # soft update parameter (polyak averaging)
     learnable_temperature: True
     num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
-    batch_size: 216 # 24 * 36 / 4 = 216
-    # batch_size: 576 # 64 * 36 / 4 = 576
-    # batch_size: 512
+    batch_size: 512
     replay_buffer_size: 1000000
+
+    # regularization loss
+    reg_loss_coef: 0.005
+    # reg_loss_coef: 0.01
+    # left_nominal_action_dim: [7] # nominal action at index=7 is -1
+
+    # bound loss
+    bounds_loss_coef: 0.025
+    # bounds_loss_coef: 0.03
+    bounds_loss_action_dim: [7] # pz_max
+    bounds_loss_soft_lower_bound: [0.0]
+    bounds_loss_soft_upper_bound: [1.0]
   
   log:
     logger: wandb
