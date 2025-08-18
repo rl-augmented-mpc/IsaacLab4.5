@@ -63,7 +63,7 @@ class HECTORSlipActionsCfg:
             # (-2.0, -2.0, -4.0, -0.1, -1.0, -1.0, -0.3, 0.0, -0.33), # assymetric action space
             # (2.0, 2.0, 4.0, 0.1, 1.0, 1.0, 0.3, 0.05, 0.33)
         ), 
-        negative_action_clip_idx=[7],
+        # negative_action_clip_idx=[7],
     )
 
 @configclass
