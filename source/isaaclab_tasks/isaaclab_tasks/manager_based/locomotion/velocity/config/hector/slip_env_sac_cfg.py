@@ -56,9 +56,9 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         )
         
         # command
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.3, 0.6)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.6)
         # self.commands.base_velocity.ranges.ang_vel_z = (-(20.0/180)*math.pi, (20.0/180)*math.pi)
-        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
 
         # scene
