@@ -85,7 +85,7 @@ CurriculumFrictionPatchTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="custom_curriculum",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(1.0, 1.0), # size of sub-terrain
+        size=(0.5, 0.5), # size of sub-terrain (size 1.0 has some artifacts?)
         border_width=0.0,
         num_rows=10,
         num_cols=1,
@@ -96,7 +96,7 @@ CurriculumFrictionPatchTerrain = TerrainImporterCfg(
         sub_terrains={
             "flat": terrain_gen.MeshPlaneTerrainCfg(proportion=0.2, height=0.0),
         },
-        num_sub_patches=26,
+        num_sub_patches=20,
         custom_curriculum=True,
     ),
     collision_group=-1,
@@ -171,7 +171,7 @@ InferenceAlternatingFrictionPatchTerrain = TerrainImporterCfg(
         sub_terrains={
             "flat": terrain_gen.MeshPlaneTerrainCfg(proportion=0.2, height=0.0),
         },
-        num_sub_patches=15,
+        num_sub_patches=11,
         custom_curriculum=True,
     ),
     collision_group=-1,
@@ -189,8 +189,9 @@ InferenceAlternatingFrictionPatchTerrain = TerrainImporterCfg(
     ),
     debug_vis=False,
     disable_colllider=False,
-    static_friction_range=(0.1, 0.5),
+    static_friction_range=(0.2 , 0.5),
     friction_distribution="grid_deterministic",
+    # friction_distribution="line_deterministic",
 )
 
 
@@ -331,8 +332,8 @@ InferenceSteppingStoneTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="generator",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        # size=(6.0, 6.0), # size of sub-terrain
-        size=(10.0, 10.0), # size of sub-terrain
+        size=(6.0, 6.0), # size of sub-terrain
+        # size=(10.0, 10.0), # size of sub-terrain
         border_width=0.0,
         num_rows=1,
         num_cols=1,
@@ -402,13 +403,13 @@ InferenceSteppingStoneTerrain = TerrainImporterCfg(
             # step_height_range=(0.06, 0.06),
             # step_height_range=(0.07, 0.07),
             # step_height_range=(0.08, 0.08),
-            step_height_range=(0.09, 0.09),
-            # step_height_range=(0.1, 0.1),
+            # step_height_range=(0.09, 0.09),
+            step_height_range=(0.1, 0.1),
             # step_height_range=(0.11, 0.11),
             # step_height_range=(0.115, 0.115),
             # step_height_range=(0.12, 0.12),
-            # step_width=0.25,
-            step_width=0.3,
+            step_width=0.25,
+            # step_width=0.3,
             platform_width=2.0,
             border_width=0.0,
             holes=False,

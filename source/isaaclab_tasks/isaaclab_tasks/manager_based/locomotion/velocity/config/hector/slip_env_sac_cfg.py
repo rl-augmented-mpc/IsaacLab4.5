@@ -40,8 +40,8 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
         
         # sim time
-        self.sim.dt = 1/400
-        self.decimation = 4
+        self.sim.dt = 1/200
+        self.decimation = 2
         self.sim.render_interval = 2*self.decimation
 
         self.scene.terrain = hector_mdp.CurriculumFrictionPatchTerrain
@@ -88,8 +88,13 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
-        # self.seed = 42
-        self.seed = 100
+
+        # sim time
+        self.sim.dt = 1/400
+        self.decimation = 4
+        self.sim.render_interval = 2*self.decimation
+
+        self.seed = 42
         self.scene.terrain = hector_mdp.InferenceAlternatingFrictionPatchTerrain
         self.curriculum.terrain_levels = None
 
@@ -114,7 +119,7 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
         self.scene.sky_light.init_state.rot = (0.9238795, 0.0, 0.0, -0.3826834)
 
         # rendering optimization 
-        RECORDING = True
+        RECORDING = False
 
         if RECORDING:
             # quality rendering
