@@ -45,8 +45,9 @@ if __name__ == "__main__":
 
         seconds = frame_idx / fps
         text = f"t={seconds:.2f}s"
-
-        cv2.putText(frame, text, (x, y), font, font_scale, (0, 0, 0), thickness, cv2.LINE_AA)
+        text_color = (255, 255, 255)  # white
+        # text_color = (0, 0, 0)
+        cv2.putText(frame, text, (x, y), font, font_scale, text_color, thickness, cv2.LINE_AA)
         out.write(frame)
         frame_idx += 1
 

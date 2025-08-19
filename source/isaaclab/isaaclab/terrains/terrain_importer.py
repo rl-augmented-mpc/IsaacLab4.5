@@ -150,7 +150,8 @@ class TerrainImporter:
                                         local_group_friction_range[0] = static_friction_lb
                                         local_group_friction_range[1] = static_friction_lb
                                 elif self.cfg.friction_distribution == "grid":
-                                    ind = np.random.randint(0, 2)
+                                    # ind = np.random.randint(0, 2)
+                                    ind = np.random.choice([0, 1], p=[0.2, 0.8])
                                     if ind % 2 == 0:
                                         local_group_friction_range[0] = static_friction_ub
                                         local_group_friction_range[1] = static_friction_ub
@@ -158,7 +159,8 @@ class TerrainImporter:
                                         local_group_friction_range[0] = static_friction_ub - (sub_row+1) * (static_friction_dif/num_curriculum_x)
                                         local_group_friction_range[1] = static_friction_ub - sub_row * (static_friction_dif/num_curriculum_x)
                                 elif self.cfg.friction_distribution == "grid_deterministic":
-                                    ind = np.random.randint(0, 2)
+                                    # ind = np.random.randint(0, 2)
+                                    ind = np.random.choice([0, 1], p=[0.2, 0.8])
                                     if ind % 2 == 0:
                                         local_group_friction_range[0] = static_friction_ub
                                         local_group_friction_range[1] = static_friction_ub
@@ -363,8 +365,8 @@ class TerrainImporter:
             visual_material=self.cfg.visual_material, 
             physics_material=self.cfg.physics_material, 
             disable_colllider=self.cfg.disable_colllider,
-            contact_offset=self.cfg.contact_offset,
-            rest_offset=self.cfg.rest_offset,
+            # contact_offset=self.cfg.contact_offset,
+            # rest_offset=self.cfg.rest_offset,
         )
         if self.cfg.disable_visualization:
             # disable the visualization of the terrain

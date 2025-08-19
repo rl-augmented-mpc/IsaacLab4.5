@@ -84,8 +84,8 @@ params:
     replay_buffer_size: 1000000
 
     # regularization loss
-    # reg_loss_coef: 0.005
-    reg_loss_coef: 0.01
+    reg_loss_coef: 0.0075 # may try
+    # reg_loss_coef: 0.01 # does not work for randomized velocity
 
     # bound loss
     # bounds_loss_coef: 0.025
