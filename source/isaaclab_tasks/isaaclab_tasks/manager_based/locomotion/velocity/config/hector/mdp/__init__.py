@@ -32,6 +32,7 @@ from .observation.observations import (
     height_scan, depth_image, foot_centric_height_scan,
     swing_phase, foot_placement_b, 
     foot_position_b, reference_foot_position_b, 
+    estimated_grf,estimated_acceleration, 
     reference_command, 
     terrain_roughness,
 )
@@ -51,7 +52,8 @@ from .reward.rewards import (
 )
 from .events.events import (
     reset_camera, reset_root_state_uniform, reset_particle_mass, reset_terrain_type, 
-    reset_root_state_orthogonal, apply_tangential_external_force_torque
+    reset_root_state_orthogonal, 
+    apply_tangential_external_force_torque
 )
 from .curriculums.curriculums import terrain_levels_episode, custom_terrain_levels_episode
 from .termination.termination import (
@@ -59,4 +61,4 @@ from .termination.termination import (
     root_height_above_maximum_adaptive, 
     bad_foot_contact, terrain_out_of_bounds
 )
-from .commands.commands import TerrainAwareUniformVelocityCommand
+from .commands.commands import DiscreteVelocityCommand

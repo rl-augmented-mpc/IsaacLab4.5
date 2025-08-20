@@ -65,7 +65,8 @@ params:
     gamma: 0.98
     entropy_coef: 0.001 # not used
     score_to_win: 20000
-    max_epochs: 10000
+    # max_epochs: 10000
+    max_epochs: 15000 # longer?
     save_best_after: 500
     save_frequency: 500
 
@@ -84,12 +85,13 @@ params:
     replay_buffer_size: 1000000
 
     # regularization loss
-    reg_loss_coef: 0.0075 # may try
-    # reg_loss_coef: 0.01 # does not work for randomized velocity
+    # reg_loss_coef: 0.005
+    reg_loss_coef: 0.0075 # kind of working, but not good enough
+    # reg_loss_coef: 0.01 # did not work for randomized velocity
 
     # bound loss
-    # bounds_loss_coef: 0.025
-    bounds_loss_coef: 0.03
+    bounds_loss_coef: 0.025 # try?
+    # bounds_loss_coef: 0.03 # did not work for randomized velocity
     bounds_loss_action_dim: [7] # pz_max
     bounds_loss_soft_lower_bound: [0.0]
     bounds_loss_soft_upper_bound: [1.0]

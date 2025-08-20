@@ -77,8 +77,8 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         
         # command 
         self.commands.base_velocity.heading_command = False
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
-        self.commands.base_velocity.ranges.lin_vel_x = (0.35, 0.55)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5) # fixed vel
+        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.5) # discrete samplilng
         self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
         self.commands.base_velocity.goal_vel_visualizer_cfg.markers["arrow"].scale = (0.4, 0.4, 0.4)
         self.commands.base_velocity.current_vel_visualizer_cfg.markers["arrow"].scale = (0.4, 0.4, 0.4)
@@ -132,10 +132,12 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         # }
 
         # command
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.35, 0.55)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.35, 0.35)
         # self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.4)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.45, 0.45)
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         # self.commands.base_velocity.ranges.lin_vel_x = (0.55, 0.55)
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)
 
         # light setting
         self.scene.sky_light.init_state.rot = (0.9238795, 0.0, 0.0, -0.3826834)
