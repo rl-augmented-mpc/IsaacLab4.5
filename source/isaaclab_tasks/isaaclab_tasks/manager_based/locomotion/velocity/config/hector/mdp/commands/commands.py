@@ -16,7 +16,7 @@ import isaaclab.utils.math as math_utils
 from isaaclab.envs import ManagerBasedEnv
 from isaaclab.envs.mdp.commands import UniformVelocityCommandCfg, UniformVelocityCommand
 
-class TerrainAwareUniformVelocityCommand(UniformVelocityCommand):
+class DiscreteVelocityCommand(UniformVelocityCommand):
     """Command generator that generates a velocity command in SE(2) from a normal distribution.
 
     The command comprises of a linear velocity in x and y direction and an angular velocity around
@@ -57,7 +57,11 @@ class TerrainAwareUniformVelocityCommand(UniformVelocityCommand):
         # sample velocity commands
         r = torch.empty(len(env_ids), device=self.device)
         # -- linear velocity - x direction
-        self.vel_command_b[env_ids, 0] = r.uniform_(*self.cfg.ranges.lin_vel_x)
+        vx_candidates = torch.linspace(
+            self.cfg.ranges.lin_vel_x[0], self.cfg.ranges.lin_vel_x[1], int((self.cfg.ranges.lin_vel_x[1] - self.cfg.ranges.lin_vel_x[0])/0.05)+1, device=self.device
+        )
+        # self.vel_command_b[env_ids, 0] = r.uniform_(*self.cfg.ranges.lin_vel_x)
+        self.vel_command_b[env_ids, 0] = vx_candidates[torch.randint(0, len(vx_candidates), (len(env_ids),), device=self.device)]
         # -- linear velocity - y direction
         self.vel_command_b[env_ids, 1] = r.uniform_(*self.cfg.ranges.lin_vel_y)
         # -- ang vel yaw - rotation around z
@@ -70,22 +74,22 @@ class TerrainAwareUniformVelocityCommand(UniformVelocityCommand):
         # update standing envs
         self.is_standing_env[env_ids] = r.uniform_(0.0, 1.0) <= self.cfg.rel_standing_envs
 
-    def _update_command(self):
-        """Post-processes the velocity command.
+    # def _update_command(self):
+    #     """Post-processes the velocity command.
 
-        This function sets velocity command to zero for standing environments and computes angular
-        velocity from heading direction if the heading_command flag is set.
-        """
-        # Compute angular velocity from heading direction
-        env_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
-        heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
-        self.vel_command_b[env_ids, 2] = torch.clip(
-            self.cfg.heading_control_stiffness * heading_error,
-            min=self.cfg.ranges.ang_vel_z[0],
-            max=self.cfg.ranges.ang_vel_z[1],
-        )
+    #     This function sets velocity command to zero for standing environments and computes angular
+    #     velocity from heading direction if the heading_command flag is set.
+    #     """
+    #     # Compute angular velocity from heading direction
+    #     env_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
+    #     heading_error = math_utils.wrap_to_pi(self.heading_target[env_ids] - self.robot.data.heading_w[env_ids])
+    #     self.vel_command_b[env_ids, 2] = torch.clip(
+    #         self.cfg.heading_control_stiffness * heading_error,
+    #         min=self.cfg.ranges.ang_vel_z[0],
+    #         max=self.cfg.ranges.ang_vel_z[1],
+    #     )
         
-        # Enforce standing (i.e., zero velocity command) for standing envs
-        # TODO: check if conversion is needed
-        standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
-        self.vel_command_b[standing_env_ids, :] = 0.0
+    #     # Enforce standing (i.e., zero velocity command) for standing envs
+    #     # TODO: check if conversion is needed
+    #     standing_env_ids = self.is_standing_env.nonzero(as_tuple=False).flatten()
+    #     self.vel_command_b[standing_env_ids, :] = 0.0

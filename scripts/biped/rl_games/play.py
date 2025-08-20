@@ -153,7 +153,8 @@ def main():
         max_episode_length = int(env_cfg.episode_length_s/(env_cfg.decimation*env_cfg.sim.dt))
         log_item = [
             'state', 'obs', 'raw_action', 'action', 'reward', 
-            'grf', 'heightmap', 'global_pos', 'first_contact', 
+            'grf', 'estimated_grf',
+            'heightmap', 'global_pos', 'first_contact', 
             'terrain_out_of_bounds', 'bad_orientation','base_too_low', 'time_out'
             ]
         if args_cli.perceptive:
@@ -245,6 +246,7 @@ def main():
 
             # extras
             grf = env.unwrapped.observation_manager._obs_buffer.get("force", None)  # type: ignore
+            estimated_grf = env.unwrapped.observation_manager._obs_buffer.get("estimated_force", None)  # type: ignore
             exteroception = env.unwrapped.observation_manager._obs_buffer.get("exteroception", None)  # type: ignore
             ref_height = env.unwrapped.action_manager.get_term("mpc_action").reference_height # type: ignore
             global_pos = env.unwrapped.observation_manager._obs_buffer.get("global_pos", None)  # type: ignore
@@ -278,6 +280,11 @@ def main():
                 item_dict["grf"] = grf.cpu().numpy()
             else:
                 item_dict["grf"] = np.zeros((args_cli.num_envs, 6))
+
+            if estimated_grf is not None:
+                item_dict["estimated_grf"] = estimated_grf.cpu().numpy()
+            else:
+                item_dict["estimated_grf"] = np.zeros((args_cli.num_envs, 6))
 
             if exteroception is not None:
                 item_dict["heightmap"] = exteroception.cpu().numpy()

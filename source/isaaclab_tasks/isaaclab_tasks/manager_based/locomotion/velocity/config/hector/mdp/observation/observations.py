@@ -98,7 +98,7 @@ def contact_forces(
     sensor_cfg: SceneEntityCfg = SceneEntityCfg("sensor")
     ) -> torch.Tensor:
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
-    contact_forces = contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :]
+    contact_forces = contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids, :] # (num_envs, num_body_ids, 3)
     return contact_forces.reshape(-1, contact_forces.shape[1] * contact_forces.shape[2])
 
 def contact(
@@ -118,6 +118,88 @@ def first_contact(
     contact_sensor: ContactSensor = env.scene.sensors[contact_sensor_cfg.name]
     first_contact = (contact_sensor.data.net_forces_w_history[:, :, contact_sensor_cfg.body_ids, :].norm(dim=3) > 1.0).sum(dim=1).float() == 1.0 # (num_envs, num_body_ids)
     return first_contact
+
+"""
+MPC states
+"""
+
+def swing_phase(env: ManagerBasedEnv, action_name: str = "mpc_action")-> torch.Tensor:
+    """Swing phase of the robot.
+
+    The swing phase is defined as the phase where the foot is not in contact with the ground.
+    """
+    # extract the used quantities (to enable type-hinting)
+    action_term = env.action_manager.get_term(action_name)
+    swing_phase = action_term.swing_phase
+    return swing_phase
+
+def foot_position_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:
+    """Foot position of the robot.
+
+    The foot position is defined as the position of the foot in the world frame.
+    """
+    # extract the used quantities (to enable type-hinting)
+    action_term = env.action_manager.get_term(action_name)
+    foot_position_b = action_term.foot_pos_b # from mpc controller
+    # foot_position_b = action_term.robot_api.foot_pos_b.reshape(-1, 6) # from simulation
+    return foot_position_b
+
+def foot_placement_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:
+    """
+    Planned foothold calculated from heuristics planner. 
+    Exlude z position. 
+    
+    Return: 
+        foot_placement_b: torch.Tensor (num_envs, 4)
+    """
+    # extract the used quantities (to enable type-hinting)
+    action_term = env.action_manager.get_term(action_name)
+    foot_placement = action_term.foot_placement[:, [0, 1, 3, 4]]
+    return foot_placement
+
+def reference_foot_position_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:
+    """Reference foot position of the robot.
+
+    The reference foot position is defined as the position of the foot in the world frame.
+    """
+    # extract the used quantities (to enable type-hinting)
+    action_term = env.action_manager.get_term(action_name)
+    reference_foot_position_b = action_term.ref_foot_pos_b
+    return reference_foot_position_b
+
+def estimated_acceleration(
+    env: ManagerBasedEnv, 
+    action_name: str = "mpc_action"
+    ) -> torch.Tensor:
+    """Estimated acceleration of the robot in the acceleration frame.
+
+    The acceleration frame is defined as the frame where the acceleration is zero.
+    """
+    # extract the used quantities (to enable type-hinting)
+    action_term = env.action_manager.get_term(action_name)
+    grw_accel = action_term.grw_accel
+    return grw_accel
+
+
+def estimated_grf(
+    env: ManagerBasedEnv, 
+    action_name: str = "mpc_action", 
+    ) -> torch.Tensor:
+    """Estimated ground reaction forces of the robot."""
+
+    action_term = env.action_manager.get_term(action_name)
+
+    rot_b = action_term.root_rot_mat.clone()
+    grf_left = action_term.grw[:, :3].clone()
+    grf_right = action_term.grw[:, 6:9].clone()
+
+    # transform to world frame
+    grf_left_world = (-rot_b @ grf_left.unsqueeze(-1)).squeeze(-1)
+    grf_right_world = (-rot_b @ grf_right.unsqueeze(-1)).squeeze(-1)
+
+    grf_world = torch.cat([grf_left_world, grf_right_world], dim=1)
+    return grf_world
+
 
 """
 Exteroceptive observations
@@ -186,51 +268,3 @@ def terrain_roughness_in_contact(
     roughness_right = roughness_right * contacts[:, 1]
 
     return torch.stack([roughness_left, roughness_right], dim=1)  # (num_envs, 2)
-
-"""
-MPC states
-"""
-
-def swing_phase(env: ManagerBasedEnv, action_name: str = "mpc_action")-> torch.Tensor:
-    """Swing phase of the robot.
-
-    The swing phase is defined as the phase where the foot is not in contact with the ground.
-    """
-    # extract the used quantities (to enable type-hinting)
-    action_term = env.action_manager.get_term(action_name)
-    swing_phase = action_term.swing_phase
-    return swing_phase
-
-def foot_position_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:
-    """Foot position of the robot.
-
-    The foot position is defined as the position of the foot in the world frame.
-    """
-    # extract the used quantities (to enable type-hinting)
-    action_term = env.action_manager.get_term(action_name)
-    foot_position_b = action_term.foot_pos_b # from mpc controller
-    # foot_position_b = action_term.robot_api.foot_pos_b.reshape(-1, 6) # from simulation
-    return foot_position_b
-
-def foot_placement_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:
-    """
-    Planned foothold calculated from heuristics planner. 
-    Exlude z position. 
-    
-    Return: 
-        foot_placement_b: torch.Tensor (num_envs, 4)
-    """
-    # extract the used quantities (to enable type-hinting)
-    action_term = env.action_manager.get_term(action_name)
-    foot_placement = action_term.foot_placement[:, [0, 1, 3, 4]]
-    return foot_placement
-
-def reference_foot_position_b(env: ManagerBasedEnv, action_name: str = "mpc_action") -> torch.Tensor:
-    """Reference foot position of the robot.
-
-    The reference foot position is defined as the position of the foot in the world frame.
-    """
-    # extract the used quantities (to enable type-hinting)
-    action_term = env.action_manager.get_term(action_name)
-    reference_foot_position_b = action_term.ref_foot_pos_b
-    return reference_foot_position_b

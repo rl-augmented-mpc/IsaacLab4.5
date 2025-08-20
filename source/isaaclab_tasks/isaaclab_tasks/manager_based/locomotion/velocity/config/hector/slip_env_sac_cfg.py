@@ -43,6 +43,7 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.sim.dt = 1/200
         self.decimation = 2
         self.sim.render_interval = 2*self.decimation
+        self.episode_length_s = 10.0
 
         self.scene.terrain = hector_mdp.CurriculumFrictionPatchTerrain
         self.scene.height_scanner = None

@@ -377,6 +377,16 @@ def load_processed_data(data_root, dt_policy=0.01):
         grf = np.zeros((num_envs, num_episodes, 6))
         warnings.warn("GRF data not found, setting to zeros.")
 
+    # estimated grf 
+    if os.path.exists(os.path.join(data_root, "estimated_grf/estimated_grf.pkl")):
+        with open(os.path.join(data_root, "estimated_grf/estimated_grf.pkl"), "rb") as f:
+            estimated_grf = pickle.load(f)
+        estimated_grf = np.array(estimated_grf)
+        estimated_grf = estimated_grf.reshape(estimated_grf.shape[0]*estimated_grf.shape[1], -1, 6)
+    else:
+        estimated_grf = np.zeros((num_envs, num_episodes, 6))
+        warnings.warn("Estimated GRF data not found, setting to zeros.")
+
     # extras
     if os.path.exists(os.path.join(data_root, "first_contact/first_contact.pkl")):
         with open(os.path.join(data_root, "first_contact/first_contact.pkl"), "rb") as f:
@@ -467,6 +477,7 @@ def load_processed_data(data_root, dt_policy=0.01):
 
         # extras
         "grf": grf,
+        "estimated_grf": estimated_grf,
         "first_contact": first_contact,
         "global_pos": global_pos,
         "height_data": height_map,
