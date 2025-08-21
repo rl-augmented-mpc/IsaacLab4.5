@@ -334,6 +334,8 @@ def load_processed_data(data_root, dt_policy=0.01):
     velocity = state_data[:, :, velocity_indices]
     ang_velocity = state_data[:, :, ang_velocity_indices]
 
+
+    # reference
     position_des = np.zeros_like(position)
     orientation_des = np.zeros_like(position)
 
@@ -346,6 +348,9 @@ def load_processed_data(data_root, dt_policy=0.01):
 
     orientation_des = (180/np.pi) * orientation_des
 
+
+    # extras 
+    euler = quaternion_to_euler(quat.reshape(-1, 4)).reshape(num_envs, -1, 3)
     rot = quaternion_to_rotation_matrix(quat.reshape(-1, 4)).reshape(num_envs, -1, 3, 3)
     velocity_w = (rot @ velocity.reshape(num_envs, -1, 3, 1)).reshape(num_envs, -1, 3)
     ang_velocity_w = (rot @ ang_velocity.reshape(num_envs, -1, 3, 1)).reshape(num_envs, -1, 3)
@@ -456,19 +461,25 @@ def load_processed_data(data_root, dt_policy=0.01):
         "orientation": orientation,
         "velocity": velocity,
         "ang_velocity": ang_velocity,
+        "euler_angle": euler,
+
         "desired_position": position_des,
         "desired_orientation": orientation_des,
         "desired_velocity": desired_velocity,
         "desired_ang_velocity": desired_ang_velocity,
+
         "foot_position_w": foot_position_w,
         "foot_position_b": foot_position_b,
+        
         "reference_foot_position_w": reference_foot_position_w,
         "reference_foot_position_b": reference_foot_position_b,
         "body_foot_angle": body_foot_angle,
         "foot_lateral_distance": foot_lateral_distance,
+
         "joint_pos": joint_pos,
         "joint_vel": joint_vel,
         # "joint_effort": joint_effort,
+
         "swing_phase": swing_phase,
         "foot_placement_b": foot_placement_b,
         "action": action_data,

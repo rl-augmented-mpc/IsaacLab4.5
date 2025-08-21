@@ -93,6 +93,10 @@ def reference_command(env: ManagerBasedEnv, action_name: str = "mpc_action") -> 
     action_term = env.action_manager.get_term(action_name)
     return action_term.original_command
 
+"""
+contact observations
+"""
+
 def contact_forces(
     env: ManagerBasedRLEnv, 
     sensor_cfg: SceneEntityCfg = SceneEntityCfg("sensor")

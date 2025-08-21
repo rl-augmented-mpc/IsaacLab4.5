@@ -39,8 +39,10 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         super().__post_init__()
         
         # sim time
-        self.sim.dt = 1/400
-        self.decimation = 4
+        # self.sim.dt = 1/400
+        # self.decimation = 4
+        self.sim.dt = 1/200
+        self.decimation = 2
         self.sim.render_interval = 2*self.decimation
 
         # terain
@@ -52,6 +54,7 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         
         self.viewer = ViewerCfg(
             eye=(0.0, -2.0, 0.4), 
+            # eye=(0.0, -6.0, 0.4), 
             lookat=(0.0, -0.5, 0.1),
             resolution=(1920, 1080), 
             origin_type="asset_root", 
@@ -60,8 +63,10 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
 
         # event 
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0.5, 0.5), 
-            "y": (-0.5, 0.5), 
+            # "x": (-0.5, 0.5), 
+            # "y": (-0.5, 0.5), 
+            "x": (-20.0, 20.0), 
+            "y": (-20.0, 20.0), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
@@ -71,5 +76,5 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         
         # command 
         self.commands.base_velocity.heading_command = False
-        self.commands.base_velocity.ranges.lin_vel_x = (0.2, 0.2)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)

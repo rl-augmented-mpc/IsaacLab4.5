@@ -21,20 +21,23 @@ class HECTORBlindLocomotionRewardsCfg(RewardsCfg):
         weight=1.0,
         params={
             "command_name": "base_velocity", 
-            # "std": 0.5,
-            "std": 0.1,
+            "std": 0.5,
+            # "std": 0.1,# does not work
             },
     )
-    track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, 
-        # weight=0.1, 
-        weight=0.5,
-        params={
-            "command_name": "base_velocity", 
-            # "std": 0.5,
-            "std": 0.1,
-            }, 
-    )
+
+    # track_ang_vel_z_exp = RewTerm(
+    #     func=mdp.track_ang_vel_z_world_exp, 
+    #     # weight=0.1, 
+    #     weight=0.5,
+    #     params={
+    #         "command_name": "base_velocity", 
+    #         "std": 0.5,
+    #         # "std": 0.1, # does not work
+    #         }, 
+    # )
+    track_ang_vel_z_exp = None
+    
     track_height_exp = RewTerm(
         func=hector_mdp.track_torso_height_exp, 
         weight=0.1,

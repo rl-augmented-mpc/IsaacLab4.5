@@ -40,7 +40,7 @@ class TorchMPCAction(ActionTerm):
         # create robot helper object
         body_names = self._asset.data.body_names
         foot_idx = [i for i in range(len(body_names)) if body_names[i] in ["L_sole", "R_sole"]]
-        self.robot_api = RobotCore(self._asset, self.num_envs, torch.tensor(foot_idx, device=self.device, dtype=torch.long))
+        self.robot_api = RobotCore(self._asset, torch.tensor(foot_idx, device=self.device, dtype=torch.long), self.num_envs, self.device)
 
         # resolve the joints over which the action term is applied
         self._joint_ids, self._joint_names = self._asset.find_joints(self.cfg.joint_names, preserve_order=True)
@@ -66,20 +66,21 @@ class TorchMPCAction(ActionTerm):
             dt=env.physics_dt, 
             iteration_between_mpc=self.cfg.control_iteration_between_mpc,
             decimation=int(env.step_dt//env.physics_dt),
-            # solver="osqp",
+            solver="osqp",
             # solver="qpth",
-            solver='casadi-ipm',
+            # solver='casadi',
+            # solver='cusadi',
             # solver="qpswift",
             # print_solve_time=True,
             print_solve_time=False,
             Q = torch.tensor(
-                [200, 500, 500, 500, 500, 500, 1, 1, 5, 1, 1, 5, 1], 
-                # [150, 150, 250, 100, 100, 100, 1, 1, 5, 10, 10, 1, 1], 
-                # [100, 500, 250, 100, 100, 100, 1, 20, 5, 10, 10, 1, 1], 
+                # [200, 500, 500, 500, 500, 500, 1, 1, 5, 1, 1, 5, 1], 
+                # [1000, 1000, 250, 100, 100, 500, 1, 1, 5, 10, 10, 10, 1], 
+                [150, 150, 250, 100, 100, 500, 1, 1, 5, 10, 10, 1, 1],
                 device=self.device, dtype=torch.float32), 
             R = torch.tensor(
-                [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2],
-                # [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4],
+                # [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2],
+                [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4],
                 device=self.device, dtype=torch.float32
             ),
             

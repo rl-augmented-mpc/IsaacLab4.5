@@ -86,12 +86,12 @@ params:
 
     # regularization loss
     # reg_loss_coef: 0.005
-    reg_loss_coef: 0.0075 # kind of working, but not good enough
-    # reg_loss_coef: 0.01 # did not work for randomized velocity
+    # reg_loss_coef: 0.0075 # kind of working, but not good enough
+    reg_loss_coef: 0.01 # did not work for randomized velocity
 
     # bound loss
-    bounds_loss_coef: 0.025 # try?
-    # bounds_loss_coef: 0.03 # did not work for randomized velocity
+    # bounds_loss_coef: 0.025 # try?
+    bounds_loss_coef: 0.03 # did not work for randomized velocity
     bounds_loss_action_dim: [7] # pz_max
     bounds_loss_soft_lower_bound: [0.0]
     bounds_loss_soft_upper_bound: [1.0]
