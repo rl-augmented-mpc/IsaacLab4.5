@@ -124,7 +124,7 @@ class TorchMPCActionCfg(ActionTermCfg):
 
 
     ### == construct gait in mpc dt == ###
-    control_iteration_between_mpc: int = 40
+    control_iteration_between_mpc: int = int(0.025*200)
     """Control iteration between MPC iterations."""
     nominal_mpc_dt: float = 0.04
     """Nominal MPC dt of the robot."""
