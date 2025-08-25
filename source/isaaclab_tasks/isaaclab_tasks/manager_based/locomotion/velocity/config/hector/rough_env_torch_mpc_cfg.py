@@ -46,17 +46,19 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         self.sim.render_interval = 2*self.decimation
 
         # terain
-        # self.scene.terrain = hector_mdp.SteppingStoneTerrain 
-        self.scene.terrain = hector_mdp.BaseTerrain # policy sanity check
+        self.scene.terrain = hector_mdp.BaseTerrain 
+
+        # event (disable on plane)
+        self.events.reset_terrain_type = None
+        self.curriculum.terrain_levels = None
 
         # sensor
-        # self.scene.height_scanner = None
+        self.scene.height_scanner = None
         
         self.viewer = ViewerCfg(
-            eye=(0.0, -2.0, 0.4), 
-            # eye=(0.0, -6.0, 0.4), 
-            lookat=(0.0, -0.5, 0.1),
-            resolution=(1920, 1080), 
+            eye=(-0.0, -2.0, -0.2), 
+            lookat=(0.0, -0.8, -0.2),
+            resolution=(3840, 2160), # 4K
             origin_type="asset_root", 
             asset_name="robot"
         )
@@ -73,8 +75,13 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
             # "yaw": (-math.pi, math.pi),
             "yaw": (-0.0, 0.0),
         }
+
+        # light setting
+        self.scene.sky_light.init_state.rot = (0.8660254, 0.0, 0.0, 0.5)  # yaw=60deg
         
         # command 
         self.commands.base_velocity.heading_command = False
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
+        self.commands.base_velocity.goal_vel_visualizer_cfg.markers["arrow"].scale = (0.4, 0.4, 0.4)
+        self.commands.base_velocity.current_vel_visualizer_cfg.markers["arrow"].scale = (0.4, 0.4, 0.4)

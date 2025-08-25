@@ -127,16 +127,6 @@ class FootPlacementVisualizer:
         self.markers_cfg = VisualizationMarkersCfg(
             prim_path=prim_path,
             markers={
-                # "left_fps":
-                # sim_utils.UsdFileCfg(
-                # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/props/left_foot_print.usd",
-                # scale=(1.0, 1.0, 1.0),
-                # ), 
-                # "right_fps":
-                # sim_utils.UsdFileCfg(
-                # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/props/right_foot_print.usd",
-                # scale=(1.0, 1.0, 1.0),
-                # ), 
                 "left_fps": sim_utils.SphereCfg(
                 radius=0.02,
                 visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.17212, 0.96911)),
@@ -148,20 +138,33 @@ class FootPlacementVisualizer:
             }
         )
         self.marker = VisualizationMarkers(self.markers_cfg)
-    
-    def visualize(self, fps:torch.Tensor, orientation:torch.Tensor):
+
+    def visualize(self, fps:torch.Tensor):
         """_summary_
 
         Args:
-            reibert_fps (torch.Tensor): (num_envs, 2, 3)
-            augmented_fps (torch.Tensor): (num_envs, 2, 3)
+            fps (torch.Tensor): (num_envs, 2, 3)
         """
         positions = fps.clone()
         num_envs = positions.shape[0]
         indices = torch.arange(self.marker.num_prototypes, device=positions.device).reshape(1, -1).repeat(num_envs, 1) # (num_envs, 4)
         positions = positions.reshape(-1, 3) # (num_envs*2, 3)
         indices = indices.reshape(-1)
-        self.marker.visualize(translations=positions, orientations=orientation, marker_indices=indices)
+        self.marker.visualize(translations=positions, marker_indices=indices)
+
+    # def visualize(self, fps:torch.Tensor, orientation:torch.Tensor):
+    #     """_summary_
+
+    #     Args:
+    #         reibert_fps (torch.Tensor): (num_envs, 2, 3)
+    #         augmented_fps (torch.Tensor): (num_envs, 2, 3)
+    #     """
+    #     positions = fps.clone()
+    #     num_envs = positions.shape[0]
+    #     indices = torch.arange(self.marker.num_prototypes, device=positions.device).reshape(1, -1).repeat(num_envs, 1) # (num_envs, 4)
+    #     positions = positions.reshape(-1, 3) # (num_envs*2, 3)
+    #     indices = indices.reshape(-1)
+    #     self.marker.visualize(translations=positions, orientations=orientation, marker_indices=indices)
 
 class SlackedFootPlacementVisualizer:
     def __init__(self, prim_path):

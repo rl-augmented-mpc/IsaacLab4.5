@@ -53,8 +53,11 @@ params:
     name: manager_sac_rl_games_stepping_stone_mlp_blind
     # full_experiment_name: 2025-08-09_18-52-14 # 2nd best
     # full_experiment_name: 2025-08-11_23-29-02 # best
-    full_experiment_name: 2025-08-17_23-17-43 # random velocity
+    # full_experiment_name: 2025-08-17_23-17-43 # random velocity
     # full_experiment_name: 2025-08-19_08-00-00 # random velocity tuned
+    full_experiment_name: 2025-08-20_22-00-00 # random velocity, terrain curriculum -> looks ok? 
+    # full_experiment_name: 2025-08-21_00-39-08 # 0.5 velocity, terrain curriculum -> looks ok?
+    # full_experiment_name: 2025-08-22_01-50-28
     env_name: rlgpu
     device: 'cuda:0'
     device_name: 'cuda:0'

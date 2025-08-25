@@ -34,6 +34,7 @@ HECTOR_CFG = ArticulationCfg(
         # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/hector_flat_foot_bounding_cube.usd", # flat foot
         # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/hector_flat_foot_small_bounding_cube.usd", # flat foot without cover
         usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/hector_flat_foot_small_bounding_cube_toe_sensor.usd",
+        # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/hector_flat_foot_small_bounding_cube_toe_sensor_convex_hull.usd",
         # usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robot/Hector/hector_original_foot.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(

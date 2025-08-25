@@ -15,7 +15,7 @@ class HECTORCommandsCfg:
     """Command specifications for the MDP."""
 
     base_velocity = mdp.UniformVelocityCommandCfg( # type: ignore
-        class_type=hector_mdp.DiscreteVelocityCommand, # discrete sampling
+        # class_type=hector_mdp.DiscreteVelocityCommand, # discrete sampling
         asset_name="robot",
         resampling_time_range=(10.0, 10.0),
         rel_standing_envs=0.0,

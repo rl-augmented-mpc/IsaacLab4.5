@@ -115,7 +115,7 @@ class TorchMPCActionCfg(ActionTermCfg):
     """Name of the command to be used for the action term."""
     nominal_height: float = 0.55
     """Reference height of the robot."""
-    nominal_swing_height : float = 0.1
+    nominal_swing_height : float = 0.07
     """Nominal swing height of the robot."""
     nominal_stepping_frequency: float = 1.0
     """Nominal stepping frequency of the robot."""
@@ -124,11 +124,11 @@ class TorchMPCActionCfg(ActionTermCfg):
 
 
     ### == construct gait in mpc dt == ###
-    control_iteration_between_mpc: int = int(0.025*200)
+    control_iteration_between_mpc: int = int(0.04*200)
     """Control iteration between MPC iterations."""
     nominal_mpc_dt: float = 0.04
     """Nominal MPC dt of the robot."""
-    double_support_duration: float = 0.05
+    double_support_duration: float = 0.0
     """Double support duration of the robot."""
     single_support_duration: float = 0.2
     """Single support duration of the robot."""
