@@ -77,7 +77,8 @@ class HECTORFlatEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            "yaw": (-math.pi, math.pi),
+            # "yaw": (-math.pi, math.pi),
+            "yaw": (0, 0),
         }
 
         # light setting
