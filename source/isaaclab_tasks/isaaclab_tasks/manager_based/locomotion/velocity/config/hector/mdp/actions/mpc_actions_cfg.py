@@ -43,21 +43,21 @@ class BlindLocomotionMPCActionCfg(ActionTermCfg):
     control_iteration_between_mpc: int = 10
     """Control iteration between MPC iterations."""
 
-    # # -- horizon is single walking step
-    # nominal_mpc_dt: float = 0.05
-    # """Nominal MPC dt of the robot."""
-    # double_support_duration: int = 1 # 0.05s double support
-    # """Double support duration of the robot."""
-    # single_support_duration: int = 4 # 0.2s single support
-    # """Single support duration of the robot."""
-
-    # -- horizon is half of walking step (one foot swing)
-    nominal_mpc_dt: float = 0.025
+    # -- horizon is entire walking step
+    nominal_mpc_dt: float = 0.04
     """Nominal MPC dt of the robot."""
-    double_support_duration: int = 2 # 0.05s double support
+    double_support_duration: int = 0 # 0.05s double support
     """Double support duration of the robot."""
-    single_support_duration: int = 8 # 0.2s single support
+    single_support_duration: int = 5 # 0.2s single support
     """Single support duration of the robot."""
+
+    # # -- horizon is half of walking step (one foot swing)
+    # nominal_mpc_dt: float = 0.025
+    # """Nominal MPC dt of the robot."""
+    # double_support_duration: int = 2 # 0.05s double support
+    # """Double support duration of the robot."""
+    # single_support_duration: int = 8 # 0.2s single support
+    # """Single support duration of the robot."""
 
     nominal_cp1_coef: float = 1/3
     """Nominal cp1 coefficient of the robot."""
@@ -107,6 +107,7 @@ PyTorch version of MPC controller
 class TorchMPCActionCfg(ActionTermCfg):
     class_type: type[ActionTerm] = mpc_actions_torch.TorchMPCAction
 
+    # generic controller params
     joint_names: list[str] = MISSING # type: ignore
     """List of joint names or regex expressions that the action will be mapped to."""
     action_range: tuple[float, float] | tuple[tuple[float, ...], tuple[float, ...]] = (-1.0, 1.0)
@@ -115,25 +116,11 @@ class TorchMPCActionCfg(ActionTermCfg):
     """Name of the command to be used for the action term."""
     nominal_height: float = 0.55
     """Reference height of the robot."""
-    nominal_swing_height : float = 0.07
+    # nominal_swing_height : float = 0.07
+    nominal_swing_height : float = 0.1
     """Nominal swing height of the robot."""
     nominal_stepping_frequency: float = 1.0
     """Nominal stepping frequency of the robot."""
-    horizon_length: int = 10
-    """Horizon length of the robot."""
-
-
-    ### == construct gait in mpc dt == ###
-    control_iteration_between_mpc: int = int(0.04*200)
-    """Control iteration between MPC iterations."""
-    nominal_mpc_dt: float = 0.04
-    """Nominal MPC dt of the robot."""
-    double_support_duration: float = 0.0
-    """Double support duration of the robot."""
-    single_support_duration: float = 0.2
-    """Single support duration of the robot."""
-
-
     nominal_cp1_coef: float = 1/3
     """Nominal cp1 coefficient of the robot."""
     nominal_cp2_coef: float = 2/3
@@ -142,3 +129,26 @@ class TorchMPCActionCfg(ActionTermCfg):
     """Foot placement planner to be used. Can be either "LIP" or "Raibert"."""
     friction_cone_coef: float = 1.0
     """Friction cone coefficient of the robot."""
+    gait_id: int = 2
+    """Gait ID of the robot."""
+
+
+    # MPC specific params
+    horizon_length: int = 10
+    """Horizon length of the robot."""
+    control_iteration_between_mpc: int = int(0.04*200)
+    """Control iteration between MPC iterations. How many control steps exist within mpc step"""
+    nominal_mpc_dt: float = 0.04
+    """Nominal MPC dt of the robot."""
+    double_support_duration: float = 0.0
+    """Double support duration of the robot."""
+    single_support_duration: float = 0.2
+    """Single support duration of the robot."""
+    Q: list[float] = [150, 150, 250, 100, 100, 800, 1, 1, 10, 10, 10, 1, 1]
+    # Q: list[float] = [150, 150, 250, 100, 100, 100, 1, 1, 10, 10, 10, 1, 1]
+    """State cost weights."""
+    R: list[float] = [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4]
+
+    # solver
+    solver_name: Literal["osqp", "qpth", "casadi", "cusadi"] = "cusadi"
+    print_solve_time: bool = False

@@ -66,27 +66,16 @@ class TorchMPCAction(ActionTerm):
             dt=env.physics_dt, 
             iteration_between_mpc=self.cfg.control_iteration_between_mpc,
             decimation=int(env.step_dt//env.physics_dt),
-            # solver="osqp",
-            # solver="qpth",
-            # solver='casadi',
-            solver='cusadi',
-            # solver="qpswift",
-            # print_solve_time=True,
-            print_solve_time=False,
+            solver=cfg.solver_name,
+            print_solve_time=cfg.print_solve_time,
             Q = torch.tensor(
-                # [200, 500, 500, 500, 500, 500, 1, 1, 5, 1, 1, 5, 1], 
-                # [1000, 1000, 250, 100, 100, 500, 1, 1, 5, 10, 10, 10, 1], 
-                [150, 150, 250, 100, 100, 800, 1, 1, 10, 10, 10, 1, 1],
-                device=self.device, dtype=torch.float32), 
+                cfg.Q, device=self.device, dtype=torch.float32), 
             R = torch.tensor(
-                # [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2],
-                [1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4],
-                device=self.device, dtype=torch.float32
+                cfg.R, device=self.device, dtype=torch.float32
             ),
             
         )
-        gait_id = 2
-        self.mpc_controller = MPCController(robot_conf, mpc_conf, self.num_envs, self.device, gait_id)
+        self.mpc_controller = MPCController(robot_conf, mpc_conf, self.num_envs, self.device, cfg.gait_id)
         
         # create tensors to store mpc state
         # floating base state
