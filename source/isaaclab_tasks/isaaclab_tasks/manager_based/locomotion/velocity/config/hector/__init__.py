@@ -12,8 +12,11 @@ from . import agents
 
 
 BASE_CLASS = [
-    "HECTOR-ManagerBased-RL",
-    "HECTOR-ManagerBased-RL-PLAY",
+
+    "HECTOR-ManagerBased-RL-Flat-Blind",
+
+    "HECTOR-ManagerBased-RL-PPO-Blind",
+    "HECTOR-ManagerBased-RL-PPO-Blind-PLAY",
     
     "HECTOR-ManagerBased-RL-SAC-Rough-Blind",
     "HECTOR-ManagerBased-RL-SAC-Rough-Blind-PLAY",
@@ -31,6 +34,13 @@ BASE_CLASS = [
 ]
 
 ARGS = [
+
+    # SAC flat blind env
+    {
+        "env_cfg_entry_point": f"{__name__}.rough_env_sac_cfg:HECTORFlatEnvBlindLocomotionSACCfg",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_st_blind.yaml",
+    },
+
     # PPO env
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_cfg:HECTORRoughEnvCfg",

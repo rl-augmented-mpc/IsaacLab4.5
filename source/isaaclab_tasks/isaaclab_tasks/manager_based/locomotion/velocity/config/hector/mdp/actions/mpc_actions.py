@@ -235,12 +235,9 @@ class BlindLocomotionMPCAction(ActionTerm):
         fp[:, 1, :] = (world_to_base_rot @ fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
         fp[:, :, 2] += 0.01 # better visibility
         fp[:, :, 2] = fp[:, :, 2] * (1-self.gait_contact) - 100 * self.gait_contact # hide foot placement of stance foot
-        orientation = self.robot_api.root_quat_w[:, None, :].repeat(1, 2, 1).view(-1, 4)
-        self.foot_placement_visualizer.visualize(fp, orientation)
 
         # visualize foot sole positions
         foot_pos = self.robot_api.foot_pos
-        self.foot_position_visualizer.visualize(foot_pos)
 
         # visullize reference trajectory
         position_traj = self.position_trajectory.clone()
@@ -250,6 +247,9 @@ class BlindLocomotionMPCAction(ActionTerm):
             position_traj[:, i, :] = (world_to_base_rot @ position_traj[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
             foot_traj[:, i, :] = (world_to_base_rot @ foot_traj[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
 
+
+        self.foot_placement_visualizer.visualize(fp)
+        self.foot_position_visualizer.visualize(foot_pos)
         self.foot_trajectory_visualizer.visualize(foot_traj)
         
     # ** physics loop **
@@ -388,23 +388,35 @@ class BlindLocomotionMPCAction(ActionTerm):
         # reset command
         self._env.command_manager._terms[self.cfg.command_name]._resample_command(env_ids) # type: ignore
         self.original_command[env_ids, :] = self._env.command_manager.get_command(self.cfg.command_name)[env_ids, :]
-        
+
         # reset mpc controller
         self.mpc_counter[env_ids] = 0
-        self._get_state()
         for i in env_ids.cpu().numpy(): # type: ignore
             self.mpc_controller[i].reset()
             self.mpc_controller[i].update_gait_parameter(
                 np.array([self.cfg.double_support_duration, self.cfg.double_support_duration]), 
                 np.array([self.cfg.single_support_duration, self.cfg.single_support_duration]),)
-            self.mpc_controller[i].switch_fsm("passive")
-            self.mpc_controller[i].update_state(self.state[i].cpu().numpy())
-            self.mpc_controller[i].run()
-        self._get_mpc_state()
-        
-        # switch to walking mode again
+        # # switch to walking mode again
         for i in range(self.num_envs):
             self.mpc_controller[i].switch_fsm("walking")
+
+        
+        # # reset mpc controller
+        # self.mpc_counter[env_ids] = 0
+        # self._get_state()
+        # for i in env_ids.cpu().numpy(): # type: ignore
+        #     self.mpc_controller[i].reset()
+        #     self.mpc_controller[i].update_gait_parameter(
+        #         np.array([self.cfg.double_support_duration, self.cfg.double_support_duration]), 
+        #         np.array([self.cfg.single_support_duration, self.cfg.single_support_duration]),)
+        #     self.mpc_controller[i].switch_fsm("passive")
+        #     self.mpc_controller[i].update_state(self.state[i].cpu().numpy())
+        #     self.mpc_controller[i].run()
+        # self._get_mpc_state()
+        
+        # # # switch to walking mode again
+        # for i in range(self.num_envs):
+        #     self.mpc_controller[i].switch_fsm("walking")
 
 
 
@@ -808,7 +820,7 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         fp[:, 1, :] = (world_to_base_rot @ fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
         fp[:, :, 2] = fp[:, :, 2] * (1-self.gait_contact) - 100 * self.gait_contact # hide foot placement of stance foot
         orientation = self.robot_api.root_quat_w[:, None, :].repeat(1, 2, 1).view(-1, 4)
-        self.foot_placement_visualizer.visualize(fp, orientation)
+        self.foot_placement_visualizer.visualize(fp)
 
         # visualize foot position
         foot_pos = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)

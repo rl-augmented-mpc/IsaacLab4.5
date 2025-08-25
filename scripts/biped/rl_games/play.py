@@ -219,17 +219,15 @@ def main():
         with torch.inference_mode():
             if args_cli.use_rl:
                 # print("obs: \n", obs)
+                # print("obs: \n", obs)
                 action = agent.get_action(obs, is_deterministic=agent.is_deterministic)
+                # print("action: \n", action)
                 # transformed_mean, mean, sigma = agent.get_action_distribution_params(obs) # type: ignore
                 # print("tanh(mean):\n", transformed_mean[:, 7])
                 # print("mean:\n", mean[:, 7])
                 # print("sigma:\n", sigma)
             else:
                 action = torch.zeros(env.unwrapped.action_space.shape, dtype=torch.float32, device=args_cli.device) # type: ignore
-                # if args_cli.perceptive:
-                #     action[:, 1] = -1.0 # perceptive policy
-                # else:
-                #     action[:, 7] = -1.0 # blind policy
             obs, _, dones, _ = env.step(action)
             obs = agent.obs_to_torch(obs)
             
@@ -266,6 +264,7 @@ def main():
                 if agent.is_rnn and agent.states is not None: # type: ignore
                     for s in agent.states:
                         s[:, dones, :] = 0.0
+                        
         
         if args_cli.log:
             item_dict = {
