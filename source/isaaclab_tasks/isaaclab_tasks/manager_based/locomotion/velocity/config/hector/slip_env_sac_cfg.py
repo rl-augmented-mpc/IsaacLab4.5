@@ -102,33 +102,35 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
         # command
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
+        self.commands.base_velocity.resampling_time_range = (20.0, 20.0)
+        self.commands.base_velocity.debug_vis = False
 
         # events
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0.3, 0.3), 
+            "x": (-0.25, 0.25), 
+            # "x": (-0.3-0.25, 0.3-0.25), 
             "y": (-0.3, 0.3),
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            "yaw": (-math.pi, math.pi),
+              
             # "yaw": (-0, 0),
+            "yaw": (-math.pi/6, math.pi/6),
         }
         self.events.reset_terrain_type = None
 
 
         # light setting
-        self.scene.sky_light.init_state.rot = (0.9238795, 0.0, 0.0, -0.3826834)
+        self.scene.sky_light.init_state.rot = (0.8660254, 0.0, 0.0, 0.5)  # yaw=60deg
 
-        # rendering optimization 
-        RECORDING = False
+        # rendering optimization  
+        RECORDING = True
 
         if RECORDING:
             # quality rendering
             self.viewer = ViewerCfg(
-                # eye=(-0.0, -1.5, 0.2), 
-                # lookat=(0.0, -0.8, 0.0),
-                eye=(-0.0, -1.5, -0.15), 
-                lookat=(0.0, -0.8, -0.15),
+                eye=(-0.0, -1.4, -0.2), 
+                lookat=(0.0, -0.8, -0.2),
                 resolution=(3840, 2160), # 4K
                 origin_type="asset_root", 
                 asset_name="robot"

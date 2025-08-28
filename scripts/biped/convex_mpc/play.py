@@ -18,6 +18,7 @@ parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
 parser.add_argument("--video_length", type=int, default=1000, help="Length of the recorded video (in steps).")
 parser.add_argument("--video_interval", type=int, default=2000, help="Interval between video recordings (in steps).")
+parser.add_argument("--video_speed", type=float, default=1.0, help="Speed of the recorded video.")
 parser.add_argument("--log", action="store_true", default=False, help="Log the environment.")
 parser.add_argument("--log_extra", action="store_true", default=False, help="Log extra information.")
 parser.add_argument("--tag", type=str, default=None, help="Tag for logging.")
@@ -59,9 +60,9 @@ def main():
         env_cfg.episode_length_s = args_cli.episode_length
     # setup gym style environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
-    env.metadata["render_fps"] = int(100/2)
+    env.metadata["render_fps"] = int((1/env.unwrapped.step_dt) * args_cli.video_speed)  # type: ignore
     
-    log_dir = os.path.join(os.path.dirname(__file__), "logs", args_cli.task, datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+    log_dir = os.path.join("logs", "mpc", args_cli.task, datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
     
     # for logging
     if args_cli.tag:
