@@ -115,6 +115,13 @@ def main():
             reward_items = ["track_lin_vel_xy_exp"] # add reward term you want to log here
             reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
             reward = env.unwrapped.reward_manager._step_reward[:, reward_index] # type: ignore
+
+        # get termination terms
+        term_dones = env.unwrapped.termination_manager._term_dones # type: ignore
+        terrain_out_of_bounds = term_dones.get("terrain_out_of_bounds", None)  # type: ignore
+        bad_orientation = term_dones.get("bad_orientation", None)
+        base_too_low = term_dones.get("base_too_low", None)  # type: ignore
+        time_out = term_dones.get("time_out", None)  # type: ignore
         
         if args_cli.log:
             item_dict = {
@@ -137,7 +144,15 @@ def main():
         for i, done_flag in enumerate(dones_np):
             if episode_counter[i] < max_trials: # only allow logging when episode counter is less than max trials to avoid memory overflow
                 if done_flag == 1:
-                    print(f"[INFO] Env {i}: Episode {episode_counter[i]} completed with episode length {episode_length_log[i]}.")
+                    # print(f"[INFO] Env {i}: Episode {episode_counter[i]} completed with episode length {episode_length_log[i]}.")
+                    if terrain_out_of_bounds[i]:
+                        print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Terrain out of bounds with length {episode_length_log[i]}")
+                    if bad_orientation[i]:
+                        print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Bad orientation with length {episode_length_log[i]}")
+                    if base_too_low[i]:
+                        print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Base too low with length {episode_length_log[i]}")
+                    if time_out[i]:
+                        print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Time out")
                     if args_cli.log:
                         logger.save_to_buffer(trial_id=episode_counter[i], env_idx=i)
                         logger.save_episode_length_to_buffer(trial_id=episode_counter[i], env_idx=i, episode_length=episode_length_log[i])

@@ -145,8 +145,8 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         
         # command 
         self.commands.base_velocity.heading_command = False
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5) # fixed vel
-        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.6) # uniform samplilng
+        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5) # fixed vel
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.6) # uniform samplilng
         self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
         self.commands.base_velocity.goal_vel_visualizer_cfg.markers["arrow"].scale = (0.4, 0.4, 0.4)
         self.commands.base_velocity.current_vel_visualizer_cfg.markers["arrow"].scale = (0.4, 0.4, 0.4)
@@ -176,35 +176,27 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         # self.events.reset_terrain_type = None
         # self.curriculum.terrain_levels = None
 
-        # self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
+        self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
         # self.events.reset_base.params["multiplier"] = 2
-        # self.events.reset_base.params["pose_range"] = {
-        #     "x": (-0.3, 0.3), 
-        #     "y": (-0.3, 0.3), 
-        #     "z": (0.0, 0.0),
-        #     "roll": (0.0, 0.0),
-        #     "pitch": (0.0, 0.0),
-        #     "yaw": (-math.pi, math.pi),
-        # }
-
-        # spawn robot close to stair
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0., 0.3), 
-            "y": (-0., 0.3), 
+            "x": (-0.3, 0.3), 
+            "y": (-0.3, 0.3), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
             "yaw": (-math.pi, math.pi),
         }
-        self.events.reset_base.params["pose_range"] = {
-            # "x": (0.635, 0.635), 
-            "x": (0.68, 0.68), 
-            "y": (0.3, 0.3),  
-            "z": (0.0, 0.0),
-            "roll": (0.0, 0.0),
-            "pitch": (0.0, 0.0),
-            "yaw": (0.0, 0.0),
-        }
+
+        # # spawn robot close to stair
+        # self.events.reset_base.params["pose_range"] = {
+        #     # "x": (0.635, 0.635), 
+        #     "x": (0.68, 0.68), 
+        #     "y": (-0.3, 0.3),  
+        #     "z": (0.0, 0.0),
+        #     "roll": (0.0, 0.0),
+        #     "pitch": (0.0, 0.0),
+        #     "yaw": (0.0, 0.0),
+        # }
 
         # command
         # self.commands.base_velocity.ranges.lin_vel_x = (0.35, 0.55)

@@ -175,6 +175,30 @@ class HECTORBlindLocomotionSceneCfg(InteractiveSceneCfg):
         ),
     )
 
+
+    # tiled_d455 = TiledCameraCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/base/front_cam",
+    #     update_period=1/30,
+    #     height=480,
+    #     width=640,
+    #     data_types=["distance_to_camera"],
+    #     spawn=sim_utils.PinholeCameraCfg(
+    #         focal_length=1.93, 
+    #         focus_distance=0.6, 
+    #         horizontal_aperture=3.896, 
+    #         vertical_aperture=2.453, 
+    #         clipping_range=(0.01, 20.0)),
+    #     offset=TiledCameraCfg.OffsetCfg(
+    #         pos=(0.12, 0.0, 0.2), 
+    #         # rot=(0.5609855,0.4304593, -0.4304593, -0.5609855), # pitch=15deg
+    #         # rot=(0.5963678, 0.3799282, -0.3799282, -0.5963678), # pitch=25deg
+    #         # rot=(0.6123724, 0.3535534, -0.3535534, -0.6123724), # pitch=30deg
+    #         # rot=(0.6532815, 0.2705981, -0.2705981, -0.6532815), # pitch=45deg
+    #         # rot=(0.6830127, 0.1830127, -0.1830127, -0.6830127), # pitch=60deg
+    #         rot=(0.6963642, 0.1227878, -0.1227878, -0.6963642), # pitch=70deg
+    #         convention="opengl"),
+    # )
+
 @configclass
 class HECTORPerceptiveLocomotionSceneCfg(InteractiveSceneCfg):
     """Configuration for the terrain scene with a legged robot."""

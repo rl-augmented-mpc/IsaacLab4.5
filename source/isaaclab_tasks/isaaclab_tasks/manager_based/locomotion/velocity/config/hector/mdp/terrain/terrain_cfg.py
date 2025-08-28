@@ -223,11 +223,12 @@ SteppingStoneTerrain = TerrainImporterCfg(
     terrain_type="generator",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
         size=(10.0, 10.0), # size of sub-terrain
-        border_width=0.0,
-        num_rows=10,
-        num_cols=20,
-        # num_rows=1,
+        border_width=5.0,
+        border_height=1.0,
+        # num_rows=10,
         # num_cols=20,
+        num_rows=1,
+        num_cols=20,
         horizontal_scale=0.1,
         vertical_scale=0.005,
         slope_threshold=0.75,
@@ -267,17 +268,19 @@ SteppingStoneTerrain = TerrainImporterCfg(
             # ), 
 
             "random_grid_narrow": terrain_gen.MeshRandomBlockTerrainCfg(
-            proportion=0.25, grid_width=0.25, 
+            proportion=0.25, grid_width=0.2, 
             # grid_height_range=(0.06, 0.06), 
             # grid_height_range=(0.08, 0.08), 
             grid_height_range=(0.07, 0.07), 
-            platform_width=2.0
+            uniform_noise_range=(0.7, 1.0),
+            platform_width=2.0, 
             ),
 
             "random_grid": terrain_gen.MeshRandomBlockTerrainCfg(
             proportion=0.25, grid_width=0.3, 
             # grid_height_range=(0.06, 0.06), 
             grid_height_range=(0.07, 0.07), 
+            uniform_noise_range=(0.7, 1.0),
             platform_width=2.1
             ),
 
@@ -285,6 +288,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
             proportion=0.25, grid_width=0.4, 
             # grid_height_range=(0.06, 0.06), 
             grid_height_range=(0.07, 0.07), 
+            uniform_noise_range=(0.7, 1.0),
             platform_width=2.0
             ),
 
@@ -301,8 +305,8 @@ SteppingStoneTerrain = TerrainImporterCfg(
 
             "pyramid_stairs_inv_1": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
             proportion=0.3,
-            step_height_range=(0.08, 0.11),
-            # step_height_range=(0.11, 0.11),
+            # step_height_range=(0.08, 0.11),
+            step_height_range=(0.11, 0.11),
             # step_height_range=(0.1, 0.1),
             step_width=0.3,
             platform_width=2.0,
@@ -312,8 +316,8 @@ SteppingStoneTerrain = TerrainImporterCfg(
 
             "pyramid_stairs_inv_2": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
             proportion=0.3,
-             step_height_range=(0.08, 0.11),
-            # step_height_range=(0.11, 0.11),
+            #  step_height_range=(0.08, 0.11),
+            step_height_range=(0.11, 0.11),
             # step_height_range=(0.1, 0.1),
             step_width=0.25,
             platform_width=2.0,
@@ -325,9 +329,9 @@ SteppingStoneTerrain = TerrainImporterCfg(
             profile_mode="random",
             proportion=0.3, 
             num_box=50, # one side
-            box_height_range=(0.08, 0.11),
+            # box_height_range=(0.08, 0.11),
             # box_height_range=(0.1, 0.1), 
-            # box_height_range=(0.11, 0.11), 
+            box_height_range=(0.11, 0.11), 
             platform_width=10.0, 
             platform_length_range_start=(0.2, 0.25), platform_length_range_end=(0.2, 0.25),
             platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),

@@ -3,11 +3,14 @@ from .actions.mpc_actions_cfg import (
     BlindLocomotionMPCActionCfg2, 
     BlindLocomotionMPCActionCfg3, 
     BlindLocomotionMPCActionCfg4, 
+
     PerceptiveLocomotionMPCActionCfg,
     PerceptiveLocomotionMPCActionCfg2, 
     PerceptiveLocomotionMPCActionCfg3, 
     PerceptiveLocomotionMPCActionCfg4, 
-    BlindLocomotionTorchMPCActionCfg, 
+
+    BlindLocomotionGPUMPCActionCfg, 
+    BlindLocomotionGPUMPCActionCfg2, 
 )
 from .terrain.terrain_cfg import (
     BaseTerrain,

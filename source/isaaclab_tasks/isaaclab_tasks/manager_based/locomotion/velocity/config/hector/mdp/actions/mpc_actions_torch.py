@@ -27,9 +27,9 @@ from isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp.marker i
     )
 
 
-class BlindLocomotionTorchMPCAction(ActionTerm):
+class BlindLocomotionGPUMPCAction(ActionTerm):
 
-    cfg: mpc_actions_cfg.BlindLocomotionTorchMPCActionCfg
+    cfg: mpc_actions_cfg.BlindLocomotionGPUMPCActionCfg
     """The configuration of the action term."""
     _asset: Articulation
     """The articulation asset on which the action term is applied."""
@@ -38,7 +38,7 @@ class BlindLocomotionTorchMPCAction(ActionTerm):
     _clip: torch.Tensor
     """The clip applied to the input action."""
     
-    def __init__(self, cfg: mpc_actions_cfg.BlindLocomotionTorchMPCActionCfg, env: ManagerBasedEnv):
+    def __init__(self, cfg: mpc_actions_cfg.BlindLocomotionGPUMPCActionCfg, env: ManagerBasedEnv):
         # initialize the action term
         super().__init__(cfg, env)
         # create robot helper object
@@ -65,6 +65,7 @@ class BlindLocomotionTorchMPCAction(ActionTerm):
             ssp_durations = self.cfg.single_support_duration,
             dsp_durations = self.cfg.double_support_duration,
             swing_height = self.cfg.nominal_swing_height,
+            swing_reference_frame=self.cfg.swing_reference_frame,
         )
         mpc_conf = MPCConf(
             dt=env.physics_dt,
@@ -72,6 +73,7 @@ class BlindLocomotionTorchMPCAction(ActionTerm):
             decimation=int(env.step_dt//env.physics_dt),
             solver=cfg.solver_name,
             print_solve_time=cfg.print_solve_time,
+            robot=cfg.robot,
             Q = torch.tensor(
                 cfg.Q, device=self.device, dtype=torch.float32), 
             R = torch.tensor(
@@ -151,8 +153,11 @@ class BlindLocomotionTorchMPCAction(ActionTerm):
 
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
-        self._raw_actions[:] = actions
-        # self._raw_actions[:, 0] = 2*torch.rand(self.num_envs, device=self.device) - 1 # randomize gait frequency
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
@@ -361,9 +366,9 @@ class BlindLocomotionTorchMPCAction(ActionTerm):
         self.root_yaw = self.robot_api.root_yaw_local
         self.root_pos = self.robot_api.root_pos_local
 
-        # # define height of floating base as torso - stance foot distance 
-        # fz = torch.abs(self.foot_pos_b.reshape(-1, 2, 3)[:, :, 2] * self.gait_contact) # (num_envs, 2)
-        # self.root_pos[:, 2] = fz.max(dim=1).values
+        # define height of floating base as torso - stance foot distance 
+        fz = torch.abs(self.foot_pos_b.reshape(-1, 2, 3)[:, :, 2] * self.gait_contact) # (num_envs, 2)
+        self.root_pos[:, 2] = fz.max(dim=1).values
         
         self.root_lin_vel_b = self.robot_api.root_lin_vel_b
         self.root_ang_vel_b = self.robot_api.root_ang_vel_b
@@ -431,3 +436,72 @@ class BlindLocomotionTorchMPCAction(ActionTerm):
         # reset controller
         self.mpc_controller.reset(env_ids) # type: ignore
         self.mpc_counter[env_ids] = 0
+
+
+class BLindLocomotionGPUMPCAction2(BlindLocomotionGPUMPCAction):
+    """
+    This is a subclass of BlindLocomotionGPUMPCAction that uses the new action space.
+    """
+    
+    """
+    Properties.
+    """
+
+    @property
+    def action_dim(self) -> int:
+        """
+        mpc control parameters:
+        - centroidal acceleration (R^6)
+        - mpc sampling time (R^1)
+        - swing foot height (R^1)
+        - swing trajectory control points (R^1)
+        """
+        return 9
+    
+    """
+    Operations.
+    """
+
+    def process_actions(self, actions: torch.Tensor):
+        # store the raw actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
+        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
+        
+        # split processed actions into individual control parameters
+        centroidal_lin_acc = self._processed_actions[:, :3]
+        centroidal_ang_acc = self._processed_actions[:, 3:6]
+        centroidal_lin_acc = torch.bmm(self.root_rot_mat, centroidal_lin_acc.unsqueeze(-1)).squeeze(-1)
+        centroidal_ang_acc = torch.bmm(self.root_rot_mat, centroidal_ang_acc.unsqueeze(-1)).squeeze(-1)
+
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, -3])
+        swing_foot_height = self._processed_actions[:, 1]
+        trajectory_control_points = self._processed_actions[:, 2]
+        
+        # form actual control parameters (nominal value + residual)
+        swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
+        cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
+        cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
+        
+        # update reference
+        self._get_mpc_state()
+        self._get_reference_velocity()
+        # self._get_reference_height()
+        # self._get_footplacement_height()
+        
+        self.mpc_controller.update_mpc_sampling_time(sampling_time)
+        self.mpc_controller.set_srbd_accel(centroidal_lin_acc, centroidal_ang_acc)
+        self.mpc_controller.set_swing_parameters(swing_foot_height, cp1, cp2)
+        self.mpc_controller.set_command(
+            self.command, 
+            self.reference_height,
+        )
+        
+        self._get_state()
+        self.mpc_controller.update_state(self.state)
+        self.mpc_controller.run_mpc()
+        
+        self.visualize_marker()

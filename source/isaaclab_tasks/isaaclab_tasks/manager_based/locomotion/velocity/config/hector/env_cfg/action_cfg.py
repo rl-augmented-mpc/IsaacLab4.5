@@ -86,14 +86,24 @@ class HECTORPerceptiveLocomotionActionsCfg:
     # )
 
 @configclass
-class HECTORTorchBlindLocomotionActionsCfg:
-    mpc_action = hector_mdp.BlindLocomotionTorchMPCActionCfg(
+class HECTORGPUBlindLocomotionActionsCfg:
+    # mpc_action = hector_mdp.BlindLocomotionGPUMPCActionCfg(
+    #     asset_name="robot", 
+    #     joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
+    #     action_range = (
+    #         (-0.25, -0.15, -0.66), 
+    #         (0.25, 0.15, 0.66)
+    #     )
+    # )
+
+    mpc_action = hector_mdp.BlindLocomotionGPUMPCActionCfg2(
         asset_name="robot", 
         joint_names=['L_hip_joint','L_hip2_joint','L_thigh_joint','L_calf_joint','L_toe_joint', 'R_hip_joint','R_hip2_joint','R_thigh_joint','R_calf_joint','R_toe_joint'],
         action_range = (
-            (-0.25, -0.15, -0.66), 
-            (0.25, 0.15, 0.66)
-        )
+            (-2.0, -2.0, -4.0,    -1.0, -1.0, -1.0,    -0.25, -0.15, -0.66), 
+            (2.0, 2.0, 4.0,        1.0, 1.0, 1.0,       0.25, 0.15, 0.66)
+        ), 
+        negative_action_clip_idx=[7],
     )
     
 @configclass
