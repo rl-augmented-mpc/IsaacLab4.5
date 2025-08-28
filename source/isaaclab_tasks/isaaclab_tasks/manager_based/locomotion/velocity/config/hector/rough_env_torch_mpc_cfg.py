@@ -24,7 +24,7 @@ from .env_cfg import (
 
 @configclass
 class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
-    scene: HECTORBlindLocomotionSceneCfg = HECTORBlindLocomotionSceneCfg(num_envs=4096, env_spacing=2.5)
+    scene: HECTORBlindLocomotionSceneCfg = HECTORBlindLocomotionSceneCfg(num_envs=4096, env_spacing=1.5)
     observations: HECTORTorchBlindLocomotionObservationsCfg = HECTORTorchBlindLocomotionObservationsCfg()
     rewards: HECTORTorchBlindLocomotionRewardsCfg = HECTORTorchBlindLocomotionRewardsCfg()
     actions: HECTORTorchBlindLocomotionActionsCfg = HECTORTorchBlindLocomotionActionsCfg()
@@ -47,6 +47,7 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
 
         # terain
         self.scene.terrain = hector_mdp.BaseTerrain 
+        # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
 
         # event (disable on plane)
         self.events.reset_terrain_type = None
@@ -55,25 +56,30 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         # sensor
         self.scene.height_scanner = None
         
-        self.viewer = ViewerCfg(
-            eye=(-0.0, -2.0, -0.2), 
-            lookat=(0.0, -0.8, -0.2),
-            resolution=(3840, 2160), # 4K
-            origin_type="asset_root", 
-            asset_name="robot"
-        )
+        # self.viewer = ViewerCfg(
+        #     # eye=(-0.0, -1.5, -0.2), 
+        #     # lookat=(0.0, -0.8, -0.2),
+        #     # resolution=(3840, 2160), # 4K
+        #     # eye=(0.0, -4.0, 0.4), 
+        #     # lookat=(0.0, -0.5, 0.1),
+        #     eye=(0.0, -3.0, 0.4), 
+        #     lookat=(-1.0, -0.5, 0.1),
+        #     resolution=(1920, 1080), 
+        #     origin_type="asset_root", 
+        #     asset_name="robot"
+        # )
 
         # event 
         self.events.reset_base.params["pose_range"] = {
             # "x": (-0.5, 0.5), 
             # "y": (-0.5, 0.5), 
-            "x": (-20.0, 20.0), 
-            "y": (-20.0, 20.0), 
+            "x": (-0.3, 0.3), 
+            "y": (-0.3, 0.3),
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            # "yaw": (-math.pi, math.pi),
-            "yaw": (-0.0, 0.0),
+            "yaw": (-math.pi, math.pi),
+            # "yaw": (-0.0, 0.0),
         }
 
         # light setting
@@ -81,7 +87,8 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         
         # command 
         self.commands.base_velocity.heading_command = False
-        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
-        self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.6)
+        self.commands.base_velocity.ranges.ang_vel_z = (-0.3, 0.3)
         self.commands.base_velocity.goal_vel_visualizer_cfg.markers["arrow"].scale = (0.4, 0.4, 0.4)
         self.commands.base_velocity.current_vel_visualizer_cfg.markers["arrow"].scale = (0.4, 0.4, 0.4)
+        self.commands.base_velocity.debug_vis = False

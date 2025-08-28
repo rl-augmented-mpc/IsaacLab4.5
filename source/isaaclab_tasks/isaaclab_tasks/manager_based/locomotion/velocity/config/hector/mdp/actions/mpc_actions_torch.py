@@ -17,15 +17,19 @@ from isaaclab.assets.articulation import Articulation
 from isaaclab.managers.action_manager import ActionTerm
 from isaaclab.envs import ManagerBasedEnv
 
-from hector_pytorch import MPCController, MPCConf, ControllerConf
+from biped_pympc import MPCController, MPCConf, ControllerConf
 from . import mpc_actions_cfg
 from .robot_helper import RobotCore
-from isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp.marker import FootPlacementVisualizer, SlackedFootPlacementVisualizer
+from isaaclab_tasks.manager_based.locomotion.velocity.config.hector.mdp.marker import (
+    FootPlacementVisualizer, 
+    SwingFootVisualizer, 
+    PositionTrajectoryVisualizer
+    )
 
 
-class TorchMPCAction(ActionTerm):
+class BlindLocomotionTorchMPCAction(ActionTerm):
 
-    cfg: mpc_actions_cfg.TorchMPCActionCfg
+    cfg: mpc_actions_cfg.BlindLocomotionTorchMPCActionCfg
     """The configuration of the action term."""
     _asset: Articulation
     """The articulation asset on which the action term is applied."""
@@ -34,7 +38,7 @@ class TorchMPCAction(ActionTerm):
     _clip: torch.Tensor
     """The clip applied to the input action."""
     
-    def __init__(self, cfg: mpc_actions_cfg.TorchMPCActionCfg, env: ManagerBasedEnv):
+    def __init__(self, cfg: mpc_actions_cfg.BlindLocomotionTorchMPCActionCfg, env: ManagerBasedEnv):
         # initialize the action term
         super().__init__(cfg, env)
         # create robot helper object
@@ -63,8 +67,8 @@ class TorchMPCAction(ActionTerm):
             swing_height = self.cfg.nominal_swing_height,
         )
         mpc_conf = MPCConf(
-            dt=env.physics_dt, 
-            iteration_between_mpc=self.cfg.control_iteration_between_mpc,
+            dt=env.physics_dt,
+            dt_mpc=cfg.nominal_mpc_dt,
             decimation=int(env.step_dt//env.physics_dt),
             solver=cfg.solver_name,
             print_solve_time=cfg.print_solve_time,
@@ -96,14 +100,17 @@ class TorchMPCAction(ActionTerm):
         self.gait_contact = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
         self.gait_contact[:, 0] = 1.0 # left foot contact at the beginning
         self.swing_phase = torch.zeros(self.num_envs, 2, device=self.device, dtype=torch.float32)
-        self.foot_placement_w = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32)
-        self.foot_placement = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32) # in body frame
+        self.foot_placement_w = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32)
+        self.foot_placement = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # in body frame
         self.foot_pos_w = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # foot position in world frame
         self.foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # foot position in body frame
         self.ref_foot_pos_b = torch.zeros(self.num_envs, 6, device=self.device, dtype=torch.float32) # reference foot position in body frame
         self.leg_angle = torch.zeros(self.num_envs, 4, device=self.device)
+
+
         self.mpc_counter = torch.zeros(self.num_envs, dtype=torch.int32, device=self.device)
         self.mpc_cost = torch.zeros(self.num_envs, device=self.device)
+        self.foot_position_trajectory = torch.zeros(self.num_envs, 10, 3, device=self.device, dtype=torch.float32) # trajectory of the foot placement in world frame
         
         # reference
         self.command = torch.zeros((self.num_envs, 3), dtype=torch.float32, device=self.device)
@@ -111,7 +118,9 @@ class TorchMPCAction(ActionTerm):
         self.foot_placement_height = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         
         # markers
-        # self.foot_placement_visualizer = FootPlacementVisualizer("/Visuals/foot_placement")
+        self.foot_placement_visualizer = FootPlacementVisualizer("/Visuals/foot_placement")
+        self.foot_position_visualizer = SwingFootVisualizer("/Visuals/foot_position")
+        self.foot_trajectory_visualizer = PositionTrajectoryVisualizer("/Visuals/foot_trajectory", color=(0.0, 0.0, 1.0))
     
     """
     Properties.
@@ -162,6 +171,8 @@ class TorchMPCAction(ActionTerm):
         # self._get_reference_height()
         # self._get_footplacement_height()
         
+        self.mpc_controller.update_mpc_sampling_time(sampling_time)
+        self.mpc_controller.set_swing_parameters(swing_foot_height, cp1, cp2)
         self.mpc_controller.set_command(
             self.command, 
             self.reference_height,
@@ -171,15 +182,15 @@ class TorchMPCAction(ActionTerm):
         self.mpc_controller.update_state(self.state)
         self.mpc_controller.run_mpc()
         
-        # self.visualize_marker()
+        self.visualize_marker()
         
     def _get_reference_velocity(self):
         # # ramp up
-        # ramp_up_duration = 1.2 # seconds
-        # ramp_up_coef = torch.clip(self.mpc_counter/int(ramp_up_duration/self._env.physics_dt), 0.0, 1.0).unsqueeze(1)
+        ramp_up_duration = 0.4 # seconds
+        ramp_up_coef = torch.clip(self.mpc_counter/int(ramp_up_duration/self._env.physics_dt), 0.0, 1.0).unsqueeze(1)
 
         # no ramp up
-        ramp_up_coef = 1.0
+        # ramp_up_coef = 1.0
         self.command[:, :] = (ramp_up_coef * self._env.command_manager.get_command(self.cfg.command_name))
     
     def _get_reference_height(self):
@@ -302,27 +313,32 @@ class TorchMPCAction(ActionTerm):
         self.foot_placement_height = torch.clamp(ground_height - ground_level_odometry_frame, 0.0, None)
     
     def visualize_marker(self):
+        # prepare transformation matrices
+        world_to_base_trans = self.robot_api.root_pos_w[:, :3].clone()
+        world_to_base_rot = self.robot_api.root_rot_mat_w.clone()
+
+        # visualize foot placement
         fp = torch.zeros(self.num_envs, 2, 3, device=self.device, dtype=torch.float32)
-        default_position = self.robot_api._init_pos[:, :3].clone()
-        default_position[:, 2] -= self.robot_api.default_root_state[:, 2]
-        
-        fp_z = self.reference_height-self.cfg.nominal_height
-        fp[:, 0, :2] = self.foot_placement_w[:, :2]
-        fp[:, 1, :2] = self.foot_placement_w[:, 2:]
-        fp[:, 0, 2] = fp_z
-        fp[:, 1, 2] = fp_z
-        
-        # convert from robot odometry frame to simulation global frame
-        world_to_odom_rot = self.robot_api._init_rot
-        fp[:, 0, :] = torch.bmm(world_to_odom_rot, fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + default_position
-        fp[:, 1, :] = torch.bmm(world_to_odom_rot, fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + default_position
-        
-        # hide foot placement marker when foot is in contact
-        fp[:, 0, 2] -= self.gait_contact[:, 0] * 100.0
-        fp[:, 1, 2] -= self.gait_contact[:, 1] * 100.0
-        
-        orientation = self.robot_api.root_quat_w.repeat(2, 1)
-        self.foot_placement_visualizer.visualize(fp, orientation)
+        fp[:, 0, :3] = self.foot_placement[:, :3]
+        fp[:, 1, :3] = self.foot_placement[:, 3:]
+        # from base frame to world frame
+        fp[:, 0, :] = (world_to_base_rot @ fp[:, 0, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
+        fp[:, 1, :] = (world_to_base_rot @ fp[:, 1, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
+        fp[:, :, 2] += 0.01 # better visibility
+        fp[:, :, 2] = fp[:, :, 2] * (1-self.gait_contact) - 100 * self.gait_contact # hide foot placement of stance foot
+        self.foot_placement_visualizer.visualize(fp)
+
+        # visualize foot sole positions
+        foot_pos = self.robot_api.foot_pos
+        self.foot_position_visualizer.visualize(foot_pos)
+
+        # visullize reference trajectory
+        foot_traj = self.foot_position_trajectory.clone()
+        for i in range(10):
+            # from base frame to world frame
+            foot_traj[:, i, :] = (world_to_base_rot @ foot_traj[:, i, :].unsqueeze(-1)).squeeze(-1) + world_to_base_trans
+        self.foot_trajectory_visualizer.visualize(foot_traj)
+
 
     def apply_actions(self):
         # obtain state
@@ -344,6 +360,10 @@ class TorchMPCAction(ActionTerm):
         self.root_quat = self.robot_api.root_quat_local
         self.root_yaw = self.robot_api.root_yaw_local
         self.root_pos = self.robot_api.root_pos_local
+
+        # # define height of floating base as torso - stance foot distance 
+        # fz = torch.abs(self.foot_pos_b.reshape(-1, 2, 3)[:, :, 2] * self.gait_contact) # (num_envs, 2)
+        # self.root_pos[:, 2] = fz.max(dim=1).values
         
         self.root_lin_vel_b = self.robot_api.root_lin_vel_b
         self.root_ang_vel_b = self.robot_api.root_ang_vel_b
@@ -370,25 +390,22 @@ class TorchMPCAction(ActionTerm):
         self.grw = self.mpc_controller.ground_reaction_wrench.reshape(self.num_envs, 12)
         self.gait_contact = self.mpc_controller.contact_state
         self.swing_phase = self.mpc_controller.swing_phase
-        self.foot_placement_w = self.mpc_controller.foot_placement[:, :, :2].reshape(self.num_envs, 4)
+        self.foot_placement_w = self.mpc_controller.foot_placement.reshape(self.num_envs, -1)
+        self.foot_placement = self.mpc_controller.foot_placement_b.reshape(self.num_envs, -1)
         self.foot_pos_b = self.mpc_controller.foot_pos_b.reshape(self.num_envs, 6)
         self.ref_foot_pos_b = self.mpc_controller.ref_foot_pos_b.reshape(self.num_envs, 6)
         self.mpc_cost = self.mpc_controller.mpc_cost.squeeze(-1)
-
-        # transform foot placement to body frame
-        self.foot_placement = torch.zeros((self.num_envs, 6), device=self.device)
-        self.foot_placement[:, 0] = self.foot_placement_w[:, 0]*torch.cos(self.root_yaw) + self.foot_placement_w[:, 1]*torch.sin(self.root_yaw) - self.root_pos[:, 0]
-        self.foot_placement[:, 1] = -self.foot_placement_w[:, 0]*torch.sin(self.root_yaw) + self.foot_placement_w[:, 1]*torch.cos(self.root_yaw) - self.root_pos[:, 1]
-        self.foot_placement[:, 3] = self.foot_placement_w[:, 2]*torch.cos(self.root_yaw) + self.foot_placement_w[:, 3]*torch.sin(self.root_yaw) - self.root_pos[:, 0]
-        self.foot_placement[:, 4] = -self.foot_placement_w[:, 2]*torch.sin(self.root_yaw) + self.foot_placement_w[:, 3]*torch.cos(self.root_yaw) - self.root_pos[:, 1]
         
-        # body-leg angle
+        # base-leg angle
         stance_leg_r_left = torch.abs(self.foot_pos_b[:, :3]).clamp(min=1e-6)  # avoid division by zero
         stance_leg_r_right = torch.abs(self.foot_pos_b[:, 3:]).clamp(min=1e-6)  # avoid division by zero
         self.leg_angle[:, 0] = torch.abs(torch.atan2(stance_leg_r_left[:, 0], stance_leg_r_left[:, 2])) # left sagittal
         self.leg_angle[:, 1] = torch.abs(torch.atan2(stance_leg_r_left[:, 1], stance_leg_r_left[:, 2])) # left lateral
         self.leg_angle[:, 2] = torch.abs(torch.atan2(stance_leg_r_right[:, 0], stance_leg_r_right[:, 2])) # right sagittal
         self.leg_angle[:, 3] = torch.abs(torch.atan2(stance_leg_r_right[:, 1], stance_leg_r_right[:, 2])) # right lateral
+
+        # swing leg traj
+        self.foot_position_trajectory = self.mpc_controller.swing_foot_trajectory
     
     def _add_joint_offset(self, joint_pos:torch.Tensor) -> torch.Tensor:
         joint_pos[:, 2] += torch.pi/4
