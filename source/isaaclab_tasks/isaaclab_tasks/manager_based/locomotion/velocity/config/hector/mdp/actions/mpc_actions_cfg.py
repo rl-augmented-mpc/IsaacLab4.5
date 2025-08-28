@@ -24,7 +24,7 @@ class BlindLocomotionMPCActionCfg(ActionTermCfg):
     action_range: tuple[float, float] | tuple[tuple[float, ...], tuple[float, ...]] = (-1.0, 1.0)
     """action range to deal with assymetric action space. """
     negative_action_clip_idx: list[int] = None  # type: ignore
-    """List of indices of the action that are assymetric. If empty, all actions are symmetric."""
+    """List of indices of the action that negative action value should be clipped."""
     command_name: str = "base_velocity"
     """Name of the command to be used for the action term."""
     nominal_height: float = 0.55
@@ -104,20 +104,22 @@ PyTorch version of MPC controller
 """
 
 @configclass
-class BlindLocomotionTorchMPCActionCfg(ActionTermCfg):
-    class_type: type[ActionTerm] = mpc_actions_torch.BlindLocomotionTorchMPCAction
+class BlindLocomotionGPUMPCActionCfg(ActionTermCfg):
+    class_type: type[ActionTerm] = mpc_actions_torch.BlindLocomotionGPUMPCAction
 
     # generic controller params
     joint_names: list[str] = MISSING # type: ignore
     """List of joint names or regex expressions that the action will be mapped to."""
     action_range: tuple[float, float] | tuple[tuple[float, ...], tuple[float, ...]] = (-1.0, 1.0)
     """action range to deal with assymetric action space. """
+    negative_action_clip_idx: list[int] = None  # type: ignore
+    """List of indices of the action that negative action value should be clipped."""
     command_name: str = "base_velocity"
     """Name of the command to be used for the action term."""
     nominal_height: float = 0.55
     """Reference height of the robot."""
     # nominal_swing_height : float = 0.08
-    nominal_swing_height : float = 0.1
+    nominal_swing_height : float = 0.12
     """Nominal swing height of the robot."""
     nominal_stepping_frequency: float = 1.0
     """Nominal stepping frequency of the robot."""
@@ -136,11 +138,11 @@ class BlindLocomotionTorchMPCActionCfg(ActionTermCfg):
     # MPC specific params
     horizon_length: int = 10
     """Horizon length of the robot."""
-    nominal_mpc_dt: float = 0.04
+    nominal_mpc_dt: float = 0.025
     """Nominal MPC dt of the robot."""
-    double_support_duration: int = 0
+    double_support_duration: int = 2
     """Double support duration of the robot."""
-    single_support_duration: int = 5
+    single_support_duration: int = 8
     """Single support duration of the robot."""
     Q: list[float] = [150, 150, 250,   100, 100, 800,   1, 1, 10,   10, 10, 1]
     # Q: list[float] = [150, 150, 250,   100, 100, 50,   1, 1, 10,   10, 10, 1]
@@ -149,5 +151,12 @@ class BlindLocomotionTorchMPCActionCfg(ActionTermCfg):
     # R: list[float] = [1e-5, 1e-5, 1e-4,   1e-5, 1e-5, 1e-4,   1e-4, 1e-4, 1e-4,   1e-4, 1e-4, 1e-4]
 
     # solver
-    solver_name: Literal["osqp", "qpth", "casadi", "cusadi"] = "cusadi"
+    solver_name: Literal["osqp", "qpth", "casadi", "cusadi"] = "casadi"
     print_solve_time: bool = False
+    robot: Literal["HECTOR", "T1"] = "HECTOR"
+    swing_reference_frame: Literal["world", "base"] = "base"
+
+
+@configclass
+class BlindLocomotionGPUMPCActionCfg2(BlindLocomotionGPUMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions_torch.BLindLocomotionGPUMPCAction2

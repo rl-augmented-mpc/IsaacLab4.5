@@ -2,7 +2,7 @@ from .action_cfg import (
     HECTORBlindLocomotionActionsCfg, 
     HECTORPerceptiveLocomotionActionsCfg, 
     HECTORSlipActionsCfg, 
-    HECTORTorchBlindLocomotionActionsCfg, 
+    HECTORGPUBlindLocomotionActionsCfg, 
     HECTORL2TActionsCfg,
 )
 from .command_cfg import HECTORCommandsCfg
