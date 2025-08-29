@@ -3,9 +3,8 @@ params:
 
   # environment wrapper clipping
   env:
-    # added to the wrapper
+    # read from the env wrapper
     clip_observations: 50.0
-    # can make custom wrapper?
     clip_actions: 1.0
 
   algo:
@@ -18,6 +17,7 @@ params:
   network:
     name: soft_actor_critic
     separate: True
+    squash_output: True
     space:
       continuous:
         mu_activation: None
@@ -30,8 +30,7 @@ params:
           name: const_initializer
           val: 0
         # mu_bias: [0, 0, 0, 0, 0, 0, 0, -1, 0]
-        # fixed_sigma: True
-        
+        # fixed_sigma: True # does not have  effect in SAC
     mlp:
       units: [512, 256, 128]
       activation: elu
@@ -46,18 +45,12 @@ params:
       
     log_std_bounds: [-5, 2]
 
-  # load_checkpoint: False # flag which sets whether to load the checkpoint
-  # load_path: '' # path to the checkpoint to load
+  load_checkpoint: False # flag which sets whether to load the checkpoint
+  load_path: '' # path to the checkpoint to load
 
   config:
-    name: manager_sac_rl_games_stepping_stone_mlp_blind
-    # full_experiment_name: 2025-08-09_18-52-14 # 2nd best
-    full_experiment_name: 2025-08-11_23-29-02 # best
-    # full_experiment_name: 2025-08-17_23-17-43 # random velocity
-    # full_experiment_name: 2025-08-19_08-00-00 # random velocity tuned
-    # full_experiment_name: 2025-08-20_22-00-00 # random velocity, terrain curriculum -> looks ok? 
-    # full_experiment_name: 2025-08-21_00-39-08 # 0.5 velocity, terrain curriculum -> looks ok?
-    # full_experiment_name: 2025-08-25_23-26-09
+    name: manager_sac_rl_games_batcjed_mpc_blind
+    # full_experiment_name: ---
     env_name: rlgpu
     device: 'cuda:0'
     device_name: 'cuda:0'
@@ -70,29 +63,38 @@ params:
     num_actors: -1  # configured from the script (based on num_envs)
     reward_shaper:
       scale_value: 1.0
-    gamma: 0.99
-    entropy_coef: 0.001
+    gamma: 0.98
+    entropy_coef: 0.001 # not used
     score_to_win: 20000
-    # max_epochs: 100000
     max_epochs: 10000
     save_best_after: 500
     save_frequency: 500
 
     # SAC specific parameters
-    num_steps_per_episode: 36
+    num_steps_per_episode: 24
     horizon_length: ${.num_steps_per_episode}
-    init_alpha: 1.0 # dual parameter initial value
-    alpha_lr: 1e-4 # dual parameter learning rate
+    init_alpha: 1.0 # entropy temperature initial value
+    target_entropy_coef: 1.0
+    alpha_lr: 1e-4 # entropy temperature learning rate
     actor_lr: 1e-4 # actor network learning rate
     critic_lr: 1e-4 # critic network learning rate
-    critic_tau: 5e-3 # soft update parameter
+    critic_tau: 5e-3 # soft update parameter (polyak averaging)
     learnable_temperature: True
     num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
     batch_size: 512
     replay_buffer_size: 1000000
+
+    # regularization loss
+    reg_loss_coef: 0.01 
+
+    # bound loss
+    bounds_loss_coef: 0.03 # did not work for randomized velocity
+    bounds_loss_action_dim: [7] # pz_max
+    bounds_loss_soft_lower_bound: [0.0]
+    bounds_loss_soft_upper_bound: [1.0]
   
   log:
     logger: wandb
-    wandb_project_name: rl_mpc_manager_stepping_stone_blind
+    wandb_project_name: rl_mpc_manager_batched_mpc
     wandb_entity: jnskkmr
     name: sac_rl_games_mlp

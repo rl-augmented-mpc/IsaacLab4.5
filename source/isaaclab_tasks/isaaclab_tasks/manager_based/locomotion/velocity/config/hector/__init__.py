@@ -31,6 +31,7 @@ BASE_CLASS = [
     "HECTOR-ManagerBased-RL-L2T-Rough-PLAY",
 
     "HECTOR-ManagerBased-RL-Torch-SAC-Rough-Blind",
+    "HECTOR-ManagerBased-RL-Torch-SAC-Rough-Blind-PLAY",
 ]
 
 ARGS = [
@@ -104,8 +105,11 @@ ARGS = [
     # Torch MPC and SAC rough blind env
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_torch_mpc_cfg:HECTORTorchRoughEnvBlindLocomotionSACCfg",
-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_st_blind.yaml",
-        "sb3_cfg_entry_point": f"{agents.__name__}:sb3_sac.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_batched_mpc.yaml",
+    },
+    {
+        "env_cfg_entry_point": f"{__name__}.rough_env_torch_mpc_cfg:HECTORTorchRoughEnvBlindLocomotionSACCfgPLAY",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_batched_mpc_inference.yaml",
     },
 ]
 

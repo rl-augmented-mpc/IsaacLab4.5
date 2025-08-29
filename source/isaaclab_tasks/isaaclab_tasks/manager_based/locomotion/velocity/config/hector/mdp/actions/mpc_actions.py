@@ -159,9 +159,13 @@ class BlindLocomotionMPCAction(ActionTerm):
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
-        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, -3].cpu().numpy())
-        swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
-        trajectory_control_points = self._processed_actions[:, 2].cpu().numpy()
+        sampling_time_idx = 0 
+        swing_foot_height_idx = 1
+        trajectory_control_points_idx = 2
+
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx].cpu().numpy())
+        swing_foot_height = self._processed_actions[:, swing_foot_height_idx].cpu().numpy()
+        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx].cpu().numpy()
         
         # form actual control parameters (nominal value + residual)
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
@@ -463,9 +467,13 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
-        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, -3].cpu().numpy())
-        swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
-        trajectory_control_points = self._processed_actions[:, 2].cpu().numpy()
+        sampling_time_idx = 0 
+        swing_foot_height_idx = 1
+        trajectory_control_points_idx = 2
+
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx].cpu().numpy())
+        swing_foot_height = self._processed_actions[:, swing_foot_height_idx].cpu().numpy()
+        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx].cpu().numpy()
         
         # form actual control parameters (nominal value + residual)
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
@@ -912,16 +920,22 @@ class BlindLocomotionMPCAction2(BlindLocomotionMPCAction):
         B_residual = np.zeros((self.num_envs, 13, 12), dtype=np.float32)
         
         # split processed actions into individual control parameters
-        centroidal_lin_acc = self._processed_actions[:, :3]
-        centroidal_ang_acc = self._processed_actions[:, 3:6]
+        centroidal_lin_acc_idx = slice(0, 3)
+        centroidal_ang_acc_idx = slice(3, 6)
+        sampling_time_idx = 6
+        swing_foot_height_idx = 7
+        trajectory_control_points_idx = 8
+
+        centroidal_lin_acc = self._processed_actions[:, centroidal_lin_acc_idx]
+        centroidal_ang_acc = self._processed_actions[:, centroidal_ang_acc_idx]
         centroidal_lin_acc = torch.bmm(self.root_rot_mat, centroidal_lin_acc.unsqueeze(-1)).squeeze(-1)
         centroidal_ang_acc = torch.bmm(self.root_rot_mat, centroidal_ang_acc.unsqueeze(-1)).squeeze(-1)
         A_residual[:, 6:9, -1] = centroidal_lin_acc.cpu().numpy()
         A_residual[:, 9:12, -1] = centroidal_ang_acc.cpu().numpy()
         
-        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, -3].cpu().numpy())
-        swing_foot_height = self._processed_actions[:, -2].cpu().numpy()
-        trajectory_control_points = self._processed_actions[:, -1].cpu().numpy()
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx].cpu().numpy())
+        swing_foot_height = self._processed_actions[:, swing_foot_height_idx].cpu().numpy()
+        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx].cpu().numpy()
         
         # form actual control parameters (nominal value + residual)
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
@@ -981,9 +995,13 @@ class BlindLocomotionMPCAction3(BlindLocomotionMPCAction):
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
-        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, -3].cpu().numpy())
-        swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
-        trajectory_control_points = self._processed_actions[:, 2].cpu().numpy()
+        sampling_time_idx = 0
+        swing_foot_height_idx = 1
+        trajectory_control_points_idx = 2
+
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx].cpu().numpy())
+        swing_foot_height = self._processed_actions[:, swing_foot_height_idx].cpu().numpy()
+        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx].cpu().numpy()
         
         # form actual control parameters (nominal value + residual)
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
@@ -1019,7 +1037,8 @@ class BlindLocomotionMPCAction3(BlindLocomotionMPCAction):
         -1.5 <= \delta{v} <= 0.5
         """
         # get reference body velocity from policy
-        rx = self._processed_actions[:, 3]
+        body_velocity_ratio_idx = 3
+        rx = self._processed_actions[:, body_velocity_ratio_idx]
         self.command[:, 0] = self.original_command[:, 0] * (1 + rx)
         self.command[:, 1] = self.original_command[:, 1]
         self.command[:, 2] = self.original_command[:, 2]
@@ -1064,16 +1083,22 @@ class BlindLocomotionMPCAction4(BlindLocomotionMPCAction):
         B_residual = np.zeros((self.num_envs, 13, 12), dtype=np.float32)
         
         # transform accel to global frame
-        centroidal_lin_acc = self._processed_actions[:, :3]
-        centroidal_ang_acc = self._processed_actions[:, 3:6]
+        centroidal_lin_acc_idx = slice(0, 3)
+        centroidal_ang_acc_idx = slice(3, 6)
+        sampling_time_idx = 6
+        swing_foot_height_idx = 7
+        trajectory_control_points_idx = 8
+
+        centroidal_lin_acc = self._processed_actions[:, centroidal_lin_acc_idx]
+        centroidal_ang_acc = self._processed_actions[:, centroidal_ang_acc_idx]
         centroidal_lin_acc = torch.bmm(self.root_rot_mat, centroidal_lin_acc.unsqueeze(-1)).squeeze(-1)
         centroidal_ang_acc = torch.bmm(self.root_rot_mat, centroidal_ang_acc.unsqueeze(-1)).squeeze(-1)
         A_residual[:, 6:9, -1] = centroidal_lin_acc.cpu().numpy()
         A_residual[:, 9:12, -1] = centroidal_ang_acc.cpu().numpy()
         
-        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, 6].cpu().numpy())
-        swing_foot_height = self._processed_actions[:, 7].cpu().numpy()
-        trajectory_control_points = self._processed_actions[:, 8].cpu().numpy()
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx].cpu().numpy())
+        swing_foot_height = self._processed_actions[:, swing_foot_height_idx].cpu().numpy()
+        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx].cpu().numpy()
         
         # form actual control parameters (nominal value + residual)
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
@@ -1113,8 +1138,10 @@ class BlindLocomotionMPCAction4(BlindLocomotionMPCAction):
         -1.5 <= \delta{v} <= 0.5
         """
         # get reference body velocity from policy
-        self.command[:, 0] = self.original_command[:, 0] * (1 + self._processed_actions[:, 9])
-        self.command[:, 2] = self.original_command[:, 2] * (1 + self._processed_actions[:, 10])
+        body_velocity_ratio_idx = slice(9, 11)
+        ratio = self._processed_actions[:, body_velocity_ratio_idx]
+        self.command[:, 0] = self.original_command[:, 0] * (1 + ratio[:, 0])
+        self.command[:, 2] = self.original_command[:, 2] * (1 + ratio[:, 1])
         
         # update command
         self.twist[:, :] = self.command.cpu().numpy()
@@ -1157,16 +1184,22 @@ class PerceptiveLocomotionMPCAction2(PerceptiveLocomotionMPCAction):
         B_residual = np.zeros((self.num_envs, 13, 12), dtype=np.float32)
         
         # split processed actions into individual control parameters
-        centroidal_lin_acc = self._processed_actions[:, :3]
-        centroidal_ang_acc = self._processed_actions[:, 3:6]
+        centroidal_lin_acc_idx = slice(0, 3)
+        centroidal_ang_acc_idx = slice(3, 6)
+        sampling_time_idx = 6
+        swing_foot_height_idx = 7
+        trajectory_control_points_idx = 8
+
+        centroidal_lin_acc = self._processed_actions[:, centroidal_lin_acc_idx]
+        centroidal_ang_acc = self._processed_actions[:, centroidal_ang_acc_idx]
         centroidal_lin_acc = torch.bmm(self.root_rot_mat, centroidal_lin_acc.unsqueeze(-1)).squeeze(-1)
         centroidal_ang_acc = torch.bmm(self.root_rot_mat, centroidal_ang_acc.unsqueeze(-1)).squeeze(-1)
         A_residual[:, 6:9, -1] = centroidal_lin_acc.cpu().numpy()
         A_residual[:, 9:12, -1] = centroidal_ang_acc.cpu().numpy()
         
-        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, -3].cpu().numpy())
-        swing_foot_height = self._processed_actions[:, -2].cpu().numpy()
-        trajectory_control_points = self._processed_actions[:, -1].cpu().numpy()
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx].cpu().numpy())
+        swing_foot_height = self._processed_actions[:, swing_foot_height_idx].cpu().numpy()
+        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx].cpu().numpy()
         
         # form actual control parameters (nominal value + residual)
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
@@ -1226,9 +1259,13 @@ class PerceptiveLocomotionMPCAction3(PerceptiveLocomotionMPCAction):
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
-        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, -3].cpu().numpy())
-        swing_foot_height = self._processed_actions[:, 1].cpu().numpy()
-        trajectory_control_points = self._processed_actions[:, 2].cpu().numpy()
+        sampling_time_idx = 0
+        swing_foot_height_idx = 1
+        trajectory_control_points_idx = 2
+
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx].cpu().numpy())
+        swing_foot_height = self._processed_actions[:, swing_foot_height_idx].cpu().numpy()
+        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx].cpu().numpy()
         
         # form actual control parameters (nominal value + residual)
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
@@ -1264,8 +1301,11 @@ class PerceptiveLocomotionMPCAction3(PerceptiveLocomotionMPCAction):
         -1.5 <= \delta{v} <= 0.5
         """
         # get reference body velocity from policy
-        rx = self._processed_actions[:, 3]
-        rz = self._processed_actions[:, 4]
+        body_velocity_ratio_idx = slice(3, 5)
+        ratio = self._processed_actions[:, body_velocity_ratio_idx]
+        rx = ratio[:, 0]
+        rz = ratio[:, 1]
+
         self.command[:, 0] = self.original_command[:, 0] * (1 + rx)
         self.command[:, 1] = self.original_command[:, 1]
         self.command[:, 2] = self.original_command[:, 2] * (1 + rz)
@@ -1310,16 +1350,22 @@ class PerceptiveLocomotionMPCAction4(PerceptiveLocomotionMPCAction):
         B_residual = np.zeros((self.num_envs, 13, 12), dtype=np.float32)
         
         # transform accel to global frame
-        centroidal_lin_acc = self._processed_actions[:, :3]
-        centroidal_ang_acc = self._processed_actions[:, 3:6]
+        centroidal_lin_acc_idx = slice(0, 3)
+        centroidal_ang_acc_idx = slice(3, 6)
+        sampling_time_idx = 6
+        swing_foot_height_idx = 7
+        trajectory_control_points_idx = 8
+
+        centroidal_lin_acc = self._processed_actions[:, centroidal_lin_acc_idx]
+        centroidal_ang_acc = self._processed_actions[:, centroidal_ang_acc_idx]
         centroidal_lin_acc = torch.bmm(self.root_rot_mat, centroidal_lin_acc.unsqueeze(-1)).squeeze(-1)
         centroidal_ang_acc = torch.bmm(self.root_rot_mat, centroidal_ang_acc.unsqueeze(-1)).squeeze(-1)
         A_residual[:, 6:9, -1] = centroidal_lin_acc.cpu().numpy()
         A_residual[:, 9:12, -1] = centroidal_ang_acc.cpu().numpy()
         
-        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, 6].cpu().numpy())
-        swing_foot_height = self._processed_actions[:, 7].cpu().numpy()
-        trajectory_control_points = self._processed_actions[:, 8].cpu().numpy()
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx].cpu().numpy())
+        swing_foot_height = self._processed_actions[:, swing_foot_height_idx].cpu().numpy()
+        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx].cpu().numpy()
         
         # form actual control parameters (nominal value + residual)
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
@@ -1359,8 +1405,10 @@ class PerceptiveLocomotionMPCAction4(PerceptiveLocomotionMPCAction):
         -1.5 <= \delta{v} <= 0.5
         """
         # get reference body velocity from policy
-        self.command[:, 0] = self.original_command[:, 0] * (1 + self._processed_actions[:, 9])
-        self.command[:, 2] = self.original_command[:, 2] * (1 + self._processed_actions[:, 10])
+        body_velocity_ratio_idx = slice(9, 11)
+        ratio = self._processed_actions[:, body_velocity_ratio_idx]
+        self.command[:, 0] = self.original_command[:, 0] * (1 + ratio[:, 0])
+        self.command[:, 2] = self.original_command[:, 2] * (1 + ratio[:, 1])
         
         # update command
         self.twist[:, :] = self.command.cpu().numpy()

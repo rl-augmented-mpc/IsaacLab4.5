@@ -161,9 +161,13 @@ class BlindLocomotionGPUMPCAction(ActionTerm):
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
-        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, -3])
-        swing_foot_height = self._processed_actions[:, 1]
-        trajectory_control_points = self._processed_actions[:, 2]
+        sampling_time_idx = 0 
+        swing_foot_height_idx = 1
+        trajectory_control_points_idx = 2
+
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx])
+        swing_foot_height = self._processed_actions[:, swing_foot_height_idx]
+        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx]
         
         # form actual control parameters (nominal value + residual)
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
@@ -465,6 +469,7 @@ class BLindLocomotionGPUMPCAction2(BlindLocomotionGPUMPCAction):
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
         self._raw_actions[:] = actions.clone()
+
         # clip negative action value
         negative_action_clip_idx = self.cfg.negative_action_clip_idx
         if negative_action_clip_idx is not None:
@@ -472,14 +477,20 @@ class BLindLocomotionGPUMPCAction2(BlindLocomotionGPUMPCAction):
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
-        centroidal_lin_acc = self._processed_actions[:, :3]
-        centroidal_ang_acc = self._processed_actions[:, 3:6]
+        centroidal_lin_acc_idx = slice(0, 3)
+        centroidal_ang_acc_idx = slice(3, 6)
+        sampling_time_idx = 6
+        swing_foot_height_idx = 7
+        trajectory_control_points_idx = 8
+
+        centroidal_lin_acc = self._processed_actions[:, centroidal_lin_acc_idx]
+        centroidal_ang_acc = self._processed_actions[:, centroidal_ang_acc_idx]
         centroidal_lin_acc = torch.bmm(self.root_rot_mat, centroidal_lin_acc.unsqueeze(-1)).squeeze(-1)
         centroidal_ang_acc = torch.bmm(self.root_rot_mat, centroidal_ang_acc.unsqueeze(-1)).squeeze(-1)
 
-        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, -3])
-        swing_foot_height = self._processed_actions[:, 1]
-        trajectory_control_points = self._processed_actions[:, 2]
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx])
+        swing_foot_height = self._processed_actions[:, swing_foot_height_idx]
+        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx]
         
         # form actual control parameters (nominal value + residual)
         swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
@@ -489,8 +500,6 @@ class BLindLocomotionGPUMPCAction2(BlindLocomotionGPUMPCAction):
         # update reference
         self._get_mpc_state()
         self._get_reference_velocity()
-        # self._get_reference_height()
-        # self._get_footplacement_height()
         
         self.mpc_controller.update_mpc_sampling_time(sampling_time)
         self.mpc_controller.set_srbd_accel(centroidal_lin_acc, centroidal_ang_acc)
