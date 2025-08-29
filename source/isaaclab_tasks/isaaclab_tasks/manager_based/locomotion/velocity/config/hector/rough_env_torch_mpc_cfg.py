@@ -46,8 +46,8 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         self.sim.render_interval = 2*self.decimation
 
         # terain
-        # self.scene.terrain = hector_mdp.BaseTerrain 
-        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        self.scene.terrain = hector_mdp.BaseTerrain 
+        # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
 
         # event (disable on plane)
         self.events.reset_terrain_type = None
@@ -60,10 +60,10 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
             # eye=(-0.0, -1.5, -0.2), 
             # lookat=(0.0, -0.8, -0.2),
             # resolution=(3840, 2160), # 4K
-            eye=(0.0, -2.0, 0.4), 
-            lookat=(0.0, -0.5, 0.1),
-            # eye=(0.0, -3.0, 0.4), 
-            # lookat=(-1.0, -0.5, 0.1),
+            # eye=(0.0, -2.0, 0.4), 
+            # lookat=(0.0, -0.5, 0.1),
+            eye=(0.0, -5.0, 0.4), 
+            lookat=(-1.0, -0.5, 0.1),
             resolution=(1920, 1080), 
             origin_type="asset_root", 
             asset_name="robot"
@@ -71,15 +71,15 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
 
         # event 
         self.events.reset_base.params["pose_range"] = {
-            # "x": (-0.5, 0.5), 
-            # "y": (-0.5, 0.5), 
-            "x": (-0.3, 0.3), 
-            "y": (-0.3, 0.3),
+            "x": (-0.5, 0.5), 
+            "y": (-0.5, 0.5), 
+            # "x": (-0.3, 0.3), 
+            # "y": (-0.3, 0.3),
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-            # "yaw": (-math.pi, math.pi),
-            "yaw": (-0.0, 0.0),
+            "yaw": (-math.pi, math.pi),
+            # "yaw": (-0.0, 0.0),
         }
 
         # light setting
@@ -96,3 +96,52 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
 
         # termination 
         self.terminations.terrain_out_of_bounds.params["distance_buffer"] = 0.125
+
+@configclass
+class HECTORTorchRoughEnvBlindLocomotionSACCfgPLAY(HECTORTorchRoughEnvBlindLocomotionSACCfg):
+    def __post_init__(self):
+        # post init of parent
+        super().__post_init__()
+        self.seed = 100
+
+        # sim time
+        self.sim.dt = 1/400
+        self.decimation = 4
+        self.sim.render_interval = 2*self.decimation
+
+
+        # terrain
+        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        
+        # command 
+        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
+        self.commands.base_velocity.resampling_time_range = (20.0, 20.0)
+        self.commands.base_velocity.debug_vis = False
+
+
+        # termination 
+        self.terminations.terrain_out_of_bounds.params["distance_buffer"] = 0.125
+
+
+
+        # rendering optimization 
+        RECORDING = False
+        if RECORDING:
+            # quality rendering
+            self.viewer = ViewerCfg(
+                # eye=(-0.0, -1.5, 0.2), 
+                # lookat=(0.0, -0.8, 0.0),
+                eye=(-0.0, -3.0, -0.2), 
+                lookat=(0.0, -0.8, -0.2),
+                resolution=(3840, 2160), # 4K
+                origin_type="asset_root", 
+                asset_name="robot"
+            )
+            self.sim.render_interval = self.decimation
+            self.sim.render.dlss_mode = 2 # 0 (Performance), 1 (Balanced), 2 (Quality), or 3 (Auto)
+            self.sim.render.antialiasing_mode = "DLSS" # "Off", "FXAA", "DLSS", "TAA", "DLAA"
+
+        else:
+            # performance rendering
+            self.sim.render.dlss_mode = 0 # 0 (Performance), 1 (Balanced), 2 (Quality), or 3 (Auto)
+            self.sim.render.antialiasing_mode = None # "Off", "FXAA", "DLSS", "TAA", "DLAA"

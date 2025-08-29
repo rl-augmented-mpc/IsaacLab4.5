@@ -176,7 +176,7 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         # self.events.reset_terrain_type = None
         # self.curriculum.terrain_levels = None
 
-        self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
+        # self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
         # self.events.reset_base.params["multiplier"] = 2
         self.events.reset_base.params["pose_range"] = {
             "x": (-0.3, 0.3), 
