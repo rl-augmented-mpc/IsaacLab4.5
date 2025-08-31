@@ -53,7 +53,7 @@ HECTOR_CFG = ArticulationCfg(
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.0, 0.0, 0.55),
+        pos=(0.0, 0.0, 0.56),
         rot=(1.0, 0.0, 0.0, 0.0),
         joint_vel={".*": 0.0},
         joint_pos={

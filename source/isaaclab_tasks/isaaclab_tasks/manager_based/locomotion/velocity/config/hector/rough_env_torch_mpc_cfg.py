@@ -44,10 +44,11 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         self.sim.dt = 1/200
         self.decimation = 2
         self.sim.render_interval = 2*self.decimation
+        self.episode_length_s = 10.0
 
         # terain
-        self.scene.terrain = hector_mdp.BaseTerrain 
-        # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        # self.scene.terrain = hector_mdp.BaseTerrain 
+        self.scene.terrain = hector_mdp.SteppingStoneTerrainBatch
 
         # event (disable on plane)
         self.events.reset_terrain_type = None
@@ -56,30 +57,28 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         # sensor
         self.scene.height_scanner = None
         
-        self.viewer = ViewerCfg(
-            # eye=(-0.0, -1.5, -0.2), 
-            # lookat=(0.0, -0.8, -0.2),
-            # resolution=(3840, 2160), # 4K
-            # eye=(0.0, -2.0, 0.4), 
-            # lookat=(0.0, -0.5, 0.1),
-            eye=(0.0, -5.0, 0.4), 
-            lookat=(-1.0, -0.5, 0.1),
-            resolution=(1920, 1080), 
-            origin_type="asset_root", 
-            asset_name="robot"
-        )
+        # self.viewer = ViewerCfg(
+        #     # eye=(-0.0, -1.5, -0.2), 
+        #     # lookat=(0.0, -0.8, -0.2),
+        #     # resolution=(3840, 2160), # 4K
+        #     # eye=(0.0, -2.0, 0.4), 
+        #     # lookat=(0.0, -0.5, 0.1),
+        #     eye=(0.0, -2.0, 0.4), 
+        #     lookat=(0.0, -0.5, 0.1),
+        #     resolution=(1920, 1080), 
+        #     origin_type="asset_root", 
+        #     asset_name="robot"
+        # )
 
         # event 
+        self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0.5, 0.5), 
-            "y": (-0.5, 0.5), 
-            # "x": (-0.3, 0.3), 
-            # "y": (-0.3, 0.3),
+            "x": (-1.0, 1.0), 
+            "y": (1.0, 1.0), 
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
             "yaw": (-math.pi, math.pi),
-            # "yaw": (-0.0, 0.0),
         }
 
         # light setting
@@ -109,29 +108,49 @@ class HECTORTorchRoughEnvBlindLocomotionSACCfgPLAY(HECTORTorchRoughEnvBlindLocom
         self.decimation = 4
         self.sim.render_interval = 2*self.decimation
 
+        # solver
+        # self.actions.mpc_action.solver_name = "osqp"
+        # self.actions.mpc_action.solver_name = "qpth"
+        self.actions.mpc_action.solver_name = "casadi"
+        # self.actions.mpc_action.solver_name = "cusadi"
+
 
         # terrain
+        # self.scene.terrain = hector_mdp.BaseTerrain 
         self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
         
         # command 
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 0.0)
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         self.commands.base_velocity.resampling_time_range = (20.0, 20.0)
-        self.commands.base_velocity.debug_vis = False
-
+        # self.commands.base_velocity.debug_vis = False
 
         # termination 
         self.terminations.terrain_out_of_bounds.params["distance_buffer"] = 0.125
 
 
+        # event 
+        self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
+        # self.events.reset_base.params["multiplier"] = 2
+        self.events.reset_base.params["pose_range"] = {
+            "x": (-0.3, 0.3), 
+            "y": (-0.3, 0.3), 
+            "z": (0.0, 0.0),
+            "roll": (0.0, 0.0),
+            "pitch": (0.0, 0.0),
+            "yaw": (-math.pi, math.pi),
+            # "yaw": (-math.pi/2, -math.pi/2),
+        }
 
         # rendering optimization 
         RECORDING = False
         if RECORDING:
             # quality rendering
             self.viewer = ViewerCfg(
-                # eye=(-0.0, -1.5, 0.2), 
-                # lookat=(0.0, -0.8, 0.0),
-                eye=(-0.0, -3.0, -0.2), 
+                # eye=(0.0, -2.4, 0.2), 
+                # lookat=(0.0, -0.5, 0.1),
+                # resolution=(1920, 1080), # Full HD
+                eye=(-0.0, -2.0, -0.2), 
                 lookat=(0.0, -0.8, -0.2),
                 resolution=(3840, 2160), # 4K
                 origin_type="asset_root", 

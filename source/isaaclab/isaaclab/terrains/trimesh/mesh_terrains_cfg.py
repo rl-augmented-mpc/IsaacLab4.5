@@ -101,7 +101,7 @@ class MeshRandomBlockTerrainCfg(SubTerrainBaseCfg):
     """The width of the grid cells (in m)."""
     grid_height_range: tuple[float, float] = MISSING
     """The minimum and maximum height of the grid cells (in m)."""
-    uniform_noise_range: tuple[float, float] = (0.7, 1.0)
+    uniform_noise_range: tuple[float, float] = (0.0, 1.0)
     platform_width: float = 1.0
     """The width of the square platform at the center of the terrain. Defaults to 1.0."""
     holes: bool = False
