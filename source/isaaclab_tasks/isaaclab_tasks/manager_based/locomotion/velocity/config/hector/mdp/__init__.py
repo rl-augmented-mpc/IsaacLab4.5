@@ -14,7 +14,7 @@ from .actions.mpc_actions_cfg import (
 )
 from .terrain.terrain_cfg import (
     BaseTerrain,
-    SteppingStoneTerrain, InferenceSteppingStoneTerrain, 
+    SteppingStoneTerrain, SteppingStoneTerrainBatch, CurriculumSteppingStoneTerrain, InferenceSteppingStoneTerrain, 
     CurriculumFrictionPatchTerrain, FrictionPatchTerrain, InferenceAlternatingFrictionPatchTerrain,
     PyramidHfTerrain, FractalTerrain,
 )

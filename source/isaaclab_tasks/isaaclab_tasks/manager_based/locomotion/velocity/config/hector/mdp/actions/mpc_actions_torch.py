@@ -85,7 +85,7 @@ class BlindLocomotionGPUMPCAction(ActionTerm):
         
         # create tensors to store mpc state
         # floating base state
-        self.state = torch.zeros(self.num_envs, 33, device=self.device)
+        self.state = torch.zeros(self.num_envs, 43, device=self.device)
         self.root_pos = torch.zeros(self.num_envs, 3, device=self.device, dtype=torch.float32)
         self.root_quat = torch.zeros(self.num_envs, 4, device=self.device, dtype=torch.float32)
         self.root_yaw = torch.zeros(self.num_envs, device=self.device, dtype=torch.float32)
@@ -203,71 +203,15 @@ class BlindLocomotionGPUMPCAction(ActionTerm):
         self.command[:, :] = (ramp_up_coef * self._env.command_manager.get_command(self.cfg.command_name))
     
     def _get_reference_height(self):
-        # sensor= self._env.scene.sensors["height_scanner"]
-        # height_map = sensor.data.ray_hits_w[..., 2]
-        
-        # scan_width, scan_height = sensor.cfg.pattern_cfg.size
-        # scan_resolution = sensor.cfg.pattern_cfg.resolution
-        # width = int(scan_width/scan_resolution + 1)
-        # height = int(scan_height/scan_resolution + 1)
-        # scan_offset = (int(sensor.cfg.offset.pos[0]/scan_resolution), int(sensor.cfg.offset.pos[1]/scan_resolution))
-        # target_pos = (self.foot_pos_b.reshape(self.num_envs, 2, 3) * (self.gait_contact==1).unsqueeze(2)).sum(dim=1)
-        
-        # # # rough discretization
-        # # body_center_in_image = (width//2 - scan_offset[0], height//2 - scan_offset[1])
-        # # col_index = ((target_pos[:, 0]/scan_resolution).long() + body_center_in_image[0]).clamp(0, width-1)
-        # # row_index = ((target_pos[:, 1]/scan_resolution).long() + body_center_in_image[1]).clamp(0, height-1)
-        # # indices = (width*row_index + col_index).long() # flatten index
-        # # ground_height = height_map[torch.arange(self.num_envs), indices]
-        
-        # # bilinear interpolation
-        # x_img = target_pos[:, 0] / scan_resolution + (width // 2 - scan_offset[0])
-        # y_img = target_pos[:, 1] / scan_resolution + (height // 2 - scan_offset[1])
-
-        # # Clamp to valid range before ceil/floor to avoid out-of-bounds
-        # x0 = x_img.floor().clamp(0, width - 2)     # [N]
-        # x1 = (x0 + 1).clamp(0, width - 1)          # [N]
-        # y0 = y_img.floor().clamp(0, height - 2)    # [N]
-        # y1 = (y0 + 1).clamp(0, height - 1)         # [N]
-
-        # # Calculate weights for interpolation
-        # wx = (x_img - x0).unsqueeze(1)             # [N, 1]
-        # wy = (y_img - y0).unsqueeze(1)             # [N, 1]
-
-        # # Convert to long for indexing
-        # x0 = x0.long()
-        # x1 = x1.long()
-        # y0 = y0.long()
-        # y1 = y1.long()
-
-        # # Flattened index computation
-        # idx00 = y0 * width + x0
-        # idx10 = y0 * width + x1
-        # idx01 = y1 * width + x0
-        # idx11 = y1 * width + x1
-
-        # # Gather the four corner heights
-        # z00 = height_map[torch.arange(self.num_envs), idx00]
-        # z10 = height_map[torch.arange(self.num_envs), idx10]
-        # z01 = height_map[torch.arange(self.num_envs), idx01]
-        # z11 = height_map[torch.arange(self.num_envs), idx11]
-
-        # # Bilinear interpolation
-        # z0 = (1 - wx) * z00.unsqueeze(1) + wx * z10.unsqueeze(1)  # along x
-        # z1 = (1 - wx) * z01.unsqueeze(1) + wx * z11.unsqueeze(1)  # along x
-        # ground_height = ((1 - wy) * z0 + wy * z1).squeeze(1)      # along y
-        
-        # ground_level_odometry_frame = self.robot_api._init_pos[:, 2] - self.robot_api.default_root_state[:, 2]
-        # self.reference_height = self.cfg.nominal_height + (ground_height - ground_level_odometry_frame)
-        
         # squat motion
         randomize_duration = int(2.0/self._env.physics_dt) # 2sec
         time_step = self.mpc_counter % randomize_duration
         coef = torch.zeros(self.num_envs, device=self.device)
         coef[time_step<=randomize_duration//2] = time_step/(randomize_duration//2) # [0, 1]
         coef[time_step>randomize_duration//2] = (randomize_duration-time_step)/(randomize_duration//2) # [1, 0]
-        offset = -0.15*coef
+        offset = -0.1*coef
         self.reference_height = self.cfg.nominal_height + offset
+        print(self.reference_height)
         
     def _get_footplacement_height(self):
         sensor= self._env.scene.sensors["height_scanner"]
@@ -380,6 +324,7 @@ class BlindLocomotionGPUMPCAction(ActionTerm):
         self.joint_pos = self.robot_api.joint_pos[:, self._joint_ids]
         self.joint_pos = self._add_joint_offset(self.joint_pos) # map hardware joint zeros and simulation joint zeros
         self.joint_vel = self.robot_api.joint_vel[:, self._joint_ids]
+        self.joint_torque = self.robot_api.joint_effort[:, self._joint_ids]
         
         self.state = torch.cat(
             (
@@ -389,6 +334,7 @@ class BlindLocomotionGPUMPCAction(ActionTerm):
                 self.root_ang_vel_b,
                 self.joint_pos,
                 self.joint_vel,
+                self.joint_torque,
             ),
             dim=-1,
         )
@@ -500,6 +446,7 @@ class BLindLocomotionGPUMPCAction2(BlindLocomotionGPUMPCAction):
         # update reference
         self._get_mpc_state()
         self._get_reference_velocity()
+        # self._get_reference_height()
         
         self.mpc_controller.update_mpc_sampling_time(sampling_time)
         self.mpc_controller.set_srbd_accel(centroidal_lin_acc, centroidal_ang_acc)

@@ -38,15 +38,13 @@ class BlindLocomotionMPCActionCfg(ActionTermCfg):
     friction_cone_coef: float = 1.0
     """Friction cone coefficient of the robot."""
 
-
-    ### == construct gait in mpc dt == ###
     control_iteration_between_mpc: int = 10
-    """Control iteration between MPC iterations."""
+    """Number of control iterations between MPC updates."""
 
     # # -- horizon is entire walking step
     # nominal_mpc_dt: float = 0.04
     # """Nominal MPC dt of the robot."""
-    # double_support_duration: int = 0 # 0.05s double support
+    # double_support_duration: int = 1 # 0.05s double support
     # """Double support duration of the robot."""
     # single_support_duration: int = 5 # 0.2s single support
     # """Single support duration of the robot."""
@@ -118,16 +116,13 @@ class BlindLocomotionGPUMPCActionCfg(ActionTermCfg):
     """Name of the command to be used for the action term."""
     nominal_height: float = 0.55
     """Reference height of the robot."""
-    # nominal_swing_height : float = 0.08
-    nominal_swing_height : float = 0.12
+    nominal_swing_height : float = 0.1
     """Nominal swing height of the robot."""
-    nominal_stepping_frequency: float = 1.0
-    """Nominal stepping frequency of the robot."""
     nominal_cp1_coef: float = 1/3
     """Nominal cp1 coefficient of the robot."""
     nominal_cp2_coef: float = 2/3
     """Nominal cp2 coefficient of the robot."""
-    foot_placement_planner: Literal["LIP", "Raibert"] = "LIP"
+    foot_placement_planner: Literal["LIP", "Raibert"] = "Raibert"
     """Foot placement planner to be used. Can be either "LIP" or "Raibert"."""
     friction_cone_coef: float = 1.0
     """Friction cone coefficient of the robot."""
@@ -138,20 +133,29 @@ class BlindLocomotionGPUMPCActionCfg(ActionTermCfg):
     # MPC specific params
     horizon_length: int = 10
     """Horizon length of the robot."""
-    nominal_mpc_dt: float = 0.025
+
+    nominal_mpc_dt: float = 0.04
     """Nominal MPC dt of the robot."""
-    double_support_duration: int = 2
+    double_support_duration: int = 1
     """Double support duration of the robot."""
-    single_support_duration: int = 8
+    single_support_duration: int = 5
     """Single support duration of the robot."""
+
+    # nominal_mpc_dt: float = 0.025
+    # """Nominal MPC dt of the robot."""
+    # double_support_duration: int = 2
+    # """Double support duration of the robot."""
+    # single_support_duration: int = 8
+    # """Single support duration of the robot."""
+
     Q: list[float] = [150, 150, 250,   100, 100, 800,   1, 1, 10,   10, 10, 1]
     # Q: list[float] = [150, 150, 250,   100, 100, 50,   1, 1, 10,   10, 10, 1]
     """State cost weights."""
-    R: list[float] = [1e-5, 1e-5, 1e-5,   1e-5, 1e-5, 1e-5,   1e-4, 1e-4, 1e-4,   1e-4, 1e-4, 1e-4]
+    R: list[float] = [1e-5, 1e-5, 1e-5,   1e-5, 1e-5, 1e-5,   1e-4 , 1e-4, 1e-4,   1e-4, 1e-4, 1e-4]
     # R: list[float] = [1e-5, 1e-5, 1e-4,   1e-5, 1e-5, 1e-4,   1e-4, 1e-4, 1e-4,   1e-4, 1e-4, 1e-4]
 
     # solver
-    solver_name: Literal["osqp", "qpth", "casadi", "cusadi"] = "casadi"
+    solver_name: Literal["osqp", "qpth", "casadi", "cusadi"] = "cusadi"
     print_solve_time: bool = False
     robot: Literal["HECTOR", "T1"] = "HECTOR"
     swing_reference_frame: Literal["world", "base"] = "base"

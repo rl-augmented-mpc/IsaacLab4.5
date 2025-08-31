@@ -511,8 +511,112 @@ class HECTORTorchBlindLocomotionObservationsCfg:
             self.enable_corruption = True
             self.concatenate_terms = True
 
+    @configclass
+    class ForceObsCfg(ObsGroup):
+        """Observations for extra like debug."""
+
+        # observation terms (order preserved !!!!)
+        
+        contact_force = ObsTerm(
+            func=hector_mdp.contact_forces, 
+            params={
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+                # "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe_tip"),
+                },
+            ) # type: ignore
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
+    @configclass
+    class EstimatedForceObsCfg(ObsGroup):
+        """Observations for extra like debug."""
+
+        # observation terms (order preserved !!!!)
+        
+        contact_force = ObsTerm(
+            func=hector_mdp.estimated_grf, 
+            params={
+                "action_name": "mpc_action",
+                },
+            ) # type: ignore
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
+    @configclass
+    class ContactObsCfg(ObsGroup):
+        """Observations for extra like debug."""
+
+        # observation terms (order preserved !!!!)
+        
+        contact_force = ObsTerm(
+            func=hector_mdp.first_contact, 
+            # func=hector_mdp.contact, 
+            params={
+                # "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+                "contact_sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe_tip"),
+                },
+            ) # type: ignore
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+    
+    @configclass
+    class ExteroceptiveObsCfg(ObsGroup):
+        """Observations for extra like debug."""
+
+        # observation terms (order preserved !!!!)
+        # height_scan = ObsTerm(
+        #     func=mdp.height_scan, # type: ignore
+        #     params={
+        #         "sensor_cfg": SceneEntityCfg("height_scanner"),
+        #         "offset": 0.56,
+        #         },
+        #     # noise=Unoise(n_min=-0.1, n_max=0.1),
+        #     clip=(-1.0, 1.0),
+        # )
+        terain_roughness = ObsTerm(
+            func=hector_mdp.terrain_roughness, # type: ignore
+            params={
+                "left_raycaster_cfg": SceneEntityCfg("height_scanner_L_foot"),
+                "right_raycaster_cfg": SceneEntityCfg("height_scanner_R_foot"),
+                },
+            # noise=Unoise(n_min=-0.1, n_max=0.1),
+            clip=(-1.0, 1.0),
+        )
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
+    @configclass
+    class GlobalPosCfg(ObsGroup):
+        """Observations for extra like debug."""
+
+        # observation terms (order preserved !!!!)
+        
+        pos_w = ObsTerm(
+            func=mdp.root_pos_w,  # type: ignore
+            params={
+                "asset_cfg": SceneEntityCfg("robot"),
+                },
+            ) # type: ignore
+
+        def __post_init__(self):
+            self.enable_corruption = True
+            self.concatenate_terms = True
+
     # observation groups
     policy: PolicyCfg = PolicyCfg()
+    force: ForceObsCfg = ForceObsCfg() # <- only for data analysis
+    estimated_force: EstimatedForceObsCfg = EstimatedForceObsCfg() # <- only for data analysis
+    first_contact: ContactObsCfg = ContactObsCfg() # <- only for data analysis
+    # exteroception: ExteroceptiveObsCfg = ExteroceptiveObsCfg() # <- only for data analysis
+    global_pos: GlobalPosCfg = GlobalPosCfg() # <- only for data analysis
     
 
 """

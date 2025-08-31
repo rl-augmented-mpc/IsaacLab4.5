@@ -195,6 +195,7 @@ class BlindLocomotionMPCAction(ActionTerm):
     
     def process_mpc_reference(self, sensor_name: str= "height_scanner"):
         self._get_reference_velocity()
+        # self._get_reference_height()
         
     def _get_reference_velocity(self):
         # # ramp up
@@ -211,7 +212,14 @@ class BlindLocomotionMPCAction(ActionTerm):
         self._env.command_manager._terms[self.cfg.command_name].vel_command_b = command
         
     def _get_reference_height(self, sensor_name: str = "height_scanner_fine"):
-        raise NotImplementedError
+        # squat motion
+        randomize_duration = int(2.0/self._env.physics_dt) # 2sec
+        time_step = self.mpc_counter % randomize_duration
+        coef = torch.zeros(self.num_envs, device=self.device)
+        coef[time_step<=randomize_duration//2] = time_step/(randomize_duration//2) # [0, 1]
+        coef[time_step>randomize_duration//2] = (randomize_duration-time_step)/(randomize_duration//2) # [1, 0]
+        offset = -0.1*coef
+        self.reference_height = self.cfg.nominal_height + offset
         
     def _get_footplacement_height(self, sensor_name: str = "height_scanner_fine"):
         raise NotImplementedError
@@ -418,7 +426,7 @@ class BlindLocomotionMPCAction(ActionTerm):
         #     self.mpc_controller[i].run()
         # self._get_mpc_state()
         
-        # # # switch to walking mode again
+        # # switch to walking mode again
         # for i in range(self.num_envs):
         #     self.mpc_controller[i].switch_fsm("walking")
 

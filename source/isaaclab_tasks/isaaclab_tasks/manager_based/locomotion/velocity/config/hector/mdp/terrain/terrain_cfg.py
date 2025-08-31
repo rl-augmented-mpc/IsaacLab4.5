@@ -225,9 +225,285 @@ SteppingStoneTerrain = TerrainImporterCfg(
         size=(10.0, 10.0), # size of sub-terrain
         border_width=5.0,
         border_height=1.0,
-        # num_rows=10,
-        # num_cols=20,
         num_rows=1,
+        num_cols=20,
+        horizontal_scale=0.1,
+        vertical_scale=0.005,
+        slope_threshold=0.75,
+        use_cache=False,
+        curriculum=True,
+        sub_terrains={
+            # "stair": terrain_gen.StairTerrainCfg(
+            # profile_mode="random",
+            # proportion=0.5, 
+            # num_box=120,
+            # box_height_range=(0.1, 0.1), 
+            # platform_width=30.0, 
+            # platform_length_range_start=(0.2, 0.3), platform_length_range_end=(0.2, 0.3),
+            # platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
+            # border_size=0.0, 
+            # height_noise_range=(-0.01, 0.01), 
+            # center_area_size=1.5,
+            # ),
+
+            # "repeated_object": terrain_gen.MeshRepeatedBoxesTerrainCfg(
+            #     object_type="box", 
+            #     max_height_noise=0.00, 
+            #     platform_width=1.8,
+            #     proportion=0.05,
+            #     object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+            #         num_objects=2000, 
+            #         height=0.1*2, 
+            #         size=(0.3, 0.3),
+            #         max_yx_angle=0.0,
+            #     ), 
+            #     object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+            #         num_objects=2000, 
+            #         height=0.1*2, 
+            #         size=(0.3, 0.3),
+            #         max_yx_angle=0.0, 
+            #     ),
+            # ), 
+
+            "random_grid_narrow": terrain_gen.MeshRandomBlockTerrainCfg(
+            proportion=0.25, grid_width=0.2, 
+            # grid_height_range=(0.06, 0.06), 
+            grid_height_range=(0.07, 0.07), 
+            uniform_noise_range=(0.7, 1.0),
+            platform_width=2.0, 
+            ),
+
+            "random_grid": terrain_gen.MeshRandomBlockTerrainCfg(
+            proportion=0.25, grid_width=0.3, 
+            # grid_height_range=(0.06, 0.06), 
+            grid_height_range=(0.07, 0.07), 
+            uniform_noise_range=(0.7, 1.0),
+            platform_width=2.1
+            ),
+
+            "random_grid_wide": terrain_gen.MeshRandomBlockTerrainCfg(
+            proportion=0.25, grid_width=0.4, 
+            # grid_height_range=(0.06, 0.06), 
+            grid_height_range=(0.07, 0.07), 
+            uniform_noise_range=(0.7, 1.0),
+            platform_width=2.0
+            ),
+
+            # "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
+            # proportion=0.05,
+            # # step_height_range=(0.1, 0.1),
+            # # step_height_range=(0.11, 0.11),
+            # step_width=0.2,
+            # platform_width=2.5,
+            # border_width=1.0,
+            # holes=False,
+            # ),
+
+            "pyramid_stairs_inv_1": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
+            proportion=0.3,
+            # step_height_range=(0.11, 0.11),
+            step_height_range=(0.1, 0.1),
+            step_width=0.3,
+            platform_width=2.0,
+            border_width=1.0,
+            holes=False,
+            ),
+
+            "pyramid_stairs_inv_2": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
+            proportion=0.3,
+            # step_height_range=(0.11, 0.11),
+            step_height_range=(0.1, 0.1),
+            step_width=0.25,
+            platform_width=2.0,
+            border_width=1.0,
+            holes=False,
+            ),
+
+            "random_stair": terrain_gen.StairTerrainCfg(
+            profile_mode="random",
+            proportion=0.3, 
+            num_box=50, # one side
+            box_height_range=(0.1, 0.1), 
+            # box_height_range=(0.11, 0.11), 
+            platform_width=10.0, 
+            platform_length_range_start=(0.2, 0.25), platform_length_range_end=(0.2, 0.25),
+            platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
+            border_size=0.0, 
+            height_noise_range=(-0.0, 0.0), 
+            center_area_size=1.5,
+            ),
+        },
+    ),
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=2.0,
+        dynamic_friction=2.0,
+    ),
+    # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    visual_material=sim_utils.MdlFileCfg(
+        mdl_path=f"{ISAACLAB_NUCLEUS_DIR}/Materials/TilesMarbleSpiderWhiteBrickBondHoned/TilesMarbleSpiderWhiteBrickBondHoned.mdl",
+        project_uvw=True,
+        # albedo_brightness=0.15,
+
+        texture_scale=(0.25, 0.25),
+    ),
+    max_init_terrain_level=0,
+    keep_max_terrain_level=True,
+    debug_vis=False,
+    disable_colllider=False,
+)
+
+
+
+
+SteppingStoneTerrainBatch = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="generator",
+    terrain_generator= terrain_gen.TerrainGeneratorCfg(
+        size=(20.0, 20.0), # size of sub-terrain
+        border_width=5.0,
+        border_height=1.0,
+        num_rows=1,
+        num_cols=20,
+        horizontal_scale=0.1,
+        vertical_scale=0.005,
+        slope_threshold=0.75,
+        use_cache=False,
+        curriculum=True,
+        sub_terrains={
+            # "stair": terrain_gen.StairTerrainCfg(
+            # profile_mode="random",
+            # proportion=0.5, 
+            # num_box=120,
+            # box_height_range=(0.1, 0.1), 
+            # platform_width=30.0, 
+            # platform_length_range_start=(0.2, 0.3), platform_length_range_end=(0.2, 0.3),
+            # platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
+            # border_size=0.0, 
+            # height_noise_range=(-0.01, 0.01), 
+            # center_area_size=1.5,
+            # ),
+
+            # "repeated_object": terrain_gen.MeshRepeatedBoxesTerrainCfg(
+            #     object_type="box", 
+            #     max_height_noise=0.00, 
+            #     platform_width=1.8,
+            #     proportion=0.05,
+            #     object_params_start=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+            #         num_objects=2000, 
+            #         height=0.1*2, 
+            #         size=(0.3, 0.3),
+            #         max_yx_angle=0.0,
+            #     ), 
+            #     object_params_end=terrain_gen.MeshRepeatedBoxesTerrainCfg.ObjectCfg(
+            #         num_objects=2000, 
+            #         height=0.1*2, 
+            #         size=(0.3, 0.3),
+            #         max_yx_angle=0.0, 
+            #     ),
+            # ), 
+
+            "random_grid_narrow": terrain_gen.MeshRandomBlockTerrainCfg(
+            proportion=0.25, grid_width=0.2, 
+            # grid_height_range=(0.06, 0.06), 
+            grid_height_range=(0.07, 0.07), 
+            uniform_noise_range=(0.7, 1.0),
+            platform_width=4.0, 
+            ),
+
+            "random_grid": terrain_gen.MeshRandomBlockTerrainCfg(
+            proportion=0.25, grid_width=0.3, 
+            # grid_height_range=(0.06, 0.06), 
+            grid_height_range=(0.07, 0.07), 
+            uniform_noise_range=(0.7, 1.0),
+            platform_width=4.2
+            ),
+
+            "random_grid_wide": terrain_gen.MeshRandomBlockTerrainCfg(
+            proportion=0.25, grid_width=0.4, 
+            # grid_height_range=(0.06, 0.06), 
+            grid_height_range=(0.07, 0.07), 
+            uniform_noise_range=(0.7, 1.0),
+            platform_width=4.0
+            ),
+
+            # "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
+            # proportion=0.05,
+            # # step_height_range=(0.1, 0.1),
+            # # step_height_range=(0.11, 0.11),
+            # step_width=0.2,
+            # platform_width=2.5,
+            # border_width=1.0,
+            # holes=False,
+            # ),
+
+            "pyramid_stairs_inv_1": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
+            proportion=0.3,
+            # step_height_range=(0.11, 0.11),
+            step_height_range=(0.1, 0.1),
+            step_width=0.3,
+            platform_width=4.0,
+            border_width=5.0,
+            holes=False,
+            ),
+
+            "pyramid_stairs_inv_2": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
+            proportion=0.3,
+            # step_height_range=(0.11, 0.11),
+            step_height_range=(0.1, 0.1),
+            step_width=0.25,
+            platform_width=4.0,
+            border_width=5.0,
+            holes=False,
+            ),
+
+            "random_stair": terrain_gen.StairTerrainCfg(
+            profile_mode="random",
+            proportion=0.3, 
+            num_box=50, # one side
+            box_height_range=(0.1, 0.1), 
+            # box_height_range=(0.11, 0.11), 
+            platform_width=20.0, 
+            platform_length_range_start=(0.2, 0.25), platform_length_range_end=(0.2, 0.25),
+            platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
+            border_size=0.0, 
+            height_noise_range=(-0.0, 0.0), 
+            center_area_size=4.0,
+            ),
+        },
+    ),
+    collision_group=-1,
+    physics_material=sim_utils.RigidBodyMaterialCfg(
+        friction_combine_mode="multiply",
+        restitution_combine_mode="multiply",
+        static_friction=2.0,
+        dynamic_friction=2.0,
+    ),
+    # visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.1, 0.1)),
+    visual_material=sim_utils.MdlFileCfg(
+        mdl_path=f"{ISAACLAB_NUCLEUS_DIR}/Materials/TilesMarbleSpiderWhiteBrickBondHoned/TilesMarbleSpiderWhiteBrickBondHoned.mdl",
+        project_uvw=True,
+        # albedo_brightness=0.15,
+
+        texture_scale=(0.25, 0.25),
+    ),
+    max_init_terrain_level=0,
+    keep_max_terrain_level=True,
+    debug_vis=False,
+    disable_colllider=False,
+)
+
+
+CurriculumSteppingStoneTerrain = TerrainImporterCfg(
+    prim_path="/World/ground",
+    terrain_type="generator",
+    terrain_generator= terrain_gen.TerrainGeneratorCfg(
+        size=(10.0, 10.0), # size of sub-terrain
+        border_width=5.0,
+        border_height=1.0,
+        num_rows=10,
         num_cols=20,
         horizontal_scale=0.1,
         vertical_scale=0.005,
@@ -272,7 +548,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
             # grid_height_range=(0.06, 0.06), 
             # grid_height_range=(0.08, 0.08), 
             grid_height_range=(0.07, 0.07), 
-            uniform_noise_range=(0.7, 1.0),
+            # uniform_noise_range=(0.7, 1.0),
             platform_width=2.0, 
             ),
 
@@ -280,7 +556,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
             proportion=0.25, grid_width=0.3, 
             # grid_height_range=(0.06, 0.06), 
             grid_height_range=(0.07, 0.07), 
-            uniform_noise_range=(0.7, 1.0),
+            # uniform_noise_range=(0.7, 1.0),
             platform_width=2.1
             ),
 
@@ -288,14 +564,12 @@ SteppingStoneTerrain = TerrainImporterCfg(
             proportion=0.25, grid_width=0.4, 
             # grid_height_range=(0.06, 0.06), 
             grid_height_range=(0.07, 0.07), 
-            uniform_noise_range=(0.7, 1.0),
+            # uniform_noise_range=(0.7, 1.0),
             platform_width=2.0
             ),
 
             # "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
             # proportion=0.05,
-            # # step_height_range=(0.1, 0.1),
-            # # step_height_range=(0.11, 0.11),
             # step_height_range=(0.08, 0.11),
             # step_width=0.2,
             # platform_width=2.5,
@@ -305,9 +579,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
 
             "pyramid_stairs_inv_1": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
             proportion=0.3,
-            # step_height_range=(0.08, 0.11),
-            step_height_range=(0.11, 0.11),
-            # step_height_range=(0.1, 0.1),
+            step_height_range=(0.08, 0.11),
             step_width=0.3,
             platform_width=2.0,
             border_width=1.0,
@@ -316,9 +588,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
 
             "pyramid_stairs_inv_2": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
             proportion=0.3,
-            #  step_height_range=(0.08, 0.11),
-            step_height_range=(0.11, 0.11),
-            # step_height_range=(0.1, 0.1),
+             step_height_range=(0.08, 0.11),
             step_width=0.25,
             platform_width=2.0,
             border_width=1.0,
@@ -329,9 +599,7 @@ SteppingStoneTerrain = TerrainImporterCfg(
             profile_mode="random",
             proportion=0.3, 
             num_box=50, # one side
-            # box_height_range=(0.08, 0.11),
-            # box_height_range=(0.1, 0.1), 
-            box_height_range=(0.11, 0.11), 
+            box_height_range=(0.08, 0.11),
             platform_width=10.0, 
             platform_length_range_start=(0.2, 0.25), platform_length_range_end=(0.2, 0.25),
             platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
@@ -367,12 +635,12 @@ InferenceSteppingStoneTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="generator",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        # size=(6.0, 6.0), # size of sub-terrain
-        size=(10.0, 10.0), # size of sub-terrain
+        size=(6.0, 6.0), # size of sub-terrain
+        # size=(10.0, 10.0), # size of sub-terrain
         border_width=0.0,
         num_rows=1,
-        # num_cols=5,
         num_cols=1,
+        # num_cols=10,
         horizontal_scale=0.1,
         vertical_scale=0.005,
         slope_threshold=0.75, 
@@ -398,33 +666,15 @@ InferenceSteppingStoneTerrain = TerrainImporterCfg(
             #     ),
             # ), 
 
-            "random_grid_narrow": terrain_gen.MeshRandomBlockTerrainCfg(
-            proportion=0.33, grid_width=0.25, 
-            # grid_height_range=(0.04, 0.04), 
+            # "random_grid_narrow": terrain_gen.MeshRandomBlockTerrainCfg(
+            # proportion=0.33, grid_width=0.25, 
+            # # grid_height_range=(0.04, 0.04), 
             # grid_height_range=(0.05, 0.05), 
-            grid_height_range=(0.06, 0.06), 
-            # grid_height_range=(0.07, 0.07), 
-            # grid_height_range=(0.08, 0.08), 
-            platform_width=1.25, 
-            # uniform_noise_range=(0.8, 1.0),
-            ),
-
-            # "random_grid": terrain_gen.MeshRandomBlockTerrainCfg(
-            # proportion=0.33, grid_width=0.3, 
-            # # grid_height_range=(0.03, 0.03), 
-            # # grid_height_range=(0.04, 0.04), 
+            # # grid_height_range=(0.06, 0.06), 
             # # grid_height_range=(0.07, 0.07), 
-            # grid_height_range=(0.08, 0.08), 
-            # platform_width=1.5, 
+            # # grid_height_range=(0.08, 0.08), 
+            # platform_width=1.25, 
             # uniform_noise_range=(0.0, 1.0),
-            # ),
-
-            # "random_wide": terrain_gen.MeshRandomBlockTerrainCfg(
-            # proportion=0.33, grid_width=0.45, 
-            # # grid_height_range=(0.03, 0.03), 
-            # # grid_height_range=(0.04, 0.04), 
-            # grid_height_range=(0.07, 0.07), 
-            # platform_width=1.8
             # ),
 
             # "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
@@ -436,20 +686,20 @@ InferenceSteppingStoneTerrain = TerrainImporterCfg(
             # holes=False,
             # ),
 
-            # "pyramid_stairs_inv": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
-            # proportion=0.4,
-            # # step_height_range=(0.06, 0.06),
-            # # step_height_range=(0.07, 0.07),
+            "pyramid_stairs_inv": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
+            proportion=0.4,
+            # step_height_range=(0.06, 0.06),
+            # step_height_range=(0.07, 0.07),
             # step_height_range=(0.08, 0.08),
-            # # step_height_range=(0.09, 0.09),
-            # # step_height_range=(0.1, 0.1),
-            # # step_height_range=(0.11, 0.11),
-            # step_width=0.25,
-            # # step_width=0.3,
-            # platform_width=2.0,
-            # border_width=0.,
-            # holes=False,
-            # ),
+            # step_height_range=(0.09, 0.09),
+            step_height_range=(0.1, 0.1),
+            # step_height_range=(0.11, 0.11),
+            step_width=0.25,
+            # step_width=0.3,
+            platform_width=2.0,
+            border_width=0.,
+            holes=False,
+            ),
 
             # "random_stair": terrain_gen.StairTerrainCfg(
             # profile_mode="random",
@@ -457,13 +707,12 @@ InferenceSteppingStoneTerrain = TerrainImporterCfg(
             # num_box=50, # one side
             # # box_height_range=(0.08, 0.08), 
             # # box_height_range=(0.09, 0.09), 
-            # box_height_range=(0.1, 0.1), 
-            # # box_height_range=(0.11, 0.11), 
+            # # box_height_range=(0.1, 0.1), 
+            # box_height_range=(0.11, 0.11), 
             # platform_width=10.0, 
             # platform_length_range_start=(0.25, 0.25), platform_length_range_end=(0.25, 0.25),
             # platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
             # border_size=0.0, 
-            # # height_noise_range=(-0.01, 0.01), 
             # height_noise_range=(-0.0, 0.0), 
             # center_area_size=1.0,
             # ),
