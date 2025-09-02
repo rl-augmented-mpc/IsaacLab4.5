@@ -209,7 +209,7 @@ InferenceAlternatingFrictionPatchTerrain = TerrainImporterCfg(
     ),
     debug_vis=False,
     disable_colllider=False,
-    static_friction_range=(0.2 , 0.5),
+    static_friction_range=(0.1 , 0.5),
     friction_distribution="grid_deterministic",
     # friction_distribution="line_deterministic",
 )
