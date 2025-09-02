@@ -1,0 +1,99 @@
+params:
+  seed: 0
+
+  # environment wrapper clipping
+  env:
+    # read from the env wrapper
+    clip_observations: 50.0
+    clip_actions: 1.0
+
+  algo:
+    name: sac
+
+  model:
+    name: soft_actor_critic
+
+  # doesn't have this fine grained control but made it close
+  network:
+    name: soft_actor_critic
+    separate: True
+    squash_output: True
+    space:
+      continuous:
+        mu_activation: None
+        sigma_activation: None
+
+        # different from PPO, mu and sigma are output from same action MLP head
+        mu_init:
+          # name: default
+          # name: orthogonal
+          name: const_initializer
+          val: 0
+        # mu_bias: [0, 0, 0, 0, 0, 0, 0, -1, 0]
+        # fixed_sigma: True # does not have  effect in SAC
+    mlp:
+      units: [512, 256, 128]
+      activation: elu
+      d2rl: False
+
+      initializer:
+        # name: default
+        # name: kaiming_normal
+        name: orthogonal
+      regularizer:
+        name: None
+      
+    log_std_bounds: [-5, 2]
+
+  load_checkpoint: False # flag which sets whether to load the checkpoint
+  load_path: '' # path to the checkpoint to load
+
+  config:
+    name: manager_sac_rl_games_batched_mpc_slip
+    env_name: rlgpu
+    device: 'cuda:0'
+    device_name: 'cuda:0'
+    multi_gpu: False
+
+    # common parameters
+    mixed_precision: True
+    normalize_input: True
+    normalize_value: True
+    num_actors: -1  # configured from the script (based on num_envs)
+    reward_shaper:
+      scale_value: 1.0
+    gamma: 0.98
+    entropy_coef: 0.001 # not used
+    score_to_win: 20000
+    max_epochs: 500
+    save_best_after: 50
+    save_frequency: 50
+
+    # SAC specific parameters
+    num_steps_per_episode: 24
+    horizon_length: ${.num_steps_per_episode}
+    init_alpha: 1.0 # entropy temperature initial value
+    target_entropy_coef: 1.0
+    alpha_lr: 1e-4 # entropy temperature learning rate
+    actor_lr: 1e-4 # actor network learning rate
+    critic_lr: 1e-4 # critic network learning rate
+    critic_tau: 5e-3 # soft update parameter (polyak averaging)
+    learnable_temperature: True
+    num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
+    batch_size: 512
+    replay_buffer_size: 1000000
+
+    # regularization loss
+    reg_loss_coef: 0.01 
+
+    # bound loss
+    bounds_loss_coef: 0.03 # did not work for randomized velocity
+    bounds_loss_action_dim: [7] # pz_max
+    bounds_loss_soft_lower_bound: [0.0]
+    bounds_loss_soft_upper_bound: [1.0]
+  
+  log:
+    logger: wandb
+    wandb_project_name: rl_mpc_manager_batched_mpc_slip
+    wandb_entity: jnskkmr
+    name: sac_rl_games_mlp
