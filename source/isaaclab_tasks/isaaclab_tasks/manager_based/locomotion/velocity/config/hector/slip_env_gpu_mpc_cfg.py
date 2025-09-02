@@ -51,7 +51,6 @@ class HECTORGPUSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
 
         # event (disable on plane)
         self.events.reset_terrain_type = None
-        self.curriculum.terrain_levels = None
 
         # sensor
         self.scene.height_scanner = None
@@ -73,7 +72,6 @@ class HECTORGPUSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
             "pitch": (0.0, 0.0),
             "yaw": (-math.pi, math.pi),
         }
-        self.events.reset_terrain_type = None
 
         # light setting
         self.scene.sky_light.init_state.rot = (0.8660254, 0.0, 0.0, 0.5)  # yaw=60deg

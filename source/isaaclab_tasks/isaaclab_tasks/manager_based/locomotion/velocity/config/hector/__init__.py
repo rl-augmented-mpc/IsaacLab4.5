@@ -112,20 +112,17 @@ ARGS = [
     },
     {
         "env_cfg_entry_point": f"{__name__}.rough_env_gpu_mpc_cfg:HECTORGPURoughEnvBlindLocomotionSACCfgPLAY",
-        # "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_batched_mpc_inference.yaml",
-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_st_blind_inference.yaml",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_batched_mpc_inference.yaml",
     },
 
 
     # GPU-MPC and SAC slip blind env
     {
         "env_cfg_entry_point": f"{__name__}.slip_env_gpu_mpc_cfg:HECTORGPUSlipEnvSACCfg",
-        # "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_batched_mpc.yaml",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_slip_batched_mpc.yaml",
     },
     {
         "env_cfg_entry_point": f"{__name__}.slip_env_gpu_mpc_cfg:HECTORGPUSlipEnvSACCfgPLAY",
-        # "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_batched_mpc_inference.yaml",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_slip_batched_mpc_inference.yaml",
     },
 ]
