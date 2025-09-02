@@ -103,7 +103,8 @@ CurriculumFrictionPatchTerrain = TerrainImporterCfg(
     prim_path="/World/ground",
     terrain_type="custom_curriculum",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
-        size=(0.5, 0.5), # size of sub-terrain (size 1.0 has some artifacts?)
+        # size=(0.5, 0.5), # size of sub-terrain (size 1.0 has some artifacts?)
+        size=(1.0, 1.0), # size of sub-terrain (size 1.0 has some artifacts?)
         border_width=0.0,
         num_rows=10,
         num_cols=1,
@@ -363,7 +364,7 @@ SteppingStoneTerrainBatch = TerrainImporterCfg(
     terrain_type="generator",
     terrain_generator= terrain_gen.TerrainGeneratorCfg(
         size=(20.0, 20.0), # size of sub-terrain
-        border_width=5.0,
+        border_width=3.0,
         border_height=1.0,
         num_rows=1,
         num_cols=20,
@@ -410,7 +411,7 @@ SteppingStoneTerrainBatch = TerrainImporterCfg(
             # grid_height_range=(0.06, 0.06), 
             grid_height_range=(0.07, 0.07), 
             uniform_noise_range=(0.7, 1.0),
-            platform_width=4.0, 
+            platform_width=6.0, 
             ),
 
             "random_grid": terrain_gen.MeshRandomBlockTerrainCfg(
@@ -418,7 +419,7 @@ SteppingStoneTerrainBatch = TerrainImporterCfg(
             # grid_height_range=(0.06, 0.06), 
             grid_height_range=(0.07, 0.07), 
             uniform_noise_range=(0.7, 1.0),
-            platform_width=4.2
+            platform_width=6.2
             ),
 
             "random_grid_wide": terrain_gen.MeshRandomBlockTerrainCfg(
@@ -426,7 +427,7 @@ SteppingStoneTerrainBatch = TerrainImporterCfg(
             # grid_height_range=(0.06, 0.06), 
             grid_height_range=(0.07, 0.07), 
             uniform_noise_range=(0.7, 1.0),
-            platform_width=4.0
+            platform_width=6.0
             ),
 
             # "pyramid_stairs": terrain_gen.MeshPyramidStairsTerrainCfg(
@@ -442,20 +443,20 @@ SteppingStoneTerrainBatch = TerrainImporterCfg(
             "pyramid_stairs_inv_1": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
             proportion=0.3,
             # step_height_range=(0.11, 0.11),
-            step_height_range=(0.1, 0.1),
+            step_height_range=(0.09, 0.09),
             step_width=0.3,
-            platform_width=4.0,
-            border_width=5.0,
+            platform_width=6.1,
+            border_width=3.0,
             holes=False,
             ),
 
             "pyramid_stairs_inv_2": terrain_gen.MeshInvertedPyramidStairsTerrainCfg(
             proportion=0.3,
             # step_height_range=(0.11, 0.11),
-            step_height_range=(0.1, 0.1),
+            step_height_range=(0.09, 0.09),
             step_width=0.25,
-            platform_width=4.0,
-            border_width=5.0,
+            platform_width=6.0,
+            border_width=3.0,
             holes=False,
             ),
 
@@ -470,7 +471,7 @@ SteppingStoneTerrainBatch = TerrainImporterCfg(
             platform_gap_range_start=(0.0, 0.0), platform_gap_range_end=(0.0, 0.0),
             border_size=0.0, 
             height_noise_range=(-0.0, 0.0), 
-            center_area_size=4.0,
+            center_area_size=6.0,
             ),
         },
     ),
@@ -485,8 +486,7 @@ SteppingStoneTerrainBatch = TerrainImporterCfg(
     visual_material=sim_utils.MdlFileCfg(
         mdl_path=f"{ISAACLAB_NUCLEUS_DIR}/Materials/TilesMarbleSpiderWhiteBrickBondHoned/TilesMarbleSpiderWhiteBrickBondHoned.mdl",
         project_uvw=True,
-        # albedo_brightness=0.15,
-
+        albedo_brightness=0.5,
         texture_scale=(0.25, 0.25),
     ),
     max_init_terrain_level=0,
@@ -690,9 +690,9 @@ InferenceSteppingStoneTerrain = TerrainImporterCfg(
             proportion=0.4,
             # step_height_range=(0.06, 0.06),
             # step_height_range=(0.07, 0.07),
-            # step_height_range=(0.08, 0.08),
+            step_height_range=(0.08, 0.08),
             # step_height_range=(0.09, 0.09),
-            step_height_range=(0.1, 0.1),
+            # step_height_range=(0.1, 0.1),
             # step_height_range=(0.11, 0.11),
             step_width=0.25,
             # step_width=0.3,

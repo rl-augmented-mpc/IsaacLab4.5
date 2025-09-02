@@ -353,7 +353,7 @@ class HECTORSlipRewardsCfg(RewardsCfg):
 
 
 @configclass
-class HECTORTorchBlindLocomotionRewardsCfg(RewardsCfg):
+class HECTORGPUBlindLocomotionRewardsCfg(RewardsCfg):
     """Reward terms for the MDP."""
     
     track_lin_vel_xy_exp = RewTerm(

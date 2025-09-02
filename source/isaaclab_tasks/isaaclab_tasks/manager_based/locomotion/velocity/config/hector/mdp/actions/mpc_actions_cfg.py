@@ -136,7 +136,7 @@ class BlindLocomotionGPUMPCActionCfg(ActionTermCfg):
 
     nominal_mpc_dt: float = 0.04
     """Nominal MPC dt of the robot."""
-    double_support_duration: int = 1
+    double_support_duration: int = 0
     """Double support duration of the robot."""
     single_support_duration: int = 5
     """Single support duration of the robot."""
@@ -146,9 +146,9 @@ class BlindLocomotionGPUMPCActionCfg(ActionTermCfg):
     # double_support_duration: int = 2
     # """Double support duration of the robot."""
     # single_support_duration: int = 8
-    # """Single support duration of the robot."""
+    # # """Single support duration of the robot."""
 
-    Q: list[float] = [150, 150, 250,   100, 100, 800,   1, 1, 10,   10, 10, 1]
+    Q: list[float] = [150, 150, 250,   100, 100, 800,   1, 1, 1,   10, 10, 1]
     # Q: list[float] = [150, 150, 250,   100, 100, 50,   1, 1, 10,   10, 10, 1]
     """State cost weights."""
     R: list[float] = [1e-5, 1e-5, 1e-5,   1e-5, 1e-5, 1e-5,   1e-4 , 1e-4, 1e-4,   1e-4, 1e-4, 1e-4]

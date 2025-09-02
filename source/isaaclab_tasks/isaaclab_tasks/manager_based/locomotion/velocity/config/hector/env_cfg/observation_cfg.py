@@ -446,7 +446,7 @@ class HECTORPerceptiveLocomotionObservationsCfg:
 GPU-MPC observations
 """
 @configclass
-class HECTORTorchBlindLocomotionObservationsCfg:
+class HECTORGPUBlindLocomotionObservationsCfg:
     """Observation specifications for the MDP."""
 
     @configclass
