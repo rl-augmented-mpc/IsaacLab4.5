@@ -63,9 +63,9 @@ params:
     reward_shaper:
       scale_value: 1.0
     gamma: 0.98
-    entropy_coef: 0.001 # not used
+    entropy_coef: 0.001 # not used when automatic entropy tuning
     score_to_win: 20000
-    max_epochs: 500
+    max_epochs: 2000
     save_best_after: 50
     save_frequency: 50
 
@@ -83,11 +83,11 @@ params:
     batch_size: 512
     replay_buffer_size: 1000000
 
-    # regularization loss
+    # # regularization loss
     # reg_loss_coef: 0.01 
 
     # bound loss
-    # bounds_loss_coef: 0.03 
+    bounds_loss_coef: 0.03 
     # bounds_loss_action_dim: [0] # pz_max (model swing)
     # bounds_loss_action_dim: [1] # pz_max (model swing-gait)
     bounds_loss_action_dim: [7] # pz_max (model simple-res-all)
