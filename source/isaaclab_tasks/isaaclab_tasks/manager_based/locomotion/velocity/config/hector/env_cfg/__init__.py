@@ -4,7 +4,7 @@ from .action_cfg import (
     HECTORSlipActionsCfg, 
     HECTORGPUBlindLocomotionActionsCfg, 
     HECTORGPUSlipActionsCfg,
-    HECTORL2TActionsCfg,
+    # HECTORL2TActionsCfg,
 )
 from .command_cfg import HECTORCommandsCfg
 from .curriculum_cfg import HECTORCurriculumCfg, HECTORSlipCurriculumCfg

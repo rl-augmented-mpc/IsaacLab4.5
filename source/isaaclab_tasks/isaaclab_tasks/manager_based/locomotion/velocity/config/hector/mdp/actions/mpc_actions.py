@@ -129,11 +129,8 @@ class BlindLocomotionMPCAction(ActionTerm):
     def action_dim(self) -> int:
         """
         mpc control parameters:
-        - mpc sampling time
-        - swing foot height 
-        - swing trajectory control points
         """
-        return 3
+        return 1
 
     @property
     def raw_actions(self) -> torch.Tensor:
@@ -150,48 +147,7 @@ class BlindLocomotionMPCAction(ActionTerm):
     
     # ** MDP loop **
     def process_actions(self, actions: torch.Tensor):
-        # store the raw actions
-        self._raw_actions[:] = actions.clone()
-        # clip negative action value
-        negative_action_clip_idx = self.cfg.negative_action_clip_idx
-        if negative_action_clip_idx is not None:
-            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
-        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
-        
-        # split processed actions into individual control parameters
-        sampling_time_idx = 0 
-        swing_foot_height_idx = 1
-        trajectory_control_points_idx = 2
-
-        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx].cpu().numpy())
-        swing_foot_height = self._processed_actions[:, swing_foot_height_idx].cpu().numpy()
-        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx].cpu().numpy()
-        
-        # form actual control parameters (nominal value + residual)
-        swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
-        cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
-        cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
-        
-        # update reference
-        self.process_mpc_reference()
-        
-        # send updated parameters to MPC
-        for i in range(self.num_envs):
-            self.mpc_controller[i].update_sampling_time(sampling_time[i])
-            self.mpc_controller[i].set_swing_parameters(
-                stepping_frequency=1.0, 
-                foot_height=swing_foot_height[i], 
-                cp1=cp1[i], 
-                cp2=cp2[i], 
-                pf_z=self.foot_placement_height[i])
-            self.mpc_controller[i].set_command(
-                gait_num=2, #1:standing, 2:walking
-                roll_pitch=np.zeros(2, dtype=np.float32),
-                twist=self.twist[i],
-                height=self.reference_height[i],
-            )
-            
-        self.update_visual_marker()
+        raise NotImplementedError
     
     def process_mpc_reference(self, sensor_name: str= "height_scanner"):
         self._get_reference_velocity()
@@ -507,7 +463,8 @@ class PerceptiveLocomotionMPCAction(BlindLocomotionMPCAction):
                 height=self.reference_height[i],
             )
             
-        self.update_visual_marker()
+        if self.cfg.debug_vis:
+            self.update_visual_marker()
 
     def process_mpc_reference(self, sensor_name: str= "height_scanner"):
         self._get_reference_velocity()
@@ -893,9 +850,10 @@ Sub-class that inherits from BlindLocomotionMPCAction/PerceptiveLocomotionMPCAct
 Only difference is the number of action space and the way to process actions.
 """
 
-class BlindLocomotionMPCAction2(BlindLocomotionMPCAction):
+class BlindLocomotionMPCActionSimpleDynSwingGait(BlindLocomotionMPCAction):
     """
     This is a subclass of MPCAction that uses the new action space.
+    Type: simple-dyn-swing-gait
     """
     
     """
@@ -969,96 +927,15 @@ class BlindLocomotionMPCAction2(BlindLocomotionMPCAction):
                 twist=self.twist[i],
                 height=self.reference_height[i],
             )
-            
-        self.update_visual_marker()
+        
+        if self.cfg.debug_vis:
+            self.update_visual_marker()
 
 
-class BlindLocomotionMPCAction3(BlindLocomotionMPCAction):
+class BlindLocomotionMPCActionResAll(BlindLocomotionMPCAction):
     """
     This is a subclass of MPCAction that uses the new action space.
-    """
-    
-    """
-    Properties.
-    """
-
-    @property
-    def action_dim(self) -> int:
-        """
-        mpc control parameters:
-        - mpc sampling time (R^1)
-        - swing foot height (R^1)
-        - swing trajectory control points (R^1)
-        - body velocity ratio (R^1)
-        """
-        return 4
-    
-    def process_actions(self, actions: torch.Tensor):
-        # store the raw actions
-        self._raw_actions[:] = actions.clone()
-        # clip negative action value
-        negative_action_clip_idx = self.cfg.negative_action_clip_idx
-        if negative_action_clip_idx is not None:
-            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
-        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
-        
-        # split processed actions into individual control parameters
-        sampling_time_idx = 0
-        swing_foot_height_idx = 1
-        trajectory_control_points_idx = 2
-
-        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx].cpu().numpy())
-        swing_foot_height = self._processed_actions[:, swing_foot_height_idx].cpu().numpy()
-        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx].cpu().numpy()
-        
-        # form actual control parameters (nominal value + residual)
-        swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
-        cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
-        cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
-        
-        # update reference
-        self.process_mpc_reference()
-        
-        # send updated parameters to MPC
-        for i in range(self.num_envs):
-            self.mpc_controller[i].update_sampling_time(sampling_time[i])
-            self.mpc_controller[i].set_swing_parameters(
-                stepping_frequency=1.0, 
-                foot_height=swing_foot_height[i], 
-                cp1=cp1[i], 
-                cp2=cp2[i], 
-                pf_z=self.foot_placement_height[i], 
-                )
-            self.mpc_controller[i].set_command(
-                gait_num=2, #1:standing, 2:walking
-                roll_pitch=np.zeros(2, dtype=np.float32),
-                twist=self.twist[i],
-                height=self.reference_height[i],
-            )
-            
-        self.update_visual_marker()
-        
-    def _get_reference_velocity(self):
-        """
-        Compute reference velocity as
-        \tilde{v} = v_0 * (1 + \delta{v})
-        -1.5 <= \delta{v} <= 0.5
-        """
-        # get reference body velocity from policy
-        body_velocity_ratio_idx = 3
-        rx = self._processed_actions[:, body_velocity_ratio_idx]
-        self.command[:, 0] = self.original_command[:, 0] * (1 + rx)
-        self.command[:, 1] = self.original_command[:, 1]
-        self.command[:, 2] = self.original_command[:, 2]
-        
-        # update command
-        self.twist[:, :] = self.command.cpu().numpy()
-        # update command manager
-        self._env.command_manager._terms[self.cfg.command_name].vel_command_b = self.command
-        
-class BlindLocomotionMPCAction4(BlindLocomotionMPCAction):
-    """
-    This is a subclass of MPCAction that uses the new action space.
+    Type: Res-All
     """
     
     """
@@ -1070,12 +947,13 @@ class BlindLocomotionMPCAction4(BlindLocomotionMPCAction):
         """
         mpc control parameters:
         - centroidal acceleration (R^6)
+        - mass error (R^3)
+        - inertia error (R^3)
         - mpc sampling time (R^1)
         - swing foot height (R^1)
         - swing trajectory control points (R^1)
-        - body velocity ratio (R^2)
         """
-        return 11
+        return 15
     
     def process_actions(self, actions: torch.Tensor):
         # store the raw actions
@@ -1084,25 +962,35 @@ class BlindLocomotionMPCAction4(BlindLocomotionMPCAction):
         negative_action_clip_idx = self.cfg.negative_action_clip_idx
         if negative_action_clip_idx is not None:
             self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
+        # transform to specific range
         self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
         
         # split processed actions into individual control parameters
         A_residual = np.zeros((self.num_envs, 13, 13), dtype=np.float32)
         B_residual = np.zeros((self.num_envs, 13, 12), dtype=np.float32)
         
-        # transform accel to global frame
+        # split processed actions into individual control parameters
         centroidal_lin_acc_idx = slice(0, 3)
         centroidal_ang_acc_idx = slice(3, 6)
-        sampling_time_idx = 6
-        swing_foot_height_idx = 7
-        trajectory_control_points_idx = 8
+        inv_mass_error_idx = slice(6, 9)
+        inv_inertia_error_idx = slice(9, 12)
+        sampling_time_idx = 12
+        swing_foot_height_idx = 13
+        trajectory_control_points_idx = 14
 
         centroidal_lin_acc = self._processed_actions[:, centroidal_lin_acc_idx]
         centroidal_ang_acc = self._processed_actions[:, centroidal_ang_acc_idx]
         centroidal_lin_acc = torch.bmm(self.root_rot_mat, centroidal_lin_acc.unsqueeze(-1)).squeeze(-1)
         centroidal_ang_acc = torch.bmm(self.root_rot_mat, centroidal_ang_acc.unsqueeze(-1)).squeeze(-1)
+        inv_mass_error = self._processed_actions[:, inv_mass_error_idx]
+        inv_inertia_error = self._processed_actions[:, inv_inertia_error_idx]
+
         A_residual[:, 6:9, -1] = centroidal_lin_acc.cpu().numpy()
         A_residual[:, 9:12, -1] = centroidal_ang_acc.cpu().numpy()
+        B_residual[:, 6:9, 6:9] = torch.diag_embed(inv_inertia_error).cpu().numpy()
+        B_residual[:, 6:9, 9:12] = torch.diag_embed(inv_inertia_error).cpu().numpy()
+        B_residual[:, 9:12, :3] = torch.diag_embed(inv_mass_error).cpu().numpy()
+        B_residual[:, 9:12, 3:6] = torch.diag_embed(inv_mass_error).cpu().numpy()
         
         sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx].cpu().numpy())
         swing_foot_height = self._processed_actions[:, swing_foot_height_idx].cpu().numpy()
@@ -1119,17 +1007,78 @@ class BlindLocomotionMPCAction4(BlindLocomotionMPCAction):
         # send updated parameters to MPC
         for i in range(self.num_envs):
             self.mpc_controller[i].update_sampling_time(sampling_time[i])
-            self.mpc_controller[i].set_srbd_residual(
-                A_residual=A_residual[i], 
-                B_residual=B_residual[i], 
-                )
+            self.mpc_controller[i].set_srbd_residual(A_residual=A_residual[i], B_residual=B_residual[i])
             self.mpc_controller[i].set_swing_parameters(
                 stepping_frequency=1.0, 
                 foot_height=swing_foot_height[i], 
                 cp1=cp1[i], 
                 cp2=cp2[i], 
-                pf_z=self.foot_placement_height[i], 
-                )
+                pf_z=self.foot_placement_height[i])
+            self.mpc_controller[i].set_command(
+                gait_num=2, #1:standing, 2:walking
+                roll_pitch=np.zeros(2, dtype=np.float32),
+                twist=self.twist[i],
+                height=self.reference_height[i],
+            )
+        if self.cfg.debug_vis:
+            self.update_visual_marker()
+
+class BlindLocomotionMPCActionSwingGait(BlindLocomotionMPCAction):
+    """
+    This is a subclass of MPCAction that uses the new action space.
+    Type: Swing-Gait
+    """
+    
+    """
+    Properties.
+    """
+
+    @property
+    def action_dim(self) -> int:
+        """
+        mpc control parameters:
+        - mpc sampling time (R^1)
+        - swing foot height (R^1)
+        - swing trajectory control points (R^1)
+        """
+        return 3
+    
+    def process_actions(self, actions: torch.Tensor):
+        # store the raw actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
+        # transform to specific range
+        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
+        
+        # split processed actions into individual control parameters
+        sampling_time_idx = 0
+        swing_foot_height_idx = 1
+        trajectory_control_points_idx = 2
+        
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx].cpu().numpy())
+        swing_foot_height = self._processed_actions[:, swing_foot_height_idx].cpu().numpy()
+        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx].cpu().numpy()
+        
+        # form actual control parameters (nominal value + residual)
+        swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
+        cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
+        cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
+        
+        # update reference
+        self.process_mpc_reference()
+        
+        # send updated parameters to MPC
+        for i in range(self.num_envs):
+            self.mpc_controller[i].update_sampling_time(sampling_time[i])
+            self.mpc_controller[i].set_swing_parameters(
+                stepping_frequency=1.0, 
+                foot_height=swing_foot_height[i], 
+                cp1=cp1[i], 
+                cp2=cp2[i], 
+                pf_z=self.foot_placement_height[i])
             self.mpc_controller[i].set_command(
                 gait_num=2, #1:standing, 2:walking
                 roll_pitch=np.zeros(2, dtype=np.float32),
@@ -1137,25 +1086,374 @@ class BlindLocomotionMPCAction4(BlindLocomotionMPCAction):
                 height=self.reference_height[i],
             )
             
-        self.update_visual_marker()
-        
-    def _get_reference_velocity(self):
-        """
-        Compute reference velocity as
-        \tilde{v} = v_0 * (1 + \delta{v})
-        -1.5 <= \delta{v} <= 0.5
-        """
-        # get reference body velocity from policy
-        body_velocity_ratio_idx = slice(9, 11)
-        ratio = self._processed_actions[:, body_velocity_ratio_idx]
-        self.command[:, 0] = self.original_command[:, 0] * (1 + ratio[:, 0])
-        self.command[:, 2] = self.original_command[:, 2] * (1 + ratio[:, 1])
-        
-        # update command
-        self.twist[:, :] = self.command.cpu().numpy()
-        # update command manager
-        self._env.command_manager._terms[self.cfg.command_name].vel_command_b = self.command
+        if self.cfg.debug_vis:
+            self.update_visual_marker()
 
+class BlindLocomotionMPCActionDynSwing(BlindLocomotionMPCAction):
+    """
+    This is a subclass of MPCAction that uses the new action space.
+    Type: dyn-swing
+    """
+    
+    """
+    Properties.
+    """
+
+    @property
+    def action_dim(self) -> int:
+        """
+        mpc control parameters:
+        - centroidal acceleration (R^6)
+        - mass error (R^3)
+        - inertia error (R^3)
+        - swing foot height (R^1)
+        - swing trajectory control points (R^1)
+        """
+        return 14
+    
+    def process_actions(self, actions: torch.Tensor):
+        # store the raw actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
+        # transform to specific range
+        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
+        
+        # split processed actions into individual control parameters
+        A_residual = np.zeros((self.num_envs, 13, 13), dtype=np.float32)
+        B_residual = np.zeros((self.num_envs, 13, 12), dtype=np.float32)
+        
+        # split processed actions into individual control parameters
+        centroidal_lin_acc_idx = slice(0, 3)
+        centroidal_ang_acc_idx = slice(3, 6)
+        inv_mass_error_idx = slice(6, 9)
+        inv_inertia_error_idx = slice(9, 12)
+        swing_foot_height_idx = 12
+        trajectory_control_points_idx = 13
+
+        centroidal_lin_acc = self._processed_actions[:, centroidal_lin_acc_idx]
+        centroidal_ang_acc = self._processed_actions[:, centroidal_ang_acc_idx]
+        centroidal_lin_acc = torch.bmm(self.root_rot_mat, centroidal_lin_acc.unsqueeze(-1)).squeeze(-1)
+        centroidal_ang_acc = torch.bmm(self.root_rot_mat, centroidal_ang_acc.unsqueeze(-1)).squeeze(-1)
+        inv_mass_error = self._processed_actions[:, inv_mass_error_idx]
+        inv_inertia_error = self._processed_actions[:, inv_inertia_error_idx]
+
+        A_residual[:, 6:9, -1] = centroidal_lin_acc.cpu().numpy()
+        A_residual[:, 9:12, -1] = centroidal_ang_acc.cpu().numpy()
+        B_residual[:, 6:9, 6:9] = torch.diag_embed(inv_inertia_error).cpu().numpy()
+        B_residual[:, 6:9, 9:12] = torch.diag_embed(inv_inertia_error).cpu().numpy()
+        B_residual[:, 9:12, :3] = torch.diag_embed(inv_mass_error).cpu().numpy()
+        B_residual[:, 9:12, 3:6] = torch.diag_embed(inv_mass_error).cpu().numpy()
+        
+        swing_foot_height = self._processed_actions[:, swing_foot_height_idx].cpu().numpy()
+        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx].cpu().numpy()
+        
+        # form actual control parameters (nominal value + residual)
+        swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
+        cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
+        cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
+        
+        # update reference
+        self.process_mpc_reference()
+        
+        # send updated parameters to MPC
+        for i in range(self.num_envs):
+            self.mpc_controller[i].set_srbd_residual(A_residual=A_residual[i], B_residual=B_residual[i])
+            self.mpc_controller[i].update_sampling_time(self.cfg.nominal_mpc_dt)
+            self.mpc_controller[i].set_swing_parameters(
+                stepping_frequency=1.0, 
+                foot_height=swing_foot_height[i], 
+                cp1=cp1[i], 
+                cp2=cp2[i], 
+                pf_z=self.foot_placement_height[i])
+            self.mpc_controller[i].set_command(
+                gait_num=2, #1:standing, 2:walking
+                roll_pitch=np.zeros(2, dtype=np.float32),
+                twist=self.twist[i],
+                height=self.reference_height[i],
+            )
+            
+        if self.cfg.debug_vis:
+            self.update_visual_marker()
+
+class BlindLocomotionMPCActionDynGait(BlindLocomotionMPCAction):
+    """
+    This is a subclass of MPCAction that uses the new action space.
+    Type: dyn-gait
+    """
+    
+    """
+    Properties.
+    """
+
+    @property
+    def action_dim(self) -> int:
+        """
+        mpc control parameters:
+        - centroidal acceleration (R^6)
+        - mass error (R^3)
+        - inertia error (R^3)
+        - sampling time (R^1)
+        """
+        return 13
+    
+    def process_actions(self, actions: torch.Tensor):
+        # store the raw actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
+        # transform to specific range
+        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
+        
+        # split processed actions into individual control parameters
+        A_residual = np.zeros((self.num_envs, 13, 13), dtype=np.float32)
+        B_residual = np.zeros((self.num_envs, 13, 12), dtype=np.float32)
+        
+        # split processed actions into individual control parameters
+        centroidal_lin_acc_idx = slice(0, 3)
+        centroidal_ang_acc_idx = slice(3, 6)
+        inv_mass_error_idx = slice(6, 9)
+        inv_inertia_error_idx = slice(9, 12)
+        sampling_time_idx = 12
+
+        centroidal_lin_acc = self._processed_actions[:, centroidal_lin_acc_idx]
+        centroidal_ang_acc = self._processed_actions[:, centroidal_ang_acc_idx]
+        centroidal_lin_acc = torch.bmm(self.root_rot_mat, centroidal_lin_acc.unsqueeze(-1)).squeeze(-1)
+        centroidal_ang_acc = torch.bmm(self.root_rot_mat, centroidal_ang_acc.unsqueeze(-1)).squeeze(-1)
+        inv_mass_error = self._processed_actions[:, inv_mass_error_idx]
+        inv_inertia_error = self._processed_actions[:, inv_inertia_error_idx]
+
+        A_residual[:, 6:9, -1] = centroidal_lin_acc.cpu().numpy()
+        A_residual[:, 9:12, -1] = centroidal_ang_acc.cpu().numpy()
+        B_residual[:, 6:9, 6:9] = torch.diag_embed(inv_inertia_error).cpu().numpy()
+        B_residual[:, 6:9, 9:12] = torch.diag_embed(inv_inertia_error).cpu().numpy()
+        B_residual[:, 9:12, :3] = torch.diag_embed(inv_mass_error).cpu().numpy()
+        B_residual[:, 9:12, 3:6] = torch.diag_embed(inv_mass_error).cpu().numpy()
+        
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx].cpu().numpy())
+        
+        # update reference
+        self.process_mpc_reference()
+        
+        # send updated parameters to MPC
+        for i in range(self.num_envs):
+            self.mpc_controller[i].set_srbd_residual(A_residual=A_residual[i], B_residual=B_residual[i])
+            self.mpc_controller[i].update_sampling_time(sampling_time[i])
+            self.mpc_controller[i].set_swing_parameters(
+                stepping_frequency=1.0, 
+                foot_height=self.cfg.nominal_swing_height, 
+                cp1=self.cfg.nominal_cp1_coef, 
+                cp2=self.cfg.nominal_cp2_coef, 
+                pf_z=self.foot_placement_height[i])
+            self.mpc_controller[i].set_command(
+                gait_num=2, #1:standing, 2:walking
+                roll_pitch=np.zeros(2, dtype=np.float32),
+                twist=self.twist[i],
+                height=self.reference_height[i],
+            )
+            
+        if self.cfg.debug_vis:
+            self.update_visual_marker()
+
+
+class BlindLocomotionMPCActionDyn(BlindLocomotionMPCAction):
+    """
+    This is a subclass of MPCAction that uses the new action space.
+    Type: dyn
+    """
+    
+    """
+    Properties.
+    """
+
+    @property
+    def action_dim(self) -> int:
+        """
+        mpc control parameters:
+        - centroidal acceleration (R^6)
+        - mass error (R^3)
+        - inertia error (R^3)
+        """
+        return 12
+    
+    def process_actions(self, actions: torch.Tensor):
+        # store the raw actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
+        # transform to specific range
+        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
+        
+        # split processed actions into individual control parameters
+        A_residual = np.zeros((self.num_envs, 13, 13), dtype=np.float32)
+        B_residual = np.zeros((self.num_envs, 13, 12), dtype=np.float32)
+        
+        # split processed actions into individual control parameters
+        centroidal_lin_acc_idx = slice(0, 3)
+        centroidal_ang_acc_idx = slice(3, 6)
+        inv_mass_error_idx = slice(6, 9)
+        inv_inertia_error_idx = slice(9, 12)
+
+        centroidal_lin_acc = self._processed_actions[:, centroidal_lin_acc_idx]
+        centroidal_ang_acc = self._processed_actions[:, centroidal_ang_acc_idx]
+        centroidal_lin_acc = torch.bmm(self.root_rot_mat, centroidal_lin_acc.unsqueeze(-1)).squeeze(-1)
+        centroidal_ang_acc = torch.bmm(self.root_rot_mat, centroidal_ang_acc.unsqueeze(-1)).squeeze(-1)
+        inv_mass_error = self._processed_actions[:, inv_mass_error_idx]
+        inv_inertia_error = self._processed_actions[:, inv_inertia_error_idx]
+
+        A_residual[:, 6:9, -1] = centroidal_lin_acc.cpu().numpy()
+        A_residual[:, 9:12, -1] = centroidal_ang_acc.cpu().numpy()
+        B_residual[:, 6:9, 6:9] = torch.diag_embed(inv_inertia_error).cpu().numpy()
+        B_residual[:, 6:9, 9:12] = torch.diag_embed(inv_inertia_error).cpu().numpy()
+        B_residual[:, 9:12, :3] = torch.diag_embed(inv_mass_error).cpu().numpy()
+        B_residual[:, 9:12, 3:6] = torch.diag_embed(inv_mass_error).cpu().numpy()
+        
+        # update reference
+        self.process_mpc_reference()
+        
+        # send updated parameters to MPC
+        for i in range(self.num_envs):
+            self.mpc_controller[i].set_srbd_residual(A_residual=A_residual[i], B_residual=B_residual[i])
+            self.mpc_controller[i].update_sampling_time(self.cfg.nominal_mpc_dt)
+            self.mpc_controller[i].set_swing_parameters(
+                stepping_frequency=1.0, 
+                foot_height=self.cfg.nominal_swing_height, 
+                cp1=self.cfg.nominal_cp1_coef, 
+                cp2=self.cfg.nominal_cp2_coef, 
+                pf_z=self.foot_placement_height[i])
+            self.mpc_controller[i].set_command(
+                gait_num=2, #1:standing, 2:walking
+                roll_pitch=np.zeros(2, dtype=np.float32),
+                twist=self.twist[i],
+                height=self.reference_height[i],
+            )
+            
+        if self.cfg.debug_vis:
+            self.update_visual_marker()
+
+class BlindLocomotionMPCActionSwing(BlindLocomotionMPCAction):
+    """
+    This is a subclass of MPCAction that uses the new action space.
+    Type: Swing
+    """
+    
+    """
+    Properties.
+    """
+
+    @property
+    def action_dim(self) -> int:
+        """
+        mpc control parameters:
+        - swing foot height (R^1)
+        - swing trajectory control points (R^1)
+        """
+        return 2
+    
+    def process_actions(self, actions: torch.Tensor):
+        # store the raw actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
+        # transform to specific range
+        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
+        
+        # split processed actions into individual control parameters
+        swing_foot_height_idx = 0
+        trajectory_control_points_idx = 1
+
+        swing_foot_height = self._processed_actions[:, swing_foot_height_idx].cpu().numpy()
+        trajectory_control_points = self._processed_actions[:, trajectory_control_points_idx].cpu().numpy()
+        
+        # form actual control parameters (nominal value + residual)
+        swing_foot_height = self.cfg.nominal_swing_height + swing_foot_height
+        cp1 = self.cfg.nominal_cp1_coef + trajectory_control_points
+        cp2 = self.cfg.nominal_cp2_coef + trajectory_control_points
+        
+        # update reference
+        self.process_mpc_reference()
+        
+        # send updated parameters to MPC
+        for i in range(self.num_envs):
+            self.mpc_controller[i].update_sampling_time(self.cfg.nominal_mpc_dt)
+            self.mpc_controller[i].set_swing_parameters(
+                stepping_frequency=1.0, 
+                foot_height=swing_foot_height[i], 
+                cp1=cp1[i], 
+                cp2=cp2[i], 
+                pf_z=self.foot_placement_height[i])
+            self.mpc_controller[i].set_command(
+                gait_num=2, #1:standing, 2:walking
+                roll_pitch=np.zeros(2, dtype=np.float32),
+                twist=self.twist[i],
+                height=self.reference_height[i],
+            )
+            
+        if self.cfg.debug_vis:
+            self.update_visual_marker()
+
+class BlindLocomotionMPCActionGait(BlindLocomotionMPCAction):
+    """
+    This is a subclass of MPCAction that uses the new action space.
+    Type: Gait
+    """
+    
+    """
+    Properties.
+    """
+
+    @property
+    def action_dim(self) -> int:
+        """
+        mpc control parameters:
+        - mpc sampling time (R^1)
+        """
+        return 1
+    
+    def process_actions(self, actions: torch.Tensor):
+        # store the raw actions
+        self._raw_actions[:] = actions.clone()
+        # clip negative action value
+        negative_action_clip_idx = self.cfg.negative_action_clip_idx
+        if negative_action_clip_idx is not None:
+            self._raw_actions[:, negative_action_clip_idx] = self._raw_actions[:, negative_action_clip_idx].clamp(0.0, 1.0) # clip negative value
+        # transform to specific range
+        self._processed_actions[:] = self._action_lb + (self._raw_actions + 1) * (self._action_ub - self._action_lb) / 2
+        
+        # split processed actions into individual control parameters
+        sampling_time_idx = 0
+        sampling_time = self.cfg.nominal_mpc_dt * (1 + self._processed_actions[:, sampling_time_idx].cpu().numpy())
+        
+        # update reference
+        self.process_mpc_reference()
+        
+        # send updated parameters to MPC
+        for i in range(self.num_envs):
+            self.mpc_controller[i].update_sampling_time(sampling_time[i])
+            self.mpc_controller[i].set_swing_parameters(
+                stepping_frequency=1.0, 
+                foot_height=self.cfg.nominal_swing_height, 
+                cp1=self.cfg.nominal_cp1_coef, 
+                cp2=self.cfg.nominal_cp2_coef, 
+                pf_z=self.foot_placement_height[i])
+            self.mpc_controller[i].set_command(
+                gait_num=2, #1:standing, 2:walking
+                roll_pitch=np.zeros(2, dtype=np.float32),
+                twist=self.twist[i],
+                height=self.reference_height[i],
+            )
+            
+        if self.cfg.debug_vis:
+            self.update_visual_marker()
+    
 
 
 class PerceptiveLocomotionMPCAction2(PerceptiveLocomotionMPCAction):

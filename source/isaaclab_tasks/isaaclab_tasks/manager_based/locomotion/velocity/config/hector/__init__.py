@@ -27,8 +27,8 @@ BASE_CLASS = [
     "HECTOR-ManagerBased-RL-SAC-SLIP",
     "HECTOR-ManagerBased-RL-SAC-SLIP-PLAY",
     
-    "HECTOR-ManagerBased-RL-L2T-Rough",
-    "HECTOR-ManagerBased-RL-L2T-Rough-PLAY",
+    # "HECTOR-ManagerBased-RL-L2T-Rough",
+    # "HECTOR-ManagerBased-RL-L2T-Rough-PLAY",
 
     "HECTOR-ManagerBased-RL-GPU-SAC-Rough-Blind",
     "HECTOR-ManagerBased-RL-GPU-SAC-Rough-Blind-PLAY",
@@ -95,15 +95,15 @@ ARGS = [
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_slip_inference.yaml",
     },
     
-    # L2T rough env
-    {
-        "env_cfg_entry_point": f"{__name__}.rough_env_l2t_cfg:HECTORRoughEnvL2TCfg",
-        "sb3_cfg_entry_point": f"{agents.__name__}:sb3_l2t_cfg.yaml",
-    },
-    {
-        "env_cfg_entry_point": f"{__name__}.rough_env_l2t_cfg:HECTORRoughEnvL2TCfgPLAY",
-        "sb3_cfg_entry_point": f"{agents.__name__}:sb3_l2t_cfg.yaml",
-    },
+    # # L2T rough env
+    # {
+    #     "env_cfg_entry_point": f"{__name__}.rough_env_l2t_cfg:HECTORRoughEnvL2TCfg",
+    #     "sb3_cfg_entry_point": f"{agents.__name__}:sb3_l2t_cfg.yaml",
+    # },
+    # {
+    #     "env_cfg_entry_point": f"{__name__}.rough_env_l2t_cfg:HECTORRoughEnvL2TCfgPLAY",
+    #     "sb3_cfg_entry_point": f"{agents.__name__}:sb3_l2t_cfg.yaml",
+    # },
 
     # GPU-MPC and SAC rough blind env
     {

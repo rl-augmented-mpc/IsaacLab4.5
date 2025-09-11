@@ -74,9 +74,9 @@ params:
     horizon_length: ${.num_steps_per_episode}
     init_alpha: 1.0 # entropy temperature initial value
     target_entropy_coef: 1.0
-    alpha_lr: 1e-4 # entropy temperature learning rate
-    actor_lr: 1e-4 # actor network learning rate
-    critic_lr: 1e-4 # critic network learning rate
+    alpha_lr: 5e-4 # entropy temperature learning rate
+    actor_lr: 5e-4 # actor network learning rate
+    critic_lr: 5e-4 # critic network learning rate
     critic_tau: 5e-3 # soft update parameter (polyak averaging)
     learnable_temperature: True
     num_warmup_steps: 0 # total number of warmup steps: num_actors * num_steps_per_episode * num_warmup_steps
@@ -84,11 +84,15 @@ params:
     replay_buffer_size: 1000000
 
     # regularization loss
-    reg_loss_coef: 0.01 
+    # reg_loss_coef: 0.01 
 
     # bound loss
-    bounds_loss_coef: 0.03 # did not work for randomized velocity
-    bounds_loss_action_dim: [7] # pz_max
+    # bounds_loss_coef: 0.03 
+    # bounds_loss_action_dim: [0] # pz_max (model swing)
+    # bounds_loss_action_dim: [1] # pz_max (model swing-gait)
+    bounds_loss_action_dim: [7] # pz_max (model simple-res-all)
+    # bounds_loss_action_dim: [12] # pz_max (model dyn-swing)
+    # bounds_loss_action_dim: [13] # pz_max (model resAll)
     bounds_loss_soft_lower_bound: [0.0]
     bounds_loss_soft_upper_bound: [1.0]
   

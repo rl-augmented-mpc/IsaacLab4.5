@@ -50,7 +50,8 @@ params:
 
   config:
     name: manager_sac_rl_games_batched_mpc_blind
-    # full_experiment_name: ---
+    # name: manager_sac_rl_games_stepping_stone_mlp_blind
+    # full_experiment_name: 2025-09-04_12-44-43
     env_name: rlgpu
     device: 'cuda:0'
     device_name: 'cuda:0'

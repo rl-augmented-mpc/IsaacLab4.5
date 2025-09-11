@@ -1,8 +1,12 @@
 from .actions.mpc_actions_cfg import (
-    BlindLocomotionMPCActionCfg, 
-    BlindLocomotionMPCActionCfg2, 
-    BlindLocomotionMPCActionCfg3, 
-    BlindLocomotionMPCActionCfg4, 
+    BlindLocomotionMPCActionCfgDyn, 
+    BlindLocomotionMPCActionCfgSwing,
+    BlindLocomotionMPCActionCfgGait,
+    BlindLocomotionMPCActionCfgDynGait, 
+    BlindLocomotionMPCActionCfgDynSwing,
+    BlindLocomotionMPCActionCfgSwingGait,
+    BlindLocomotionMPCActionCfgSimpleDynSwingGait,
+    BlindLocomotionMPCActionCfgResAll,
 
     PerceptiveLocomotionMPCActionCfg,
     PerceptiveLocomotionMPCActionCfg2, 
@@ -15,8 +19,10 @@ from .actions.mpc_actions_cfg import (
 from .terrain.terrain_cfg import (
     BaseTerrain,
     SteppingStoneTerrain, SteppingStoneTerrainBatch, CurriculumSteppingStoneTerrain, InferenceSteppingStoneTerrain, 
-    CurriculumFrictionPatchTerrain, FrictionPatchTerrain, InferenceAlternatingFrictionPatchTerrain,
+    CurriculumFrictionPatchTerrain, InferenceAlternatingFrictionPatchTerrain,
     PyramidHfTerrain, FractalTerrain,
+
+    RandomBlock, RegularStair, RandomStair
 )
 
 IMPORT_DYNAMIC_TERRAIN = False

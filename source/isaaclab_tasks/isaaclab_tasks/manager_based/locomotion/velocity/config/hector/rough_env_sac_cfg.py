@@ -142,7 +142,8 @@ class HECTORRoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         }
 
         # light setting
-        self.scene.sky_light.init_state.rot = (0.8660254, 0.0, 0.0, 0.5)  # yaw=60deg
+        # self.scene.sky_light.init_state.rot = (0.8660254, 0.0, 0.0, 0.5)  # yaw=60deg
+        self.scene.sky_light.init_state.rot = (0.8660254, 0.5, 0.0, 0.0)  # roll=60deg
         
         # command 
         self.commands.base_velocity.heading_command = False
@@ -166,19 +167,18 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         self.decimation = 4
         self.sim.render_interval = 2*self.decimation
 
-        # self.sim.dt = 1/1000
-        # self.decimation = 10
-        # self.sim.render_interval = 2*self.decimation
-
         # terrain
-        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        self.scene.terrain = hector_mdp.RegularStair
+        # self.scene.terrain = hector_mdp.RandomStair
+        # self.scene.terrain = hector_mdp.RandomBlock
         
         # event 
         # self.events.reset_terrain_type = None
-        # self.curriculum.terrain_levels = None
+        self.curriculum.terrain_levels = None
 
         self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
-        self.events.reset_base.params["multiplier"] = 2
+        # self.events.reset_base.params["multiplier"] = 2
         self.events.reset_base.params["pose_range"] = {
             "x": (-0.3, 0.3), 
             "y": (-0.3, 0.3), 
@@ -186,13 +186,14 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
             "yaw": (-math.pi, math.pi),
+            # "yaw": (math.pi/2, math.pi/2),
         }
 
         # # spawn robot close to stair
         # self.events.reset_base.params["pose_range"] = {
-        #     # "x": (0.635, 0.635), 
-        #     "x": (0.68, 0.68), 
-        #     "y": (-0.3, 0.3),  
+        #     # "x": (0.675, 0.675), 
+        #     "x": (0.65, 0.65), 
+        #     "y": (0.4, 0.4),  
         #     "z": (0.0, 0.0),
         #     "roll": (0.0, 0.0),
         #     "pitch": (0.0, 0.0),
@@ -200,13 +201,7 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         # }
 
         # command
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.35, 0.55)
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.35, 0.35)
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.4)
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.45, 0.45)
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.55, 0.55)
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)
         # self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.6)
         self.commands.base_velocity.resampling_time_range = (20.0, 20.0)
         self.commands.base_velocity.debug_vis = False
@@ -220,10 +215,10 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         if RECORDING:
             # quality rendering
             self.viewer = ViewerCfg(
-                # eye=(-0.0, -1.5, 0.2), 
-                # lookat=(0.0, -0.8, 0.0),
-                eye=(-0.0, -1.4, -0.2), 
-                lookat=(0.0, -0.8, -0.2),
+                eye=(0.0, -2.0, 0.4), 
+                lookat=(0.0, -0.5, 0.1),
+                # eye=(-0.0, -1.4, -0.2), 
+                # lookat=(0.0, -0.8, -0.2),
                 resolution=(3840, 2160), # 4K
                 origin_type="asset_root", 
                 asset_name="robot"
