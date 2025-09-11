@@ -29,7 +29,7 @@ params:
           # name: orthogonal
           name: const_initializer
           val: 0
-        mu_bias: [0, 0, 0, 0, 0, 0, 0, -1, 0]
+        # mu_bias: [0, 0, 0, 0, 0, 0, 0, -1, 0]
         # fixed_sigma: True # does not have  effect in SAC
         
     mlp:
@@ -92,7 +92,8 @@ params:
     # bounds_loss_action_dim: [6, 7] # pz_max
     # bounds_loss_soft_lower_bound: [-1.0, 0.0] # alpha_mpc <=0, pz_max >= 0 preferably
     # bounds_loss_soft_upper_bound: [0.0, 1.0]
-    bounds_loss_action_dim: [6] # pz_max
+    # bounds_loss_action_dim: [7] # pz_max
+    bounds_loss_action_dim: [13] # pz_max
     bounds_loss_soft_lower_bound: [-1.0] # alpha_mpc <=0, pz_max >= 0 preferably
     bounds_loss_soft_upper_bound: [0.0]
   

@@ -57,18 +57,13 @@ class HECTORGPURoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         # sensor
         self.scene.height_scanner = None
         
-        # self.viewer = ViewerCfg(
-        #     # eye=(-0.0, -1.5, -0.2), 
-        #     # lookat=(0.0, -0.8, -0.2),
-        #     # resolution=(3840, 2160), # 4K
-        #     # eye=(0.0, -2.0, 0.4), 
-        #     # lookat=(0.0, -0.5, 0.1),
-        #     eye=(0.0, -3.0, 0.5), 
-        #     lookat=(0.0, -0.5, 0.1),
-        #     resolution=(1920, 1080), 
-        #     origin_type="asset_root", 
-        #     asset_name="robot"
-        # )
+        self.viewer = ViewerCfg(
+            eye=(0.0, -2.0, 0.4), 
+            lookat=(0.0, -0.5, 0.1),
+            resolution=(1920, 1080), 
+            origin_type="asset_root", 
+            asset_name="robot"
+        )
 
         # event 
         self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
@@ -83,15 +78,16 @@ class HECTORGPURoughEnvBlindLocomotionSACCfg(LocomotionVelocityRoughEnvCfg):
         }
 
         # light setting
-        self.scene.sky_light.init_state.rot = (0.8660254, 0.0, 0.0, 0.5)  # yaw=60deg
+        # self.scene.sky_light.init_state.rot = (0.8660254, 0.0, 0.0, 0.5)  # yaw=60deg
+        self.scene.sky_light.init_state.rot = (0.8660254, 0.5, 0.0, 0.0)  # roll=60deg
         
         # command 
         self.commands.base_velocity.heading_command = False
-        self.commands.base_velocity.ranges.lin_vel_x = (0.6, 0.6)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
         self.commands.base_velocity.goal_vel_visualizer_cfg.markers["arrow"].scale = (0.4, 0.4, 0.4)
         self.commands.base_velocity.current_vel_visualizer_cfg.markers["arrow"].scale = (0.4, 0.4, 0.4)
-        self.commands.base_velocity.debug_vis = False
+        # self.commands.base_velocity.debug_vis = False
 
 
         # termination 
@@ -110,18 +106,25 @@ class HECTORGPURoughEnvBlindLocomotionSACCfgPLAY(HECTORGPURoughEnvBlindLocomotio
         self.sim.render_interval = 2*self.decimation
 
         # solver
-        # self.actions.mpc_action.solver_name = "osqp"
         # self.actions.mpc_action.solver_name = "qpth"
-        # self.actions.mpc_action.solver_name = "casadi"
-        self.actions.mpc_action.solver_name = "cusadi"
+        # self.actions.mpc_action.solver_name = "osqp"
+        self.actions.mpc_action.solver_name = "casadi"
+        # self.actions.mpc_action.solver_name = "cusadi"
+
+        # update discretization step 
+        self.actions.mpc_action.nominal_mpc_dt = 0.025
+        self.actions.mpc_action.double_support_duration = 2
+        self.actions.mpc_action.single_support_duration = 8
 
 
         # terrain
         # self.scene.terrain = hector_mdp.BaseTerrain 
-        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        self.scene.terrain = hector_mdp.RegularStair
+        # self.scene.terrain = hector_mdp.RandomStair
+        # self.scene.terrain = hector_mdp.RandomBlock
         
         # command 
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 0.0)
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         self.commands.base_velocity.resampling_time_range = (20.0, 20.0)
         # self.commands.base_velocity.debug_vis = False
@@ -144,7 +147,7 @@ class HECTORGPURoughEnvBlindLocomotionSACCfgPLAY(HECTORGPURoughEnvBlindLocomotio
         }
 
         # rendering optimization 
-        RECORDING = True
+        RECORDING = False
         if RECORDING:
             # quality rendering
             self.viewer = ViewerCfg(

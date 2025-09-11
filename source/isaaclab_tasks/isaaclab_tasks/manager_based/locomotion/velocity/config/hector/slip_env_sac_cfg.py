@@ -57,9 +57,7 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         )
         
         # command
-        self.commands.base_velocity.ranges.lin_vel_x = (0.4, 0.6)
-        # self.commands.base_velocity.ranges.ang_vel_z = (-(20.0/180)*math.pi, (20.0/180)*math.pi)
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
         self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
 
         # scene
@@ -75,7 +73,6 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
             "yaw": (-math.pi, math.pi),
-            # "yaw": (-0, 0),
         }
 
         # friction pyramid
@@ -95,7 +92,7 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
         self.decimation = 4
         self.sim.render_interval = 2*self.decimation
 
-        self.seed = 42
+        self.seed = 100
         self.scene.terrain = hector_mdp.InferenceAlternatingFrictionPatchTerrain
         self.curriculum.terrain_levels = None
 
@@ -107,21 +104,27 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
 
         # events
         self.events.reset_base.params["pose_range"] = {
-            "x": (-0.25, 0.25), 
-            # "x": (-0.3-0.25, 0.3-0.25), 
-            "y": (-0.3, 0.3),
+            # "x": (-0.25-0.5, 0.25-0.5), 
+            # "y": (-0.3+0.2, 0.3+0.2),
+            "x": (0.1, 0.1), 
+            "y": (0.4, 0.4),
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
               
-            # "yaw": (-0, 0),
-            "yaw": (-math.pi/6, math.pi/6),
+            "yaw": (-0, 0),
+            # "yaw": (-math.pi/6, math.pi/6),
+            # "yaw": (-math.pi, math.pi),
         }
         self.events.reset_terrain_type = None
 
+        # termination 
+        self.terminations.terrain_out_of_bounds.params["distance_buffer"] = 0.125
+
 
         # light setting
-        self.scene.sky_light.init_state.rot = (0.8660254, 0.0, 0.0, 0.5)  # yaw=60deg
+        # self.scene.sky_light.init_state.rot = (0.8660254, 0.0, 0.0, 0.5)  # yaw=60deg
+        self.scene.sky_light.init_state.rot = (0.8660254, 0.5, 0.0, 0.0)  # roll=60deg
 
         # rendering optimization  
         RECORDING = True
@@ -129,13 +132,13 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
         if RECORDING:
             # quality rendering
             self.viewer = ViewerCfg(
-                eye=(-0.0, -1.4, -0.2), 
-                lookat=(0.0, -0.8, -0.2),
+                eye=(-0.0, -1.4, 0.0), 
+                lookat=(0.0, -0.3, -0.2),
                 resolution=(3840, 2160), # 4K
                 origin_type="asset_root", 
                 asset_name="robot"
             )
-            # self.sim.render_interval = self.decimation
+            self.sim.render_interval = self.decimation
             self.sim.render.dlss_mode = 2 # 0 (Performance), 1 (Balanced), 2 (Quality), or 3 (Auto)
             self.sim.render.antialiasing_mode = "DLSS" # "Off", "FXAA", "DLSS", "TAA", "DLAA"
 

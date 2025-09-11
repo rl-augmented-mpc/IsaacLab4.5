@@ -35,6 +35,7 @@ parser.add_argument(
 parser.add_argument("--real-time", action="store_true", default=False, help="Run in real-time, if possible.")
 
 parser.add_argument("--log", action="store_true", default=False, help="Log the environment.")
+parser.add_argument("--name", type=str, default="", help="Name of the log.")
 parser.add_argument("--episode_length", type=float, default=None, help="Length of the episode in second.")
 parser.add_argument("--use_rl", action="store_true", default=False, help="Use RL agent to play. Otherwise, MPC is used.")
 parser.add_argument("--max_trials", type=int, default=1, help="Number of trials to run.")
@@ -136,6 +137,7 @@ def main():
         
     # for logging
     name = "play_rl" if args_cli.use_rl else "play_mpc"
+    name = name + f"_{args_cli.name}" if args_cli.name != "" else name
 
     # wrap for video recording
     if args_cli.video:

@@ -66,18 +66,44 @@ class BlindLocomotionMPCActionCfg(ActionTermCfg):
     swing_foot_reference_frame: Literal["world", "base"] = "base"
     """Swing foot reference frame to be used. Can be either "world" or "base"."""
 
-@configclass
-class BlindLocomotionMPCActionCfg2(BlindLocomotionMPCActionCfg):
-    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCAction2
-    
-@configclass
-class BlindLocomotionMPCActionCfg3(BlindLocomotionMPCActionCfg):
-    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCAction3
-    
-@configclass
-class BlindLocomotionMPCActionCfg4(BlindLocomotionMPCActionCfg):
-    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCAction4
+    debug_vis: bool = False
 
+@configclass
+class BlindLocomotionMPCActionCfgDyn(BlindLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCActionDyn
+
+@configclass
+class BlindLocomotionMPCActionCfgSwing(BlindLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCActionSwing
+
+@configclass
+class BlindLocomotionMPCActionCfgGait(BlindLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCActionGait
+
+@configclass
+class BlindLocomotionMPCActionCfgDynGait(BlindLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCActionDynGait
+
+@configclass
+class BlindLocomotionMPCActionCfgDynSwing(BlindLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCActionDynSwing
+
+@configclass
+class BlindLocomotionMPCActionCfgSwingGait(BlindLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCActionSwingGait
+
+@configclass
+class BlindLocomotionMPCActionCfgSimpleDynSwingGait(BlindLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCActionSimpleDynSwingGait
+
+@configclass
+class BlindLocomotionMPCActionCfgResAll(BlindLocomotionMPCActionCfg):
+    class_type: type[ActionTerm] = mpc_actions.BlindLocomotionMPCActionResAll
+
+
+"""
+perceptive MPC class.
+"""
 
 @configclass
 class PerceptiveLocomotionMPCActionCfg(BlindLocomotionMPCActionCfg):
@@ -134,11 +160,11 @@ class BlindLocomotionGPUMPCActionCfg(ActionTermCfg):
     horizon_length: int = 10
     """Horizon length of the robot."""
 
-    nominal_mpc_dt: float = 0.04
+    nominal_mpc_dt: float = 0.05
     """Nominal MPC dt of the robot."""
-    double_support_duration: int = 0
+    double_support_duration: int = 1
     """Double support duration of the robot."""
-    single_support_duration: int = 5
+    single_support_duration: int = 4
     """Single support duration of the robot."""
 
     # nominal_mpc_dt: float = 0.025
@@ -148,11 +174,9 @@ class BlindLocomotionGPUMPCActionCfg(ActionTermCfg):
     # single_support_duration: int = 8
     # # """Single support duration of the robot."""
 
-    Q: list[float] = [150, 150, 250,   100, 100, 800,   1, 1, 1,   10, 10, 1]
-    # Q: list[float] = [150, 150, 250,   100, 100, 50,   1, 1, 10,   10, 10, 1]
+    Q: list[float] = [150, 150, 250,   100, 100, 500,   1, 1, 5,   10, 10, 1]
     """State cost weights."""
     R: list[float] = [1e-5, 1e-5, 1e-5,   1e-5, 1e-5, 1e-5,   1e-4 , 1e-4, 1e-4,   1e-4, 1e-4, 1e-4]
-    # R: list[float] = [1e-5, 1e-5, 1e-4,   1e-5, 1e-5, 1e-4,   1e-4, 1e-4, 1e-4,   1e-4, 1e-4, 1e-4]
 
     # solver
     solver_name: Literal["osqp", "qpth", "casadi", "cusadi"] = "cusadi"

@@ -87,8 +87,11 @@ params:
     reg_loss_coef: 0.01 
 
     # bound loss
-    bounds_loss_coef: 0.03 # did not work for randomized velocity
-    bounds_loss_action_dim: [7] # pz_max
+    # bounds_loss_coef: 0.03 
+    # bounds_loss_action_dim: [0] # pz_max (model swing)
+    # bounds_loss_action_dim: [1] # pz_max (model swing-gait)
+    # bounds_loss_action_dim: [12] # pz_max (model dyn-swing)
+    # bounds_loss_action_dim: [13] # pz_max (model resAll)
     bounds_loss_soft_lower_bound: [0.0]
     bounds_loss_soft_upper_bound: [1.0]
   
