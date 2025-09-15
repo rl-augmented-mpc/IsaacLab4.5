@@ -109,10 +109,8 @@ def main():
             obs, _, terminated, time_out, _ = env.step(action)
             dones = terminated | time_out
             obs = obs["policy"]
-            action_term_name = "mpc_action"
-            # action_term_name = "joint_pos"
+            action_term_name = "joint_pos"
             processed_actions = env.unwrapped.action_manager.get_term(action_term_name).processed_actions # type: ignore
-            # state = env.unwrapped.action_manager.get_term(action_term_name).state # type: ignore
             
             reward_items = ["track_lin_vel_xy_exp"] # add reward term you want to log here
             reward_index = [env.unwrapped.reward_manager._term_names.index(item) for item in reward_items] # type: ignore
@@ -149,10 +147,10 @@ def main():
                     # print(f"[INFO] Env {i}: Episode {episode_counter[i]} completed with episode length {episode_length_log[i]}.")
                     if terrain_out_of_bounds[i]:
                         print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Terrain out of bounds with length {episode_length_log[i]}")
-                    if bad_orientation[i]:
-                        print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Bad orientation with length {episode_length_log[i]}")
-                    if base_too_low[i]:
-                        print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Base too low with length {episode_length_log[i]}")
+                    # if bad_orientation[i]:
+                    #     print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Bad orientation with length {episode_length_log[i]}")
+                    # if base_too_low[i]:
+                    #     print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Base too low with length {episode_length_log[i]}")
                     if time_out[i]:
                         print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Time out")
                     if args_cli.log:

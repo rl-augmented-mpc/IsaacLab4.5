@@ -84,8 +84,7 @@ class HECTORBlindLocomotionSceneCfg(InteractiveSceneCfg):
     contact_forces = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/Robot/.*", 
         history_length=3, 
-        # track_air_time=True,
-        track_air_time=False,
+        track_air_time=True,
         update_period=1/100,
         debug_vis=False,
         )
@@ -107,8 +106,7 @@ class HECTORBlindLocomotionSceneCfg(InteractiveSceneCfg):
     toe_contact = ContactSensorCfg(
         prim_path="{ENV_REGEX_NS}/Robot/.*_toe_tip",
         history_length=3,
-        # track_air_time=True,
-        track_air_time=False,
+        track_air_time=True,
         update_period=1/100,
         debug_vis=False,
         )

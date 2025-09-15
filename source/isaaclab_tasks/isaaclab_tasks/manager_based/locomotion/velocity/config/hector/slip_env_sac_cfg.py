@@ -48,13 +48,13 @@ class HECTORSlipEnvSACCfg(LocomotionVelocityRoughEnvCfg):
         self.scene.terrain = hector_mdp.CurriculumFrictionPatchTerrain
         self.scene.height_scanner = None
         
-        self.viewer = ViewerCfg(
-            eye=(0.0, -2.0, 0.0), 
-            lookat=(0.0, -1.0, 0.0),
-            resolution=(1920, 1080), 
-            origin_type="asset_root", 
-            asset_name="robot"
-        )
+        # self.viewer = ViewerCfg(
+        #     eye=(0.0, -2.0, 0.0), 
+        #     lookat=(0.0, -1.0, 0.0),
+        #     resolution=(1920, 1080), 
+        #     origin_type="asset_root", 
+        #     asset_name="robot"
+        # )
         
         # command
         self.commands.base_velocity.ranges.lin_vel_x = (0.5, 0.5)
@@ -104,19 +104,24 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
 
         # events
         self.events.reset_base.params["pose_range"] = {
-            # "x": (-0.25-0.5, 0.25-0.5), 
-            # "y": (-0.3+0.2, 0.3+0.2),
-            "x": (0.1, 0.1), 
-            "y": (0.4, 0.4),
+            "x": (-0.3, 0.3), 
+            "y": (-0.3, 0.3),
             "z": (0.0, 0.0),
             "roll": (0.0, 0.0),
             "pitch": (0.0, 0.0),
-              
-            "yaw": (-0, 0),
-            # "yaw": (-math.pi/6, math.pi/6),
-            # "yaw": (-math.pi, math.pi),
+            "yaw": (-math.pi, math.pi),
         }
         self.events.reset_terrain_type = None
+
+        # # for recording 
+        # self.events.reset_base.params["pose_range"] = {
+        #     "x": (-0.25-0.5, 0.25-0.5), 
+        #     "y": (-0.3+0.2, 0.3+0.2),
+        #     "z": (0.0, 0.0),
+        #     "roll": (0.0, 0.0),
+        #     "pitch": (0.0, 0.0),
+        #     "yaw": (-0, 0),
+        # }
 
         # termination 
         self.terminations.terrain_out_of_bounds.params["distance_buffer"] = 0.125
@@ -127,7 +132,7 @@ class HECTORSlipEnvSACCfgPLAY(HECTORSlipEnvSACCfg):
         self.scene.sky_light.init_state.rot = (0.8660254, 0.5, 0.0, 0.0)  # roll=60deg
 
         # rendering optimization  
-        RECORDING = True
+        RECORDING = False
 
         if RECORDING:
             # quality rendering

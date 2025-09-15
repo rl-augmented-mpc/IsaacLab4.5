@@ -39,6 +39,11 @@ class HECTORTerminationsCfg:
         time_out=True,
     )
 
+    base_contact = DoneTerm(
+        func=mdp.illegal_contact, # type: ignore
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
+    )
+
     # base_too_high = DoneTerm(
     #     func=hector_mdp.root_height_above_maximum_adaptive,  # type: ignore
     #     params={
