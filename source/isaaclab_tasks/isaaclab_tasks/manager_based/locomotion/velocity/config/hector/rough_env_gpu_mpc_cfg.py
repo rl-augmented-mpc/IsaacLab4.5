@@ -106,21 +106,22 @@ class HECTORGPURoughEnvBlindLocomotionSACCfgPLAY(HECTORGPURoughEnvBlindLocomotio
         self.sim.render_interval = 2*self.decimation
 
         # solver
-        # self.actions.mpc_action.solver_name = "qpth"
+        self.actions.mpc_action.solver_name = "qpth"
         # self.actions.mpc_action.solver_name = "osqp"
-        self.actions.mpc_action.solver_name = "casadi"
+        # self.actions.mpc_action.solver_name = "casadi"
         # self.actions.mpc_action.solver_name = "cusadi"
 
-        # update discretization step 
-        self.actions.mpc_action.nominal_mpc_dt = 0.025
-        self.actions.mpc_action.double_support_duration = 2
-        self.actions.mpc_action.single_support_duration = 8
+        # update discretization step (ONLY DO THIS FOR CASADI/OSQP)
+        # self.actions.mpc_action.nominal_mpc_dt = 0.025
+        # self.actions.mpc_action.double_support_duration = 2
+        # self.actions.mpc_action.single_support_duration = 8
 
 
         # terrain
-        # self.scene.terrain = hector_mdp.BaseTerrain 
+        self.scene.terrain = hector_mdp.BaseTerrain 
+        self.curriculum.terrain_levels = None
         # self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
-        self.scene.terrain = hector_mdp.RegularStair
+        # self.scene.terrain = hector_mdp.RegularStair
         # self.scene.terrain = hector_mdp.RandomStair
         # self.scene.terrain = hector_mdp.RandomBlock
         

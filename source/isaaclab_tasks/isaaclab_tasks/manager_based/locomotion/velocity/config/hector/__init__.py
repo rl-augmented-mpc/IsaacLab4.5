@@ -30,11 +30,17 @@ BASE_CLASS = [
     # "HECTOR-ManagerBased-RL-L2T-Rough",
     # "HECTOR-ManagerBased-RL-L2T-Rough-PLAY",
 
+    # CUDA-MPC
     "HECTOR-ManagerBased-RL-GPU-SAC-Rough-Blind",
     "HECTOR-ManagerBased-RL-GPU-SAC-Rough-Blind-PLAY",
 
     "HECTOR-ManagerBased-RL-GPU-SAC-SLIP",
     "HECTOR-ManagerBased-RL-GPU-SAC-SLIP-PLAY",
+
+
+    # E2E
+    "HECTOR-ManagerBased-E2E-RL-SAC-Rough-Blind",
+    "HECTOR-ManagerBased-E2E-RL-SAC-Rough-Blind-PLAY",
 ]
 
 ARGS = [
@@ -124,6 +130,16 @@ ARGS = [
     {
         "env_cfg_entry_point": f"{__name__}.slip_env_gpu_mpc_cfg:HECTORGPUSlipEnvSACCfgPLAY",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_slip_batched_mpc_inference.yaml",
+    },
+
+    # E2E SAC blind rough env
+    {
+        "env_cfg_entry_point": f"{__name__}.rough_env_sac_e2e_cfg:HECTORRLRoughEnvBlindLocomotionSACCfg",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_e2e.yaml",
+    },
+    {
+        "env_cfg_entry_point": f"{__name__}.rough_env_sac_e2e_cfg:HECTORRLRoughEnvBlindLocomotionSACCfgPLAY",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_sac_e2e_inference.yaml",
     },
 ]
 

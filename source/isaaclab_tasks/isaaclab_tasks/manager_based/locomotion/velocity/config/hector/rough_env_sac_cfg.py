@@ -178,7 +178,7 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         self.curriculum.terrain_levels = None
 
         self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
-        # self.events.reset_base.params["multiplier"] = 2
+        self.events.reset_base.params["multiplier"] = 2
         self.events.reset_base.params["pose_range"] = {
             "x": (-0.3, 0.3), 
             "y": (-0.3, 0.3), 
@@ -210,22 +210,25 @@ class HECTORRoughEnvBlindLocomotionSACCfgPLAY(HECTORRoughEnvBlindLocomotionSACCf
         self.terminations.terrain_out_of_bounds.params["distance_buffer"] = 0.125
 
         # rendering optimization 
-        RECORDING = False
+        RECORDING = True
 
         if RECORDING:
             # quality rendering
             self.viewer = ViewerCfg(
-                eye=(0.0, -2.0, 0.4), 
-                lookat=(0.0, -0.5, 0.1),
-                # eye=(-0.0, -1.4, -0.2), 
-                # lookat=(0.0, -0.8, -0.2),
-                resolution=(3840, 2160), # 4K
+                # eye=(0.0, -2.0, 0.4), 
+                # lookat=(0.0, -0.5, 0.1),
+                eye=(-0.0, -1.4, -0.2), 
+                lookat=(0.0, -0.8, -0.2),
+                # resolution=(3840, 2160), # 4K
+                resolution=(1920, 1080), 
                 origin_type="asset_root", 
                 asset_name="robot"
             )
-            self.sim.render_interval = self.decimation
-            self.sim.render.dlss_mode = 2 # 0 (Performance), 1 (Balanced), 2 (Quality), or 3 (Auto)
-            self.sim.render.antialiasing_mode = "DLSS" # "Off", "FXAA", "DLSS", "TAA", "DLAA"
+            # self.sim.render_interval = self.decimation
+            # self.sim.render.dlss_mode = 2 # 0 (Performance), 1 (Balanced), 2 (Quality), or 3 (Auto)
+            # self.sim.render.antialiasing_mode = "DLSS" # "Off", "FXAA", "DLSS", "TAA", "DLAA"
+            self.sim.render.dlss_mode = 0 # 0 (Performance), 1 (Balanced), 2 (Quality), or 3 (Auto)
+            self.sim.render.antialiasing_mode = None # "Off", "FXAA", "DLSS", "TAA", "DLAA"
 
         else:
             # performance rendering

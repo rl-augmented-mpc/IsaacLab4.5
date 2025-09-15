@@ -206,11 +206,10 @@ def main():
     # convert obs to agent format
     obs = agent.obs_to_torch(obs)
 
-    action_term_name = "mpc_action"
-    state = env.unwrapped.action_manager.get_term(action_term_name).state # type: ignore
+    # action_term_name = "mpc_action"
+    action_term_name = "joint_pos"
     
     obs_prev = obs.clone()  # type: ignore
-    state_prev = state.clone()  # type: ignore
     
     # required: enables the flag for batched observations
     _ = agent.get_batch_size(obs, 1)
@@ -236,7 +235,6 @@ def main():
             obs = agent.obs_to_torch(obs)
             
             processed_actions = env.unwrapped.action_manager.get_term(action_term_name).processed_actions # type: ignore
-            state = env.unwrapped.action_manager.get_term(action_term_name).state # type: ignore
             
             if args_cli.perceptive:
                 # reward_items = ["undesired_contacts_toe"] # perceptive policy
@@ -272,7 +270,7 @@ def main():
         
         if args_cli.log:
             item_dict = {
-                "state": state_prev.cpu().numpy(),  # type: ignore
+                # "state": state_prev.cpu().numpy(),  # type: ignore
                 "obs": obs_prev.cpu().numpy(), # type: ignore
                 "raw_action": action.cpu().numpy(),  # type: ignore
                 "action": processed_actions.cpu().numpy(),
@@ -331,7 +329,6 @@ def main():
             
         # update buffer
         obs_prev = obs.clone()  # type: ignore
-        state_prev = state.clone()  # type: ignore
         
         # Incremenet episode length 
         for i  in range(args_cli.num_envs):
@@ -346,10 +343,10 @@ def main():
                     # print(f"[INFO] Env {i}: Episode {episode_counter[i]} completed with episode length {episode_length_log[i]}.")
                     if terrain_out_of_bounds[i]:
                         print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Terrain out of bounds with length {episode_length_log[i]}")
-                    if bad_orientation[i]:
-                        print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Bad orientation with length {episode_length_log[i]}")
-                    if base_too_low[i]:
-                        print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Base too low with length {episode_length_log[i]}")
+                    # if bad_orientation[i]:
+                    #     print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Bad orientation with length {episode_length_log[i]}")
+                    # if base_too_low[i]:
+                    #     print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Base too low with length {episode_length_log[i]}")
                     if time_out[i]:
                         print(f"[INFO] Env {i}: Episode {episode_counter[i]} - Time out")
 

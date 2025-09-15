@@ -444,3 +444,123 @@ class HECTORGPUBlindLocomotionRewardsCfg(RewardsCfg):
     feet_air_time = None
     flat_orientation_l2 = None
     undesired_contacts = None
+
+
+
+"""
+E2E RL
+"""
+
+@configclass
+class HECTORRLBlindLocomotionRewardsCfg(RewardsCfg):
+    """Reward terms for the MDP."""
+    
+    # -- rewards
+    track_lin_vel_xy_exp = RewTerm(
+        func=mdp.track_lin_vel_xy_yaw_frame_exp,
+        weight=1.0,
+        params={
+            "command_name": "base_velocity", 
+            "std": 0.5,
+            },
+    )
+
+    track_ang_vel_z_exp = RewTerm(
+        func=mdp.track_ang_vel_z_world_exp, 
+        weight=0.5,
+        params={
+            "command_name": "base_velocity", 
+            "std": 0.5,
+            }, 
+    )
+    
+    track_height_exp = RewTerm(
+        func=hector_mdp.track_torso_height_exp, 
+        weight=0.5,
+        params={
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*_sole"),
+                "std": 0.1,
+                "reference_height": 0.55,
+                },
+    )
+
+    feet_air_time = RewTerm(
+        func=mdp.feet_air_time_positive_biped,
+        weight=0.75,
+        params={
+            "command_name": "base_velocity",
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+            "threshold": 0.3,
+        },
+    )
+
+    # -- penalties
+    termination = RewTerm(func=mdp.is_terminated, weight=-200.0) # type: ignore
+    action_rate_l2 = RewTerm(
+        func=mdp.action_rate_l2, # type: ignore
+        # weight=-0.015, 
+        weight=-0.005, 
+        )
+    
+    # base state penalties
+    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0) # type: ignore
+    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.1) # type: ignore
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-10.0) # type: ignore
+    
+    # -- joint penalties
+    dof_vel_l2 = RewTerm(
+        func=mdp.joint_vel_l2,  # type: ignore
+        weight=-2.5e-4,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])},
+    )
+    dof_acc_l2 = RewTerm(
+        func=mdp.joint_acc_l2,  # type: ignore
+        weight=-1.25e-7, 
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint"])},
+    )
+    dof_torques_l2 = RewTerm(
+        func=mdp.joint_torques_l2,  # type: ignore
+        # weight=-1.0e-7, 
+        weight=-1.0e-5, 
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_joint", ".*_hip2_joint", ".*_thigh_joint", ".*_calf_joint", ".*_toe_joint"])}
+        )
+    # penalize joint limit violation
+    dof_pos_limits = RewTerm(
+        func=mdp.joint_pos_limits,  # type: ignore
+        weight=-0.5,
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+            )
+        },
+    )
+    # penalize deviation from default of joints that are not essential for locomotion
+    joint_deviation_hip = RewTerm(
+        func=mdp.joint_deviation_l1,  # type: ignore
+        weight=-1.0,
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot", joint_names=[".*_hip_joint", ".*_hip2_joint"]
+            )
+        },
+    )
+
+    # -- foot penalties
+    feet_slide = RewTerm(
+        func=mdp.feet_slide,
+        weight=-0.1,
+        params={
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_toe"),
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_toe"),
+        },
+    )
+
+    undesired_contacts = None
+
+    # contact penalties
+    # undesired_contacts_knee = RewTerm(
+    #     func=mdp.undesired_contacts, # type: ignore
+    #     weight=-5.0,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},
+    # )

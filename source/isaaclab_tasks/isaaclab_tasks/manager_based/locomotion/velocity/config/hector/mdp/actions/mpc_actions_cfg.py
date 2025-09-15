@@ -179,8 +179,8 @@ class BlindLocomotionGPUMPCActionCfg(ActionTermCfg):
     R: list[float] = [1e-5, 1e-5, 1e-5,   1e-5, 1e-5, 1e-5,   1e-4 , 1e-4, 1e-4,   1e-4, 1e-4, 1e-4]
 
     # solver
-    solver_name: Literal["osqp", "qpth", "casadi", "cusadi"] = "cusadi"
-    print_solve_time: bool = False
+    solver_name: Literal["osqp", "qpth", "casadi", "cusadi"] = "qpth"
+    print_solve_time: bool = True
     robot: Literal["HECTOR", "T1"] = "HECTOR"
     swing_reference_frame: Literal["world", "base"] = "base"
 
