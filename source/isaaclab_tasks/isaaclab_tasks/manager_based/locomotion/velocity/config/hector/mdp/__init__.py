@@ -17,12 +17,11 @@ from .actions.mpc_actions_cfg import (
     BlindLocomotionGPUMPCActionCfg2, 
 )
 from .terrain.terrain_cfg import (
-    BaseTerrain,
-    SteppingStoneTerrain, SteppingStoneTerrainBatch, CurriculumSteppingStoneTerrain, InferenceSteppingStoneTerrain, 
+    BaseTerrain, 
+    RoughTerrain, SteppingStoneTerrain,
     CurriculumFrictionPatchTerrain, InferenceAlternatingFrictionPatchTerrain,
     PyramidHfTerrain, FractalTerrain,
-
-    RandomBlock, RegularStair, RandomStair
+    RandomBlock, RegularStair, RandomStair,
 )
 
 IMPORT_DYNAMIC_TERRAIN = False

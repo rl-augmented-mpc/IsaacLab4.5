@@ -1,6 +1,8 @@
 # Hector IsaacLab simulation 
+This is simulation code for "RL-augmented Adaptive Model Predictive Control for Bipedal Locomotion over Challenging Terrain". 
+Later, this code will be integrated to the latest IsaacLab. 
 
-## Before begin
+## Initial setups
 
 ### Install IsaacSim 4.5
 See official [docs](https://isaac-sim.github.io/IsaacLab/main/source/setup/installation/pip_installation.html#installing-isaac-sim) \
@@ -8,12 +10,11 @@ Use conda and pip install IsaacSim4.5.
 
 ### Clone this repository
 ```bash
-git clone git@github.com:jnskkmhr/IsaacLab.git -b devel 
+git clone git@github.com:rl-augmented-mpc/IsaacLab4.5.git -b devel 
 ```
 
 ### Pull usd asset via git LFS
 ```bash
-cd source/isaaclab_assets/data/Robot/Hector
 git lfs pull
 ```
 
@@ -24,21 +25,31 @@ cd ~/IsaacLab
 ./isaaclab.sh -i
 ```
 
-### Build Convex MPC Controller
+### Install C++ MPC Controller
 ```bash
-git clone https://github.gatech.edu/GeorgiaTechLIDARGroup/HECTOR_HW_new.git -b feature/gait_update_v2
-./isaaclab.sh -p -m pip install -e {/path/to/hector/controller}
+cd ~
+git clone git@github.com:rl-augmented-mpc/HECTOR_HW.git
+cd HECTOR_HW
+./isaaclab.sh -p -m pip install -e .
+```
+
+### Install PyTorch MPC controller
+```bash
+cd ~
+git clone git@github.com:rl-augmented-mpc/Biped-PyMPC.git
+cd Biped-PyMPC
+./isaaclab.sh -p -m pip install -e .
 ```
 
 ### Install RL libraries
-We use modified library of rsl-rl and rl_games (recommended). 
+We use modified library of rl_games (recommended). 
 ```bash
-git clone git@github.com:jnskkmhr/rl_games.git
-git clone -b devel git@github.com:jnskkmhr/rsl_rl.git
+cd ~
+git clone git@github.com:rl-augmented-mpc/rl_games.git
 
 # and install
-./isaaclab.sh -p -m pip install -e {/path/to/rsl_rl}
-./isaaclab.sh -p -m pip install -e {/path/to/rl_games}
+cd ~/rl_games
+./isaaclab.sh -p -m pip install -e .
 ./isaaclab.sh -p -m pip install ray
 ```
 
@@ -46,33 +57,35 @@ git clone -b devel git@github.com:jnskkmhr/rsl_rl.git
 
 ### Run MPC
 
-Only MPC
-
+#### w/ C++ MPC
 ```bash
-./isaaclab.sh -p scripts/biped/convex_mpc/play.py --task HECTOR-ManagerBased-RL-SAC-Block-PLAY --num_envs 1 --max_trials 10 --episode_length 20
+./isaaclab.sh -p scripts/biped/convex_mpc/play.py --task HECTOR-ManagerBased-RL-SAC-Rough-Blind-PLAY --num_envs 1 --max_trials 1 --episode_length 20
+```
+#### w/ batch-MPC
+```bash
+./isaaclab.sh -p scripts/biped/convex_mpc/play.py --task HECTOR-ManagerBased-RL-GPU-SAC-Rough-Blind --num_envs 1024 --max_trials 1 --episode_length 20
 ```
 
-### Train RL 
+### Train policy
 
-<!-- #### (RSl-RL)
+#### w/ C++ MPC
 ```bash
-./isaaclab.sh -p scripts/biped/rsl_rl/train.py --task SteppingStone --num_envs 32 --video --headless
-```
-After a while, you will see the logs under `logs` directory (for example `logs/rsl_rl/ppo_rsl_rl_lstm_friction/2025-03-17_15-31-27`).  -->
-
-#### (RL-Games)
-```bash
-./isaaclab.sh -p scripts/biped/rl_games/train.py --task HECTOR-ManagerBased-RL-SAC-Block --num_envs 32 --video --headless
+./isaaclab.sh -p scripts/biped/rl_games/train.py --task HECTOR-ManagerBased-RL-SAC-Rough-Blind --num_envs 24 --video --headless
 ```
 
-### Inference
-
-<!-- #### (RSl-RL)
+#### w/ batch-MPC
 ```bash
-./isaaclab.sh -p scripts/biped/rsl_rl/play.py --task SteppingStone --num_envs 1 --max_trials 100
-``` -->
+./isaaclab.sh -p scripts/biped/rl_games/train.py --task HECTOR-ManagerBased-RL-GPU-SAC-Rough-Blind --num_envs 1024 --video --headless
+```
 
-#### (RL-Games)
+### Run trained policy
+
+#### w/ C++ MPC
 ```bash
-./isaaclab.sh -p scripts/biped/rl_games/play.py --task HECTOR-ManagerBased-RL-SAC-Block-PLAY --num_envs 1 --max_trials 100
+./isaaclab.sh -p scripts/biped/rl_games/play.py --task HECTOR-ManagerBased-RL-SAC-Rough-Blind-PLAY --num_envs 1 --max_trials 1 --use_rl
+```
+
+#### w/ batch-MPC
+```bash
+./isaaclab.sh -p scripts/biped/rl_games/play.py --task HECTOR-ManagerBased-RL-GPU-SAC-Rough-Blind-PLAY --num_envs 1 --max_trials 1 --use_rl
 ```
