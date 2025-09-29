@@ -289,10 +289,7 @@ class HECTORRoughEnvPerceptiveLocomotionSACCfgPLAY(HECTORRoughEnvPerceptiveLocom
         super().__post_init__()
         self.seed = 42
 
-        # self.scene.terrain = hector_mdp.InferenceRandomBlockTerrain
-        # self.scene.terrain = hector_mdp.TripOverChallengeTerrain
-        # self.scene.terrain = hector_mdp.BoxRoughTerrain
-        self.scene.terrain = hector_mdp.InferenceSteppingStoneTerrain
+        self.scene.terrain = hector_mdp.RegularStair
 
         self.events.reset_base.func=hector_mdp.reset_root_state_orthogonal
         self.events.reset_base.params["multiplier"] = 2
